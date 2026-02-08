@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 1. MONDAY.COM BASE THEME */
+body {
+  background-color: #eceff8; /* Signature Light Grey */
+  color: #323338;          /* Soft Black */
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 2. CARD UTILITY */
+.monday-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #d0d4e4;
+}
+
+/* 3. STATUS PILLS */
+.status-pill {
+  color: white;
+  font-weight: 500;
+  text-align: center;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+  text-transform: capitalize;
+  font-size: 0.75rem;
+  padding: 6px 4px;
+  width: 100%;
+  display: block;
+  cursor: default;
+}
+
+.status-pill:hover {
+  filter: brightness(1.05);
+  transform: scale(1.02);
+}
+
+/* 4. SCROLLBARS (Mac Style) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+  background: #c4c4c4; 
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0; 
+}
