@@ -1,54 +1,35 @@
 import React, { useState } from 'react';
 import { db } from '../firebase';
-import { updateDoc, doc, arrayUnion, writeBatch, getDoc } from 'firebase/firestore';
+import { updateDoc, doc, arrayUnion, writeBatch } from 'firebase/firestore';
 import { MONTHS } from '../utils';
 import { Loader2, AlertCircle, CheckCircle2, Database } from 'lucide-react';
 
 const AdminPanel = ({ teamData }) => {
-    // 2026 Leadership Roster
     const STAFF_LIST = ['Alif', 'Nisa', 'Fadzlynn', 'Derlinder', 'Ying Xian', 'Brandon'];
-    
-    // Excel-Aligned Pillars
     const DOMAIN_LIST = ['MANAGEMENT', 'CLINICAL', 'EDUCATION', 'RESEARCH', 'A.O.B.'];
 
     const [selectedStaff, setSelectedStaff] = useState('');
     const [selectedDomain, setSelectedDomain] = useState('MANAGEMENT');
     const [projectTask, setProjectTask] = useState('');
-    const [statusDots, setStatusDots] = useState(1);
     
-    // For Month Update
     const [selectedMonth, setSelectedMonth] = useState('Jan');
     const [clinicalLoadCount, setClinicalLoadCount] = useState(0);
 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
-    // --- 1. THE SMART SEEDER (Matches your Excel Task List) ---
     const handleInitializeDatabase = async () => {
+        if (!window.confirm("This will reset all project lists to the default 2026 template. Continue?")) return;
+        
         setLoading(true);
         setMessage('Initializing SSMC 2026 Leadership Structure...');
         try {
             const batch = writeBatch(db);
-            
-            // Task Universes
-            const managementTasks = [
-                "Appraisal", "Budgeting Exercise", "CEP - COP | CDP | IDP", "Committee involvement",
-                "Costing and charging", "EPIC Implementation", "Fitness Centre facade", "In service meetings",
-                "Joy @ Work", "Manpower Requisition", "OAS", "Office logistics", "Preventive Maintenance",
-                "RMA & Patient Safety", "Service developments", "Site Visits", "Staff Development", "Staffing & Rostering"
-            ];
-            const clinicalTasks = [
-                "CPET | VMAX", "EST", "FSG", "GDM GPAC", "INDV", "IGNITE EDNOS", "IGNITE NAI", 
-                "IGNITE IWM", "IGNITE PO", "IGNITE CR", "IGNITE WF", "NC", "PAC", "POWERS", "SKG", "VC", "VCGRP"
-            ];
+            const managementTasks = ["Appraisal", "Budgeting Exercise", "CEP - COP | CDP | IDP", "Committee involvement", "Costing and charging", "EPIC Implementation", "Fitness Centre facade", "In service meetings", "Joy @ Work", "Manpower Requisition", "OAS", "Office logistics", "Preventive Maintenance", "RMA & Patient Safety", "Service developments", "Site Visits", "Staff Development", "Staffing & Rostering"];
+            const clinicalTasks = ["CPET | VMAX", "EST", "FSG", "GDM GPAC", "INDV", "IGNITE EDNOS", "IGNITE NAI", "IGNITE IWM", "IGNITE PO", "IGNITE CR", "IGNITE WF", "NC", "PAC", "POWERS", "SKG", "VC", "VCGRP"];
             const researchTasks = ["C.A.R.E.", "e-IMPACT", "ENDO EST", "ImmersiFit", "SuperDads", "Telefit4Kids"];
-            const educationTasks = [
-                "Antenatal Education", "Conferences and Talks", "Dynamite Daisies", "EIMS Principles",
-                "Exercise Resources", "ITE Teaching", "KKH EOP v2", "Observeship", "Project ARIF", 
-                "Social Media", "Student Internship", "Survivors Talks", "Women's Health Forum"
-            ];
+            const educationTasks = ["Antenatal Education", "Conferences and Talks", "Dynamite Daisies", "EIMS Principles", "Exercise Resources", "ITE Teaching", "KKH EOP v2", "Observeship", "Project ARIF", "Social Media", "Student Internship", "Survivors Talks", "Women's Health Forum"];
 
-            // Assign Roles & Tasks
             const staffConfig = [
                 { id: 'alif', name: 'Alif', tasks: [...managementTasks.slice(0, 10), ...researchTasks.slice(0, 3)] },
                 { id: 'nisa', name: 'Nisa', tasks: managementTasks.slice(10) },
@@ -60,19 +41,12 @@ const AdminPanel = ({ teamData }) => {
 
             for (const person of staffConfig) {
                 const docRef = doc(db, 'cep_team', person.id);
-                
-                // Build Project Objects
                 const projects = person.tasks.map(t => {
                     let domain = 'MANAGEMENT';
                     if (clinicalTasks.includes(t)) domain = 'CLINICAL';
                     if (researchTasks.includes(t)) domain = 'RESEARCH';
                     if (educationTasks.includes(t)) domain = 'EDUCATION';
-                    
-                    return {
-                        title: t,
-                        domain_type: domain,
-                        status_dots: 1 // Default to "Stuck" (Red)
-                    };
+                    return { title: t, domain_type: domain, status_dots: 1 };
                 });
 
                 batch.set(docRef, {
@@ -84,11 +58,11 @@ const AdminPanel = ({ teamData }) => {
             }
 
             await batch.commit();
-            setMessage('✅ SSMC Board Initialized with 4 Pillars and 44 Tasks! Refresh to view.');
+            setMessage('✅ SSMC Board Initialized! Refresh the page.');
         } catch (error) {
             setMessage('❌ Error: ' + error.message);
         } finally {
-            setLoading(false);
+            setLoading(false); // <--- This forces the spinner to stop
         }
     };
 
@@ -107,7 +81,7 @@ const AdminPanel = ({ teamData }) => {
                 projects: arrayUnion({
                     title: projectTask,
                     domain_type: selectedDomain,
-                    status_dots: parseInt(statusDots)
+                    status_dots: 1
                 })
             });
             setMessage(`✅ Added "${projectTask}" for ${selectedStaff}`);
@@ -115,7 +89,7 @@ const AdminPanel = ({ teamData }) => {
         } catch (error) {
             setMessage('❌ Error: ' + error.message);
         } finally {
-            setLoading(false);
+            setLoading(false); // <--- Safety catch
         }
     };
 
@@ -150,11 +124,9 @@ const AdminPanel = ({ teamData }) => {
         } catch (error) {
             setMessage('❌ Error updating load: ' + error.message);
         } finally {
-            setLoading(false);
+            setLoading(false); // <--- Safety catch
         }
     };
-
-    const needsInitialization = !teamData || teamData.length === 0;
 
     return (
         <div className="monday-card p-6 mt-6 mb-8">
@@ -170,24 +142,14 @@ const AdminPanel = ({ teamData }) => {
                 </div>
             )}
 
-            {/* INITIALIZATION BUTTON */}
-            <div className={`mb-8 p-6 rounded-lg border text-center transition-all ${needsInitialization ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-100 opacity-80'}`}>
-                {needsInitialization ? (
-                    <p className="text-yellow-800 font-bold mb-3">⚠️ Database is empty. Load the 2026 Leadership Structure.</p>
-                ) : (
-                    <p className="text-gray-500 mb-3 text-sm">Database is connected. Use this to reset the board to default tasks.</p>
-                )}
-                <button
-                    onClick={handleInitializeDatabase}
-                    disabled={loading}
-                    className="px-6 py-2 bg-[#ffcb00] hover:bg-[#e6b800] text-[#323338] rounded-md font-bold shadow-sm transition-all flex items-center justify-center mx-auto gap-2"
-                >
+            <div className={`mb-8 p-6 rounded-lg border text-center transition-all bg-gray-50 border-gray-100`}>
+                <p className="text-gray-500 mb-3 text-sm">Need to reset the board?</p>
+                <button onClick={handleInitializeDatabase} disabled={loading} className="px-6 py-2 bg-[#ffcb00] hover:bg-[#e6b800] text-[#323338] rounded-md font-bold shadow-sm transition-all flex items-center justify-center mx-auto gap-2">
                     {loading ? <Loader2 className="animate-spin" size={20} /> : <><Database size={16}/> Initialize / Reset Board</>}
                 </button>
             </div>
 
-            {/* FORMS */}
-            <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 ${needsInitialization ? 'opacity-40 pointer-events-none' : ''}`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-8`}>
                 <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-[#323338] border-b pb-2">Add New Item</h3>
                     <form onSubmit={handleAddProject} className="space-y-4">
