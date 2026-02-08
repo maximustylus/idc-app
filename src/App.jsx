@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from './firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore'; // Added updateDoc
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import ResponsiveLayout from './components/ResponsiveLayout';
 import KpiChart from './components/KpiChart';
@@ -8,21 +8,21 @@ import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
 import { Settings, LogOut, User } from 'lucide-react';
 
-// --- CONFIGURATION: EXCEL & MONDAY HYBRID COLORS ---
+// --- CONFIGURATION ---
 const PILLAR_COLORS = {
-    'MANAGEMENT': '#FFF2CC', // Excel Yellow
-    'CLINICAL': '#FCE4D6',   // Excel Peach
-    'EDUCATION': '#FBE5D6',  // Excel Light Orange
-    'RESEARCH': '#E2EFDA',   // Excel Light Green
-    'A.O.B.': '#E2F0D9'      // Excel Green
+    'MANAGEMENT': '#FFF2CC',
+    'CLINICAL': '#FCE4D6',
+    'EDUCATION': '#FBE5D6',
+    'RESEARCH': '#E2EFDA',
+    'A.O.B.': '#E2F0D9'
 };
 
 const HEADER_COLORS = {
-    'MANAGEMENT': '#FFD966', // Darker Yellow
-    'CLINICAL': '#F4B084',   // Darker Peach
-    'EDUCATION': '#FFC000',  // Gold
-    'RESEARCH': '#A9D08E',   // Green
-    'A.O.B.': '#548235'      // Dark Green
+    'MANAGEMENT': '#FFD966',
+    'CLINICAL': '#F4B084',
+    'EDUCATION': '#FFC000',
+    'RESEARCH': '#A9D08E',
+    'A.O.B.': '#548235'
 };
 
 const STATUS_CONFIG = {
@@ -54,6 +54,33 @@ function App() {
         return () => { unsubscribeAuth(); unsubscribeData(); };
     }, []);
 
+    // --- NEW: HANDLE STATUS CLICK ---
+    const handleStatusClick = async (staffId, projectIndex, currentStatus) => {
+        if (!user) return; // Only allow updates if logged in
+
+        // Cycle status: 1->2->3->4->5->1
+        const newStatus = currentStatus >= 5 ? 1 : currentStatus + 1;
+
+        try {
+            // We must update the specific item in the array
+            const staffMember = teamData.find(s => s.id === staffId);
+            if (!staffMember) return;
+
+            const updatedProjects = [...staffMember.projects];
+            updatedProjects[projectIndex] = {
+                ...updatedProjects[projectIndex],
+                status_dots: newStatus
+            };
+
+            const staffRef = doc(db, 'cep_team', staffId);
+            await updateDoc(staffRef, { projects: updatedProjects });
+            // No need to alert; the snapshot listener will auto-update the UI
+        } catch (error) {
+            console.error("Error updating status:", error);
+            alert("Failed to update status. Check console.");
+        }
+    };
+
     const handleLogout = async () => { await signOut(auth); setShowAdmin(false); };
 
     if (loading) return <div className="flex h-screen items-center justify-center bg-[#eceff8]"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
@@ -62,7 +89,6 @@ function App() {
 
     return (
         <ResponsiveLayout>
-            {/* --- TOP BAR --- */}
             <div className="col-span-1 md:col-span-2 flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
                     <img src="/logo.png" alt="SSMC" className="h-12 w-auto object-contain" onError={(e) => {e.target.style.display='none'}} />
@@ -92,7 +118,7 @@ function App() {
             {showLogin && <Login onClose={() => setShowLogin(false)} />}
             {user && showAdmin && <div className="col-span-1 md:col-span-2"><AdminPanel teamData={teamData} /></div>}
             
-            {/* --- SECTION 1: MONDAY.COM STYLE MAIN BOARD --- */}
+            {/* MAIN BOARD */}
             <div className="monday-card p-0 mb-8 col-span-1 md:col-span-2 overflow-hidden">
                 <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                      <h2 className="text-lg font-bold text-[#323338] flex items-center gap-2">
@@ -130,7 +156,13 @@ function App() {
                                                 </span>
                                             </div>
                                             <div className="col-span-3">
-                                                <div className="status-pill shadow-sm" style={{ backgroundColor: status.color }}>
+                                                {/* CLICKABLE STATUS PILL */}
+                                                <div 
+                                                    onClick={() => handleStatusClick(staff.id, idx, project.status_dots)}
+                                                    className={`status-pill shadow-sm select-none ${user ? 'cursor-pointer hover:scale-105' : 'cursor-default opacity-80'}`} 
+                                                    style={{ backgroundColor: status.color }}
+                                                    title={user ? "Click to change status" : "Login to edit"}
+                                                >
                                                     {status.label}
                                                 </div>
                                             </div>
@@ -143,7 +175,6 @@ function App() {
                 </div>
             </div>
 
-            {/* --- SECTION 2: ATTENDANCE CHART --- */}
             <div className="monday-card p-6 col-span-1 md:col-span-2">
                 <h2 className="text-lg font-bold mb-6 text-[#323338] flex items-center gap-2">
                     <span className="text-xl">📈</span> Monthly Patient Attendance
@@ -151,7 +182,6 @@ function App() {
                 <KpiChart data={teamData} staffNames={staffNames} />
             </div>
 
-            {/* --- SECTION 3: EXCEL SWIMLANES (BOTTOM) --- */}
             <div className="col-span-1 md:col-span-2 mt-4">
                 <h2 className="text-lg font-bold mb-4 text-[#323338] px-1 flex items-center gap-2">
                     <span className="text-xl">📋</span> Domain Overview
