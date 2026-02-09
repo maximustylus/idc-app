@@ -2,54 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 1. MONDAY.COM BASE THEME */
-body {
-  background-color: #eceff8; /* Signature Light Grey */
-  color: #323338;          /* Soft Black */
-  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
-  -webkit-font-smoothing: antialiased;
+/* 1. Base Theme Variables */
+@layer base {
+  body {
+    @apply bg-[#eceff8] text-[#323338] transition-colors duration-300;
+  }
+  /* When "dark" class is active on HTML tag */
+  :root.dark body {
+    @apply bg-[#111827] text-[#f3f4f6];
+  }
 }
 
-/* 2. CARD UTILITY */
+/* 2. Monday Card (Adaptive) */
 .monday-card {
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid #d0d4e4;
+  @apply bg-white border border-[#d0d4e4] rounded-lg shadow-sm transition-colors duration-300;
+}
+:root.dark .monday-card {
+  @apply bg-[#1f2937] border-[#374151] shadow-none;
 }
 
-/* 3. STATUS PILLS */
+/* 3. Status Pills */
 .status-pill {
-  color: white;
-  font-weight: 500;
-  text-align: center;
-  border-radius: 4px;
-  transition: all 0.2s ease-in-out;
-  text-transform: capitalize;
-  font-size: 0.75rem;
-  padding: 6px 4px;
-  width: 100%;
-  display: block;
-  cursor: default;
+  @apply text-white font-medium text-center rounded text-xs py-1.5 px-2 w-full block cursor-pointer hover:brightness-110 transition-all;
 }
 
-.status-pill:hover {
-  filter: brightness(1.05);
-  transform: scale(1.02);
-}
-
-/* 4. SCROLLBARS (Mac Style) */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent; 
-}
-::-webkit-scrollbar-thumb {
-  background: #c4c4c4; 
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #a0a0a0; 
-}
+/* 4. Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c4c4c4; border-radius: 3px; }
+:root.dark ::-webkit-scrollbar-thumb { background: #4b5563; }
