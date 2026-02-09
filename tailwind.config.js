@@ -5,10 +5,10 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class', // <--- THIS IS THE KEY LINE
   theme: {
     extend: {
       colors: {
-        // These match your SSMC Excel layout
         'excel-management': '#FFF2CC',
         'excel-clinical': '#FCE4D6',
         'excel-research': '#E2EFDA',
