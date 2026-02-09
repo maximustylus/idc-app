@@ -62,7 +62,7 @@ const AdminPanel = ({ teamData }) => {
         } catch (error) {
             setMessage('❌ Error: ' + error.message);
         } finally {
-            setLoading(false); // <--- This forces the spinner to stop
+            setLoading(false); 
         }
     };
 
@@ -89,7 +89,7 @@ const AdminPanel = ({ teamData }) => {
         } catch (error) {
             setMessage('❌ Error: ' + error.message);
         } finally {
-            setLoading(false); // <--- Safety catch
+            setLoading(false); 
         }
     };
 
@@ -124,26 +124,26 @@ const AdminPanel = ({ teamData }) => {
         } catch (error) {
             setMessage('❌ Error updating load: ' + error.message);
         } finally {
-            setLoading(false); // <--- Safety catch
+            setLoading(false); 
         }
     };
 
     return (
-        <div className="monday-card p-6 mt-6 mb-8">
-            <h2 className="text-xl font-bold mb-6 text-[#323338] flex items-center gap-2">
+        <div className="monday-card p-6 mt-6 mb-8 dark:bg-gray-800 dark:border-gray-700">
+            <h2 className="text-xl font-bold mb-6 text-[#323338] dark:text-white flex items-center gap-2">
                 <span className="w-2 h-8 bg-[#0073ea] rounded-full"></span>
                 Admin Data Entry
             </h2>
             
             {message && (
-                <div className={`p-4 mb-6 rounded-lg text-sm font-medium flex items-center gap-2 ${message.includes('Error') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                <div className={`p-4 mb-6 rounded-lg text-sm font-medium flex items-center gap-2 ${message.includes('Error') ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400'}`}>
                     {message.includes('Error') ? <AlertCircle size={18}/> : <CheckCircle2 size={18}/>}
                     {message}
                 </div>
             )}
 
-            <div className={`mb-8 p-6 rounded-lg border text-center transition-all bg-gray-50 border-gray-100`}>
-                <p className="text-gray-500 mb-3 text-sm">Need to reset the board?</p>
+            <div className={`mb-8 p-6 rounded-lg border text-center transition-all bg-gray-50 border-gray-100 dark:bg-gray-700/50 dark:border-gray-600`}>
+                <p className="text-gray-500 dark:text-gray-400 mb-3 text-sm">Need to reset the board?</p>
                 <button onClick={handleInitializeDatabase} disabled={loading} className="px-6 py-2 bg-[#ffcb00] hover:bg-[#e6b800] text-[#323338] rounded-md font-bold shadow-sm transition-all flex items-center justify-center mx-auto gap-2">
                     {loading ? <Loader2 className="animate-spin" size={20} /> : <><Database size={16}/> Initialize / Reset Board</>}
                 </button>
@@ -151,24 +151,24 @@ const AdminPanel = ({ teamData }) => {
 
             <div className={`grid grid-cols-1 md:grid-cols-2 gap-8`}>
                 <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-[#323338] border-b pb-2">Add New Item</h3>
+                    <h3 className="text-lg font-semibold text-[#323338] dark:text-gray-200 border-b pb-2 dark:border-gray-700">Add New Item</h3>
                     <form onSubmit={handleAddProject} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">Owner</label>
-                            <select className="w-full px-4 py-2 rounded-md border bg-white" value={selectedStaff} onChange={(e) => setSelectedStaff(e.target.value)} required>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Owner</label>
+                            <select className="w-full px-4 py-2 rounded-md border bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={selectedStaff} onChange={(e) => setSelectedStaff(e.target.value)} required>
                                 <option value="">Select Staff...</option>
                                 {STAFF_LIST.map(name => <option key={name} value={name}>{name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">Group (Domain)</label>
-                            <select className="w-full px-4 py-2 rounded-md border bg-white" value={selectedDomain} onChange={(e) => setSelectedDomain(e.target.value)}>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Group (Domain)</label>
+                            <select className="w-full px-4 py-2 rounded-md border bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={selectedDomain} onChange={(e) => setSelectedDomain(e.target.value)}>
                                 {DOMAIN_LIST.map(domain => <option key={domain} value={domain}>{domain}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">Item Name</label>
-                            <input type="text" className="w-full px-4 py-2 rounded-md border bg-white" value={projectTask} onChange={(e) => setProjectTask(e.target.value)} placeholder="e.g., Annual Report" required />
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Item Name</label>
+                            <input type="text" className="w-full px-4 py-2 rounded-md border bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={projectTask} onChange={(e) => setProjectTask(e.target.value)} placeholder="e.g., Annual Report" required />
                         </div>
                         <button type="submit" disabled={loading} className="w-full py-2 px-4 bg-[#0073ea] hover:bg-[#0060b9] text-white rounded-md font-medium shadow-sm flex justify-center">
                             {loading ? <Loader2 className="animate-spin" /> : 'Add Item'}
@@ -177,17 +177,17 @@ const AdminPanel = ({ teamData }) => {
                 </div>
 
                 <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-[#323338] border-b pb-2">Update Attendance Target</h3>
+                    <h3 className="text-lg font-semibold text-[#323338] dark:text-gray-200 border-b pb-2 dark:border-gray-700">Update Attendance Target</h3>
                     <form onSubmit={handleUpdateClinicalLoad} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">Month</label>
-                            <select className="w-full px-4 py-2 rounded-md border bg-white" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Month</label>
+                            <select className="w-full px-4 py-2 rounded-md border bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
                                 {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">Total Count (Target: 30)</label>
-                            <input type="number" className="w-full px-4 py-2 rounded-md border bg-white" value={clinicalLoadCount} onChange={(e) => setClinicalLoadCount(e.target.value)} placeholder="e.g. 32" required />
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total Count (Target: 30)</label>
+                            <input type="number" className="w-full px-4 py-2 rounded-md border bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={clinicalLoadCount} onChange={(e) => setClinicalLoadCount(e.target.value)} placeholder="e.g. 32" required />
                         </div>
                         <button type="submit" disabled={loading} className="w-full py-2 px-4 bg-[#00c875] hover:bg-[#00b065] text-white rounded-md font-medium shadow-sm flex justify-center">
                             {loading ? <Loader2 className="animate-spin" /> : 'Update Stats'}
