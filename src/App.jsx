@@ -5,8 +5,8 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import ResponsiveLayout from './components/ResponsiveLayout';
 import KpiChart from './components/KpiChart';
-import StaffLoadChart from './components/StaffLoadChart'; // Import New Chart
-import StatusBarChart from './components/StatusBarChart';
+import TaskProjectBarChart from './components/TaskProjectBarChart'; // NEW CHART
+import StaffLoadChart from './components/StaffLoadChart';
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
 
@@ -94,6 +94,7 @@ function App() {
             
             {/* ROW 1: KEY METRICS */}
             <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* DOMAIN DISTRIBUTION (Now a true PIE) */}
                 <div className="monday-card p-6 min-h-[360px] flex flex-col">
                     <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
                         Domain Distribution
@@ -101,7 +102,8 @@ function App() {
                     <div className="flex-grow w-full">
                         <ResponsiveContainer width="100%" height={250}>
                             <PieChart>
-                                <Pie data={getPieData()} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value">
+                                {/* Removed innerRadius to make it a PIE, not a DONUT */}
+                                <Pie data={getPieData()} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value">
                                     {getPieData().map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || '#94a3b8'} stroke="none"/>
                                     ))}
@@ -113,17 +115,18 @@ function App() {
                     </div>
                 </div>
 
+                {/* TASK STATUS (2 Horizontal Bars) */}
                 <div className="monday-card p-6 min-h-[360px] flex flex-col">
                     <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
-                        Task Completion Status
+                        Task & Project Completion
                     </h2>
                     <div className="flex-grow">
-                        <StatusBarChart data={teamData} />
+                        <TaskProjectBarChart data={teamData} />
                     </div>
                 </div>
             </div>
 
-            {/* ROW 2: LINE CHART (Cleaned) */}
+            {/* ROW 2: LINE CHART */}
             <div className="monday-card p-6 col-span-1 md:col-span-2 mb-6">
                 <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
                     Monthly Patient Attendance (Team)
@@ -131,7 +134,7 @@ function App() {
                 <KpiChart data={teamData} staffNames={staffNames} />
             </div>
 
-            {/* ROW 3: NEW STAFF WORKLOAD CHART */}
+            {/* ROW 3: STAFF WORKLOAD */}
             <div className="monday-card p-6 col-span-1 md:col-span-2 mb-8">
                 <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
                     Individual Clinical Load (OAS Data)
