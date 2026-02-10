@@ -176,7 +176,7 @@ function App() {
             {/* ROW 3: STAFF WORKLOAD */}
             <div className="monday-card p-6 col-span-1 md:col-span-2 mb-8">
                 <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
-                    Individual Clinical Load (OAS Data)
+                    Individual Clinical Load
                 </h2>
                 <StaffLoadChart data={teamData} staffNames={staffNames} />
             </div>
