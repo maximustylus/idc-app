@@ -1,75 +1,67 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-// Distinct colors for each staff member to make them distinguishable
-const STAFF_COLORS = [
-    '#3b82f6', // Blue (Alif)
-    '#8b5cf6', // Violet (Nisa)
-    '#10b981', // Emerald (Fadzlynn)
-    '#f59e0b', // Amber (Derlinder)
-    '#ef4444', // Red (Ying Xian)
-    '#6366f1'  // Indigo (Brandon)
-];
+// Specific colors for each CEP
+const STAFF_COLORS = {
+    'Alif': '#3b82f6',      // Blue
+    'Fadzlynn': '#10b981',  // Emerald
+    'Derlinder': '#f59e0b', // Amber
+    'Ying Xian': '#ef4444', // Red
+    'Brandon': '#6366f1'    // Indigo
+};
 
-const StaffLoadChart = ({ data, staffNames }) => {
-    // 1. Prepare Data: Transform from "Staff-Centric" to "Month-Centric"
-    // We need: [{name: 'Jan', Alif: 12, Nisa: 15...}, {name: 'Feb', ...}]
+const StaffLoadChart = ({ data }) => {
+    // 1. Filter out Nisa (Admin) and keep only CEPs
+    const cepStaff = data.filter(staff => staff.staff_name !== 'Nisa');
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    const chartData = months.map(month => {
-        const entry = { name: month };
-        data.forEach(staff => {
-            // Find the load for this specific month
-            const loadRecord = (staff.clinical_load || []).find(m => m.month === month);
-            // Use staff name as key, default to 0
-            entry[staff.staff_name] = loadRecord ? parseInt(loadRecord.count) : 0;
-        });
-        return entry;
-    });
 
     return (
-        <div className="w-full h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                    data={chartData}
-                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis 
-                        dataKey="name" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fill: '#64748b', fontSize: 12 }} 
-                    />
-                    <YAxis 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fill: '#64748b', fontSize: 12 }} 
-                    />
-                    <Tooltip 
-                        cursor={{ fill: '#f1f5f9' }}
-                        contentStyle={{ 
-                            borderRadius: '6px', 
-                            border: 'none', 
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                            backgroundColor: '#fff',
-                            fontSize: '12px'
-                        }}
-                    />
-                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px', fontSize: '11px' }} />
-                    
-                    {/* Create a Bar for each staff member */}
-                    {staffNames.map((name, index) => (
-                        <Bar 
-                            key={name} 
-                            dataKey={name} 
-                            fill={STAFF_COLORS[index % STAFF_COLORS.length]} 
-                            radius={[2, 2, 0, 0]}
-                            barSize={8} // Slim bars to fit 6 per month
-                        />
-                    ))}
-                </BarChart>
-            </ResponsiveContainer>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {cepStaff.map((staff) => {
+                // Prepare data for this specific person
+                const chartData = months.map(month => {
+                    const record = (staff.clinical_load || []).find(m => m.month === month);
+                    return {
+                        name: month,
+                        count: record ? parseInt(record.count) : 0
+                    };
+                });
+
+                return (
+                    <div key={staff.id} className="border border-slate-100 dark:border-slate-700 rounded p-4 bg-white dark:bg-slate-800 shadow-sm">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                            {staff.staff_name}
+                        </h3>
+                        <div className="h-[150px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <XAxis 
+                                        dataKey="name" 
+                                        tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        interval={1} // Show alternate months to save space if needed
+                                    />
+                                    <YAxis 
+                                        tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                    />
+                                    <Tooltip 
+                                        cursor={{ fill: 'transparent' }}
+                                        contentStyle={{ borderRadius: '4px', border: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', fontSize: '11px' }}
+                                    />
+                                    <Bar 
+                                        dataKey="count" 
+                                        fill={STAFF_COLORS[staff.staff_name] || '#cbd5e1'} 
+                                        radius={[2, 2, 0, 0]} 
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 };
