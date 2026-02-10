@@ -1,23 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from './firebase';
-import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts'; // Import Pie components
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import ResponsiveLayout from './components/ResponsiveLayout';
 import KpiChart from './components/KpiChart';
-import StatusBarChart from './components/StatusBarChart'; // Import new chart
+import StatusBarChart from './components/StatusBarChart';
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
-import { Settings, LogOut, User, Moon, Sun, LayoutDashboard, TrendingUp, List, BarChart3, PieChart as PieIcon } from 'lucide-react'; // Clean Icons
 
-// Colors
+// Config
 const PILLAR_COLORS = { 'MANAGEMENT': '#FFF2CC', 'CLINICAL': '#FCE4D6', 'EDUCATION': '#FBE5D6', 'RESEARCH': '#E2EFDA', 'A.O.B.': '#E2F0D9' };
 const HEADER_COLORS = { 'MANAGEMENT': '#FFD966', 'CLINICAL': '#F4B084', 'EDUCATION': '#FFC000', 'RESEARCH': '#A9D08E', 'A.O.B.': '#548235' };
-// For Pie Chart (Matches your Excel/Pillars)
 const PIE_COLORS = { 'MANAGEMENT': '#FFD966', 'CLINICAL': '#F4B084', 'EDUCATION': '#FFC000', 'RESEARCH': '#A9D08E', 'A.O.B.': '#548235' };
-
-const STATUS_CONFIG = { 1: { label: 'Stuck', color: '#E2445C' }, 2: { label: 'Planning', color: '#A25DDC' }, 3: { label: 'Working on it', color: '#FDAB3D' }, 4: { label: 'Review', color: '#0073EA' }, 5: { label: 'Done', color: '#00C875' } };
-const getStatusStyle = (dots) => STATUS_CONFIG[dots] || { label: '-', color: '#c4c4c4' };
 
 function App() {
     const [teamData, setTeamData] = useState([]);
@@ -26,7 +21,7 @@ function App() {
     const [showLogin, setShowLogin] = useState(false);
     const [showAdmin, setShowAdmin] = useState(false);
     
-    // Dark Mode Logic
+    // Theme Logic
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
     useEffect(() => {
         if (darkMode) { document.documentElement.classList.add('dark'); localStorage.setItem('theme', 'dark'); } 
@@ -45,19 +40,8 @@ function App() {
         return () => { unsubscribeAuth(); unsubscribeData(); };
     }, []);
 
-    const handleStatusClick = async (staffId, projectIndex, currentStatus) => {
-        if (!user) return;
-        const newStatus = currentStatus >= 5 ? 1 : currentStatus + 1;
-        const staffMember = teamData.find(s => s.id === staffId);
-        if (!staffMember) return;
-        const updatedProjects = [...staffMember.projects];
-        updatedProjects[projectIndex] = { ...updatedProjects[projectIndex], status_dots: newStatus };
-        await updateDoc(doc(db, 'cep_team', staffId), { projects: updatedProjects });
-    };
-
     const handleLogout = async () => { await signOut(auth); setShowAdmin(false); };
 
-    // Prepare Pie Data
     const getPieData = () => {
         const counts = { 'MANAGEMENT': 0, 'CLINICAL': 0, 'EDUCATION': 0, 'RESEARCH': 0 };
         teamData.forEach(staff => {
@@ -68,37 +52,37 @@ function App() {
         return Object.keys(counts).map(key => ({ name: key, value: counts[key] })).filter(d => d.value > 0);
     };
 
-    if (loading) return <div className="flex h-screen items-center justify-center bg-[#eceff8] dark:bg-gray-900"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
+    if (loading) return <div className="flex h-screen items-center justify-center bg-[#f1f5f9] dark:bg-[#0f172a]"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
 
     const staffNames = teamData.map(d => d.staff_name);
 
     return (
         <ResponsiveLayout>
             {/* HEADER */}
-            <div className="col-span-1 md:col-span-2 flex justify-between items-center mb-6">
-                <div className="flex items-center gap-3">
-                    <img src="/logo.png" alt="SSMC" className="h-12 w-auto object-contain" onError={(e) => {e.target.style.display='none'}} />
-                    <div className="hidden sm:block">
-                        <h1 className="text-xl font-bold text-[#323338] dark:text-white">SSMC@KKH</h1>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">LEADERSHIP DASHBOARD 2026</p>
+            <div className="col-span-1 md:col-span-2 flex justify-between items-center mb-8">
+                <div className="flex items-center gap-4">
+                    <img src="/logo.png" alt="SSMC" className="h-10 w-auto object-contain" onError={(e) => {e.target.style.display='none'}} />
+                    <div className="hidden sm:block border-l border-slate-300 dark:border-slate-600 pl-4">
+                        <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight">SSMC@KKH</h1>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-bold">Leadership Dashboard</p>
                     </div>
                 </div>
                 <div className="flex gap-3 items-center">
-                    <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-yellow-400 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 transition-all shadow-sm">
-                        {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+                    <button onClick={() => setDarkMode(!darkMode)} className="text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 px-3 py-2 transition-colors">
+                        {darkMode ? 'Light Mode' : 'Dark Mode'}
                     </button>
                     {user ? (
                         <>
-                            <button onClick={() => setShowAdmin(!showAdmin)} className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-all shadow-sm border ${showAdmin ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-300'}`}>
-                                <Settings className="w-4 h-4 mr-2" /> {showAdmin ? 'Close Admin' : 'Admin Panel'}
+                            <button onClick={() => setShowAdmin(!showAdmin)} className={`px-4 py-2 text-xs font-bold uppercase tracking-wide rounded transition-all border ${showAdmin ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600'}`}>
+                                {showAdmin ? 'Close Panel' : 'Admin Panel'}
                             </button>
-                            <button onClick={handleLogout} className="flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-300 rounded-md hover:bg-red-50 shadow-sm dark:bg-gray-800 dark:text-red-400 dark:border-gray-700">
-                                <LogOut className="w-4 h-4 mr-2" /> Logout
+                            <button onClick={handleLogout} className="px-4 py-2 text-xs font-bold uppercase tracking-wide text-red-600 bg-white border border-slate-300 rounded hover:bg-red-50 dark:bg-slate-800 dark:text-red-400 dark:border-slate-600">
+                                Logout
                             </button>
                         </>
                     ) : (
-                        <button onClick={() => setShowLogin(true)} className="flex items-center px-4 py-2 text-sm font-medium text-[#0073ea] bg-white border border-[#0073ea] rounded-md hover:bg-blue-50 shadow-sm dark:bg-gray-800 dark:text-blue-400">
-                            <User className="w-4 h-4 mr-2" /> Login
+                        <button onClick={() => setShowLogin(true)} className="px-4 py-2 text-xs font-bold uppercase tracking-wide text-blue-600 bg-white border border-blue-600 rounded hover:bg-blue-50 dark:bg-slate-800 dark:text-blue-400 dark:border-blue-500">
+                            Login
                         </button>
                     )}
                 </div>
@@ -107,100 +91,51 @@ function App() {
             {showLogin && <Login onClose={() => setShowLogin(false)} />}
             {user && showAdmin && <div className="col-span-1 md:col-span-2"><AdminPanel teamData={teamData} /></div>}
             
-            {/* --- ROW 1: CHARTS (Pie & Bar) --- */}
+            {/* ROW 1: KEY METRICS */}
             <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                {/* 1. DOMAIN PIE CHART */}
-                <div className="monday-card p-6 min-h-[350px]">
-                    <h2 className="text-lg font-bold mb-6 text-[#323338] dark:text-white flex items-center gap-2">
-                        <PieIcon className="w-5 h-5 text-gray-500" /> Domain Distribution
+                {/* DOMAIN DISTRIBUTION */}
+                <div className="monday-card p-6 min-h-[360px] flex flex-col">
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
+                        Domain Distribution
                     </h2>
-                    <div className="w-full h-[250px]">
-                        <ResponsiveContainer>
+                    <div className="flex-grow w-full">
+                        <ResponsiveContainer width="100%" height={250}>
                             <PieChart>
-                                <Pie data={getPieData()} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                                <Pie data={getPieData()} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value">
                                     {getPieData().map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || '#8884d8'} stroke="none"/>
+                                        <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || '#94a3b8'} stroke="none"/>
                                     ))}
                                 </Pie>
-                                <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}/>
-                                <Legend verticalAlign="bottom" height={36} iconType="circle"/>
+                                <RechartsTooltip contentStyle={{ borderRadius: '6px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', fontSize: '12px' }}/>
+                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px' }}/>
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* 2. TASK STATUS BAR CHART (NEW) */}
-                <div className="monday-card p-6 min-h-[350px]">
-                    <h2 className="text-lg font-bold mb-6 text-[#323338] dark:text-white flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-gray-500" /> Task Status
+                {/* TASK STATUS (STACKED) */}
+                <div className="monday-card p-6 min-h-[360px] flex flex-col">
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
+                        Task Completion Status
                     </h2>
-                    <StatusBarChart data={teamData} />
-                </div>
-            </div>
-
-            {/* --- ROW 2: LINE CHART --- */}
-            <div className="monday-card p-6 col-span-1 md:col-span-2 mb-6">
-                <h2 className="text-lg font-bold mb-6 text-[#323338] dark:text-white flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-gray-500" /> Monthly Patient Attendance
-                </h2>
-                <KpiChart data={teamData} staffNames={staffNames} />
-            </div>
-
-            {/* --- ROW 3: MAIN BOARD --- */}
-            <div className="monday-card p-0 mb-6 col-span-1 md:col-span-2 overflow-hidden">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">
-                     <h2 className="text-lg font-bold text-[#323338] dark:text-white flex items-center gap-2">
-                        <LayoutDashboard className="w-5 h-5 text-gray-500" /> Main Board <span className="text-xs font-normal text-gray-500 bg-white dark:bg-gray-700 border dark:border-gray-600 px-2 py-0.5 rounded-full">2026 Roadmap</span>
-                    </h2>
-                </div>
-                <div className="overflow-x-auto">
-                    <div className="min-w-full inline-block align-middle">
-                        <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                            <div className="grid grid-cols-12 gap-4 px-4 py-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                <div className="col-span-4">Item</div>
-                                <div className="col-span-3">Owner</div>
-                                <div className="col-span-2">Group</div>
-                                <div className="col-span-3 text-center">Status</div>
-                            </div>
-                        </div>
-                        <div className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
-                             {teamData.map((staff) => (
-                                staff.projects?.map((project, idx) => {
-                                    const status = getStatusStyle(project.status_dots);
-                                    return (
-                                        <div key={`${staff.id}-${idx}`} className="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-[#f5f6f8] dark:hover:bg-gray-700/50 transition-colors group">
-                                            <div className="col-span-4 font-medium text-[#323338] dark:text-gray-200 truncate border-l-4 border-transparent pl-2 group-hover:border-[#0073ea] transition-all">
-                                                {project.title}
-                                            </div>
-                                            <div className="col-span-3 flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-[#e5f4ff] dark:bg-blue-900/30 text-[#0073ea] dark:text-blue-300 flex items-center justify-center font-bold text-[10px] border border-[#cce5ff] dark:border-blue-800">
-                                                    {staff.staff_name.charAt(0)}
-                                                </div>
-                                                <span className="text-sm text-gray-600 dark:text-gray-400 truncate">{staff.staff_name}</span>
-                                            </div>
-                                            <div className="col-span-2">
-                                                <span className="px-2 py-1 rounded text-[10px] font-bold text-gray-700 uppercase opacity-90" style={{ backgroundColor: PILLAR_COLORS[project.domain_type] }}>
-                                                    {project.domain_type.substring(0, 4)}
-                                                </span>
-                                            </div>
-                                            <div className="col-span-3">
-                                                <div onClick={() => handleStatusClick(staff.id, idx, project.status_dots)} className={`status-pill shadow-sm select-none ${user ? 'cursor-pointer hover:scale-105' : 'cursor-default opacity-80'}`} style={{ backgroundColor: status.color }} title={user ? "Click to change status" : "Login to edit"}>
-                                                    {status.label}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            ))}
-                        </div>
+                    <div className="flex-grow">
+                        <StatusBarChart data={teamData} />
                     </div>
                 </div>
             </div>
 
-            {/* --- ROW 4: EXCEL SWIMLANES --- */}
-            <div className="col-span-1 md:col-span-2 mt-4">
-                <h2 className="text-lg font-bold mb-4 text-[#323338] dark:text-white px-1 flex items-center gap-2">
-                    <List className="w-5 h-5 text-gray-500" /> Domain Overview
+            {/* ROW 2: LINE CHART */}
+            <div className="monday-card p-6 col-span-1 md:col-span-2 mb-8">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
+                    Monthly Patient Attendance
+                </h2>
+                <KpiChart data={teamData} staffNames={staffNames} />
+            </div>
+
+            {/* ROW 3: SWIMLANES (VIEW ONLY) */}
+            <div className="col-span-1 md:col-span-2">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4 px-1">
+                    Department Overview
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
@@ -209,20 +144,23 @@ function App() {
                         { name: 'EDUCATION', lead: 'Derlinder / Brandon' },
                         { name: 'RESEARCH', lead: 'Alif / Ying Xian' }
                     ].map(col => (
-                        <div key={col.name} className="monday-card overflow-hidden flex flex-col h-[500px] border-t-0">
-                            <div className="p-3 text-center font-bold text-sm border-t-4" style={{ backgroundColor: PILLAR_COLORS[col.name], borderColor: HEADER_COLORS[col.name] }}>
-                                {col.name}
-                                <div className="text-[10px] font-normal opacity-70 mt-0.5 text-gray-700">Leads: {col.lead}</div>
+                        <div key={col.name} className="monday-card overflow-hidden flex flex-col h-[600px] border-t-0 bg-slate-50 dark:bg-slate-900/50">
+                            <div className="p-3 text-center border-t-4" style={{ backgroundColor: PILLAR_COLORS[col.name], borderColor: HEADER_COLORS[col.name] }}>
+                                <span className="font-bold text-xs text-slate-800 uppercase tracking-widest">{col.name}</span>
+                                <div className="text-[10px] font-medium opacity-80 mt-1 text-slate-700">Leads: {col.lead}</div>
                             </div>
-                            <div className="p-2 flex-grow overflow-y-auto space-y-2 bg-[#fdfdfd] dark:bg-gray-800/50">
+                            <div className="p-2 flex-grow overflow-y-auto space-y-2">
                                 {teamData.flatMap(staff => 
                                     (staff.projects || []).filter(p => p.domain_type === col.name)
                                     .map((p, idx) => (
-                                        <div key={`${staff.id}-${idx}`} className="bg-white dark:bg-gray-700 p-2 rounded shadow-sm text-[11px] border border-gray-100 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 transition-colors">
-                                            <div className="flex justify-between items-start">
-                                                <span className="font-bold text-[#0073ea] dark:text-blue-400 mr-1">{staff.staff_name.split(' ')[0]}:</span>
+                                        <div key={`${staff.id}-${idx}`} className="bg-white dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700 shadow-sm text-[11px]">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className="font-bold text-blue-600 dark:text-blue-400">{staff.staff_name.split(' ')[0]}</span>
+                                                {p.item_type === 'Project' && (
+                                                    <span className="text-[9px] bg-purple-50 text-purple-600 px-1 rounded border border-purple-100 dark:bg-purple-900/20 dark:border-purple-800 dark:text-purple-300">PROJ</span>
+                                                )}
                                             </div>
-                                            <div className="text-gray-700 dark:text-gray-200 leading-tight mt-0.5">{p.title}</div>
+                                            <div className="text-slate-700 dark:text-slate-300 leading-snug">{p.title}</div>
                                         </div>
                                     ))
                                 )}
