@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { collection, onSnapshot, doc } from 'firebase/firestore';
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { signOut } from 'firebase/auth';
+import { 
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, 
+  PieChart, Pie, Legend 
+} from 'recharts';
+import { Sun, Moon, LogOut, LayoutDashboard } from 'lucide-react';
 
 // Components
 import AdminPanel from './components/AdminPanel';
@@ -9,20 +14,31 @@ import Login from './components/Login';
 import ResponsiveLayout from './components/ResponsiveLayout';
 
 // Utils
-import { STAFF_LIST, MONTHS, DOMAIN_LIST } from './utils';
+import { STAFF_LIST, MONTHS, DOMAIN_LIST, STATUS_OPTIONS } from './utils';
 
-// --- MAIN APP COMPONENT ---
+// --- COLORS ---
+const COLORS = ['#FFC107', '#FF9800', '#FF5722', '#4CAF50', '#2196F3']; // Management, Clinical, Edu, Research, Other
+
 function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [teamData, setTeamData] = useState([]); // For Swimlanes (Tasks)
-  const [staffLoads, setStaffLoads] = useState({}); // For Clinical Loads (Charts)
+  const [isDark, setIsDark] = useState(false);
+  const [user, setUser] = useState(null);
+  
+  // Data States
+  const [teamData, setTeamData] = useState([]); // For Swimlanes & Project Charts
+  const [staffLoads, setStaffLoads] = useState({}); // For Clinical Load Charts
 
-  // 1. Fetch Swimlane Data (Tasks/Projects)
+  // 0. Auth Listener
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
+    return () => unsubscribe();
+  }, []);
+
+  // 1. Fetch Swimlane Data (Tasks/Projects) - Powers Pie & Stacked Bar
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'cep_team'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Sort manually to match STAFF_LIST order
       const sortedData = STAFF_LIST.map(name => {
         return data.find(d => d.staff_name === name) || { staff_name: name, projects: [] };
       });
@@ -31,7 +47,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Fetch Clinical Load Data (The "New Channel")
+  // 2. Fetch Clinical Load Data - Powers the 6 Individual Charts
   useEffect(() => {
     const unsubscribes = STAFF_LIST.map(staff => {
       return onSnapshot(doc(db, 'staff_loads', staff), (docSnap) => {
@@ -45,41 +61,84 @@ function App() {
     return () => unsubscribes.forEach(u => u());
   }, []);
 
-  // Helper: Format data for Recharts
-  const getChartData = (staffName) => {
+  // --- HELPERS FOR CHARTS ---
+
+  // A. Pie Chart Data (Count projects by Domain)
+  const getPieData = () => {
+    const counts = { MANAGEMENT: 0, CLINICAL: 0, EDUCATION: 0, RESEARCH: 0 };
+    teamData.forEach(staff => {
+      (staff.projects || []).forEach(p => {
+        if (counts[p.domain_type] !== undefined) counts[p.domain_type]++;
+      });
+    });
+    return Object.keys(counts).map((key, index) => ({
+      name: key, value: counts[key], fill: COLORS[index]
+    })).filter(d => d.value > 0);
+  };
+
+  // B. Stacked Bar Data (Count Tasks vs Projects)
+  const getStackedData = () => {
+    return teamData.map(staff => {
+      const tasks = (staff.projects || []).filter(p => p.item_type === 'Task').length;
+      const projects = (staff.projects || []).filter(p => p.item_type === 'Project').length;
+      return { name: staff.staff_name, Task: tasks, Project: projects };
+    });
+  };
+
+  // C. Clinical Load Data (For the 6 small charts)
+  const getClinicalData = (staffName) => {
     const data = staffLoads[staffName] || Array(12).fill(0);
     return MONTHS.map((m, i) => ({ name: m, value: data[i] || 0 }));
+  };
+
+  // Theme Toggle
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+    document.documentElement.classList.toggle('dark');
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setIsAdminOpen(false);
   };
 
   return (
     <ResponsiveLayout>
       {/* --- HEADER --- */}
-      <div className="md:col-span-2 flex justify-between items-center mb-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">SSMC@KKH</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Leadership Dashboard</p>
+      <div className="md:col-span-2 flex justify-between items-center mb-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-600 rounded-lg text-white">
+            <LayoutDashboard size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-none">SSMC@KKH</h1>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Leadership Dashboard</p>
+          </div>
         </div>
-        <div>
-          {!isAdminOpen ? (
-            <button 
-              onClick={() => setIsLoginOpen(true)}
-              className="px-4 py-2 bg-slate-800 text-white text-sm font-bold rounded hover:bg-slate-700 transition-colors"
-            >
-              ADMIN PANEL
-            </button>
+        <div className="flex items-center gap-3">
+          <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300">
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          
+          {user ? (
+            <div className="flex gap-2">
+              <button onClick={() => setIsAdminOpen(!isAdminOpen)} className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-500/30">
+                {isAdminOpen ? 'Close Admin' : 'Admin Panel'}
+              </button>
+              <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                <LogOut size={20} />
+              </button>
+            </div>
           ) : (
-            <button 
-              onClick={() => setIsAdminOpen(false)}
-              className="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-bold rounded hover:bg-slate-300 transition-colors"
-            >
-              CLOSE PANEL
+            <button onClick={() => setIsLoginOpen(true)} className="px-4 py-2 bg-slate-800 text-white text-sm font-bold rounded-lg hover:bg-slate-700 transition-colors">
+              Admin Login
             </button>
           )}
         </div>
       </div>
 
       {/* --- MODALS --- */}
-      {isLoginOpen && <Login onClose={() => { setIsLoginOpen(false); setIsAdminOpen(true); }} />}
+      {isLoginOpen && <Login onClose={() => setIsLoginOpen(false)} />}
 
       {/* --- ADMIN PANEL --- */}
       {isAdminOpen && (
@@ -88,36 +147,73 @@ function App() {
         </div>
       )}
 
-      {/* --- INDIVIDUAL CLINICAL LOAD (UPDATED) --- */}
-      <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Individual Clinical Load</h2>
+      {/* --- ROW 1: PIE CHART & STACKED BAR (RESTORED) --- */}
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Domain Distribution</h2>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={getPieData()}
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {getPieData().map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }} />
+              <Legend verticalAlign="bottom" height={36} iconType="circle" />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Task vs Project Load</h2>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={getStackedData()} layout="vertical">
+              <XAxis type="number" hide />
+              <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 12}} />
+              <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }} />
+              <Legend />
+              <Bar dataKey="Task" stackId="a" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
+              <Bar dataKey="Project" stackId="a" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={20} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* --- ROW 2: INDIVIDUAL CLINICAL LOAD (NEW FEATURE) --- */}
+      <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Individual Clinical Load (Real-Time)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {STAFF_LIST.map((staff) => (
             <div key={staff} className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-slate-700 dark:text-slate-200">{staff}</h3>
                 <span className="text-xs font-bold px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                  {/* Calculate Total for the year */}
                   Total: {(staffLoads[staff] || []).reduce((a, b) => a + b, 0)}
                 </span>
               </div>
               <div className="h-32">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={getChartData(staff)}>
+                  <BarChart data={getClinicalData(staff)}>
                     <Tooltip 
                       cursor={{fill: 'transparent'}}
                       contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
                     />
-                    <XAxis dataKey="name" hide />
                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      {getChartData(staff).map((entry, index) => (
+                      {getClinicalData(staff).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.value > 40 ? '#ef4444' : '#3b82f6'} />
                       ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              {/* Mini Month Labels */}
               <div className="flex justify-between mt-2 px-1">
                 {['Jan', 'Apr', 'Jul', 'Oct'].map(m => (
                   <span key={m} className="text-[10px] text-slate-400 font-bold">{m}</span>
@@ -128,13 +224,12 @@ function App() {
         </div>
       </div>
 
-      {/* --- SWIMLANES (DEPARTMENT OVERVIEW) --- */}
+      {/* --- ROW 3: DEPARTMENT OVERVIEW (SWIMLANES) --- */}
       <div className="md:col-span-2 mt-8">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Department Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {DOMAIN_LIST.map((domain) => (
             <div key={domain} className="flex flex-col gap-3">
-              {/* Header */}
               <div className={`p-3 rounded-lg text-center border-b-4 shadow-sm ${
                 domain === 'MANAGEMENT' ? 'bg-amber-50 border-amber-300' :
                 domain === 'CLINICAL' ? 'bg-orange-50 border-orange-300' :
@@ -144,7 +239,6 @@ function App() {
                 <h3 className="font-black text-slate-800 text-sm tracking-wide">{domain}</h3>
               </div>
 
-              {/* Cards */}
               <div className="flex flex-col gap-2">
                 {teamData.map(staff => (
                   (staff.projects || [])
@@ -157,7 +251,6 @@ function App() {
                         </div>
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-tight mb-2">{p.title}</p>
                         
-                        {/* Status Dots */}
                         <div className="flex gap-1 justify-end">
                           {[1,2,3,4,5].map(val => (
                             <div 
