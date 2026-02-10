@@ -2,15 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts'; // Import Pie components
 import ResponsiveLayout from './components/ResponsiveLayout';
 import KpiChart from './components/KpiChart';
+import StatusBarChart from './components/StatusBarChart'; // Import new chart
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
-import { Settings, LogOut, User, Moon, Sun } from 'lucide-react'; // Added Icons
+import { Settings, LogOut, User, Moon, Sun, LayoutDashboard, TrendingUp, List, BarChart3, PieChart as PieIcon } from 'lucide-react'; // Clean Icons
 
-// Colors stay the same
+// Colors
 const PILLAR_COLORS = { 'MANAGEMENT': '#FFF2CC', 'CLINICAL': '#FCE4D6', 'EDUCATION': '#FBE5D6', 'RESEARCH': '#E2EFDA', 'A.O.B.': '#E2F0D9' };
 const HEADER_COLORS = { 'MANAGEMENT': '#FFD966', 'CLINICAL': '#F4B084', 'EDUCATION': '#FFC000', 'RESEARCH': '#A9D08E', 'A.O.B.': '#548235' };
+// For Pie Chart (Matches your Excel/Pillars)
+const PIE_COLORS = { 'MANAGEMENT': '#FFD966', 'CLINICAL': '#F4B084', 'EDUCATION': '#FFC000', 'RESEARCH': '#A9D08E', 'A.O.B.': '#548235' };
+
 const STATUS_CONFIG = { 1: { label: 'Stuck', color: '#E2445C' }, 2: { label: 'Planning', color: '#A25DDC' }, 3: { label: 'Working on it', color: '#FDAB3D' }, 4: { label: 'Review', color: '#0073EA' }, 5: { label: 'Done', color: '#00C875' } };
 const getStatusStyle = (dots) => STATUS_CONFIG[dots] || { label: '-', color: '#c4c4c4' };
 
@@ -21,19 +26,11 @@ function App() {
     const [showLogin, setShowLogin] = useState(false);
     const [showAdmin, setShowAdmin] = useState(false);
     
-    // --- DARK MODE STATE ---
-    const [darkMode, setDarkMode] = useState(() => {
-        return localStorage.getItem('theme') === 'dark';
-    });
-
+    // Dark Mode Logic
+    const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
     useEffect(() => {
-        if (darkMode) {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
-        }
+        if (darkMode) { document.documentElement.classList.add('dark'); localStorage.setItem('theme', 'dark'); } 
+        else { document.documentElement.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
     }, [darkMode]);
 
     useEffect(() => {
@@ -60,13 +57,24 @@ function App() {
 
     const handleLogout = async () => { await signOut(auth); setShowAdmin(false); };
 
+    // Prepare Pie Data
+    const getPieData = () => {
+        const counts = { 'MANAGEMENT': 0, 'CLINICAL': 0, 'EDUCATION': 0, 'RESEARCH': 0 };
+        teamData.forEach(staff => {
+            staff.projects?.forEach(p => {
+                if (counts[p.domain_type] !== undefined) counts[p.domain_type]++;
+            });
+        });
+        return Object.keys(counts).map(key => ({ name: key, value: counts[key] })).filter(d => d.value > 0);
+    };
+
     if (loading) return <div className="flex h-screen items-center justify-center bg-[#eceff8] dark:bg-gray-900"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
 
     const staffNames = teamData.map(d => d.staff_name);
 
     return (
         <ResponsiveLayout>
-            {/* TOP BAR */}
+            {/* HEADER */}
             <div className="col-span-1 md:col-span-2 flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
                     <img src="/logo.png" alt="SSMC" className="h-12 w-auto object-contain" onError={(e) => {e.target.style.display='none'}} />
@@ -76,26 +84,20 @@ function App() {
                     </div>
                 </div>
                 <div className="flex gap-3 items-center">
-                    {/* DARK MODE TOGGLE */}
-                    <button 
-                        onClick={() => setDarkMode(!darkMode)} 
-                        className="p-2 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-yellow-400 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm"
-                        title="Toggle Dark Mode"
-                    >
+                    <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-yellow-400 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 transition-all shadow-sm">
                         {darkMode ? <Sun size={18} /> : <Moon size={18} />}
                     </button>
-
                     {user ? (
                         <>
-                            <button onClick={() => setShowAdmin(!showAdmin)} className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-all shadow-sm border ${showAdmin ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' : 'bg-white text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}>
+                            <button onClick={() => setShowAdmin(!showAdmin)} className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-all shadow-sm border ${showAdmin ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-white text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-300'}`}>
                                 <Settings className="w-4 h-4 mr-2" /> {showAdmin ? 'Close Admin' : 'Admin Panel'}
                             </button>
-                            <button onClick={handleLogout} className="flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-300 rounded-md hover:bg-red-50 dark:bg-gray-800 dark:text-red-400 dark:border-gray-700 shadow-sm">
+                            <button onClick={handleLogout} className="flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-300 rounded-md hover:bg-red-50 shadow-sm dark:bg-gray-800 dark:text-red-400 dark:border-gray-700">
                                 <LogOut className="w-4 h-4 mr-2" /> Logout
                             </button>
                         </>
                     ) : (
-                        <button onClick={() => setShowLogin(true)} className="flex items-center px-4 py-2 text-sm font-medium text-[#0073ea] bg-white border border-[#0073ea] rounded-md hover:bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:border-blue-500 shadow-sm">
+                        <button onClick={() => setShowLogin(true)} className="flex items-center px-4 py-2 text-sm font-medium text-[#0073ea] bg-white border border-[#0073ea] rounded-md hover:bg-blue-50 shadow-sm dark:bg-gray-800 dark:text-blue-400">
                             <User className="w-4 h-4 mr-2" /> Login
                         </button>
                     )}
@@ -105,11 +107,50 @@ function App() {
             {showLogin && <Login onClose={() => setShowLogin(false)} />}
             {user && showAdmin && <div className="col-span-1 md:col-span-2"><AdminPanel teamData={teamData} /></div>}
             
-            {/* MAIN BOARD */}
-            <div className="monday-card p-0 mb-8 col-span-1 md:col-span-2 overflow-hidden">
+            {/* --- ROW 1: CHARTS (Pie & Bar) --- */}
+            <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* 1. DOMAIN PIE CHART */}
+                <div className="monday-card p-6 min-h-[350px]">
+                    <h2 className="text-lg font-bold mb-6 text-[#323338] dark:text-white flex items-center gap-2">
+                        <PieIcon className="w-5 h-5 text-gray-500" /> Domain Distribution
+                    </h2>
+                    <div className="w-full h-[250px]">
+                        <ResponsiveContainer>
+                            <PieChart>
+                                <Pie data={getPieData()} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                                    {getPieData().map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || '#8884d8'} stroke="none"/>
+                                    ))}
+                                </Pie>
+                                <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}/>
+                                <Legend verticalAlign="bottom" height={36} iconType="circle"/>
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 2. TASK STATUS BAR CHART (NEW) */}
+                <div className="monday-card p-6 min-h-[350px]">
+                    <h2 className="text-lg font-bold mb-6 text-[#323338] dark:text-white flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-gray-500" /> Task Status
+                    </h2>
+                    <StatusBarChart data={teamData} />
+                </div>
+            </div>
+
+            {/* --- ROW 2: LINE CHART --- */}
+            <div className="monday-card p-6 col-span-1 md:col-span-2 mb-6">
+                <h2 className="text-lg font-bold mb-6 text-[#323338] dark:text-white flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-gray-500" /> Monthly Patient Attendance
+                </h2>
+                <KpiChart data={teamData} staffNames={staffNames} />
+            </div>
+
+            {/* --- ROW 3: MAIN BOARD --- */}
+            <div className="monday-card p-0 mb-6 col-span-1 md:col-span-2 overflow-hidden">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">
                      <h2 className="text-lg font-bold text-[#323338] dark:text-white flex items-center gap-2">
-                        <span className="text-xl">📊</span> Main Board <span className="text-xs font-normal text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 border dark:border-gray-600 px-2 py-0.5 rounded-full">2026 Roadmap</span>
+                        <LayoutDashboard className="w-5 h-5 text-gray-500" /> Main Board <span className="text-xs font-normal text-gray-500 bg-white dark:bg-gray-700 border dark:border-gray-600 px-2 py-0.5 rounded-full">2026 Roadmap</span>
                     </h2>
                 </div>
                 <div className="overflow-x-auto">
@@ -156,18 +197,10 @@ function App() {
                 </div>
             </div>
 
-            {/* CHARTS */}
-            <div className="monday-card p-6 col-span-1 md:col-span-2">
-                <h2 className="text-lg font-bold mb-6 text-[#323338] dark:text-white flex items-center gap-2">
-                    <span className="text-xl">📈</span> Monthly Patient Attendance
-                </h2>
-                <KpiChart data={teamData} staffNames={staffNames} />
-            </div>
-
-            {/* SWIMLANES */}
+            {/* --- ROW 4: EXCEL SWIMLANES --- */}
             <div className="col-span-1 md:col-span-2 mt-4">
                 <h2 className="text-lg font-bold mb-4 text-[#323338] dark:text-white px-1 flex items-center gap-2">
-                    <span className="text-xl">📋</span> Domain Overview
+                    <List className="w-5 h-5 text-gray-500" /> Domain Overview
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
