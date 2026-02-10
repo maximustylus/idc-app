@@ -5,6 +5,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import ResponsiveLayout from './components/ResponsiveLayout';
 import KpiChart from './components/KpiChart';
+import StaffLoadChart from './components/StaffLoadChart'; // Import New Chart
 import StatusBarChart from './components/StatusBarChart';
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
@@ -93,7 +94,6 @@ function App() {
             
             {/* ROW 1: KEY METRICS */}
             <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                {/* DOMAIN DISTRIBUTION */}
                 <div className="monday-card p-6 min-h-[360px] flex flex-col">
                     <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
                         Domain Distribution
@@ -113,7 +113,6 @@ function App() {
                     </div>
                 </div>
 
-                {/* TASK STATUS (STACKED) */}
                 <div className="monday-card p-6 min-h-[360px] flex flex-col">
                     <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
                         Task Completion Status
@@ -124,15 +123,23 @@ function App() {
                 </div>
             </div>
 
-            {/* ROW 2: LINE CHART */}
-            <div className="monday-card p-6 col-span-1 md:col-span-2 mb-8">
+            {/* ROW 2: LINE CHART (Cleaned) */}
+            <div className="monday-card p-6 col-span-1 md:col-span-2 mb-6">
                 <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
-                    Monthly Patient Attendance
+                    Monthly Patient Attendance (Team)
                 </h2>
                 <KpiChart data={teamData} staffNames={staffNames} />
             </div>
 
-            {/* ROW 3: SWIMLANES (VIEW ONLY) */}
+            {/* ROW 3: NEW STAFF WORKLOAD CHART */}
+            <div className="monday-card p-6 col-span-1 md:col-span-2 mb-8">
+                <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
+                    Individual Clinical Load (OAS Data)
+                </h2>
+                <StaffLoadChart data={teamData} staffNames={staffNames} />
+            </div>
+
+            {/* ROW 4: SWIMLANES */}
             <div className="col-span-1 md:col-span-2">
                 <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4 px-1">
                     Department Overview
