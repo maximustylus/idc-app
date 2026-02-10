@@ -1,12 +1,10 @@
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const KpiChart = ({ data, staffNames }) => {
-    // 1. Process Data: Sum up individual loads to get Team Total
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // Calculate the dynamic target (e.g., 30 cases * number of staff)
-    // If you have 6 staff, the team goal is 180.
+    // Calculate Team Target (30 per staff member)
     const staffCount = staffNames.length || 1;
     const teamTarget = staffCount * 30;
 
@@ -30,59 +28,53 @@ const KpiChart = ({ data, staffNames }) => {
             <ResponsiveContainer>
                 <LineChart
                     data={chartData}
-                    margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 10,
-                    }}
+                    margin={{ top: 20, right: 30, left: 0, bottom: 10 }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e0e0e0" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                     
                     <XAxis 
                         dataKey="name" 
                         axisLine={false} 
                         tickLine={false} 
-                        tick={{ fill: '#6b7280', fontSize: 12 }} 
+                        tick={{ fill: '#64748b', fontSize: 12 }} 
                         dy={10}
                     />
                     
                     <YAxis 
                         axisLine={false} 
                         tickLine={false} 
-                        tick={{ fill: '#6b7280', fontSize: 12 }} 
+                        tick={{ fill: '#64748b', fontSize: 12 }} 
                     />
                     
                     <Tooltip 
                         contentStyle={{ 
                             backgroundColor: '#fff', 
-                            border: '1px solid #e5e7eb', 
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' 
+                            border: 'none', 
+                            borderRadius: '6px',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                            fontSize: '12px'
                         }}
                     />
                     
-                    <Legend verticalAlign="top" height={36}/>
+                    {/* NO LEGEND (Clean Look) */}
                     
-                    {/* The Target Line (Red Dashed) */}
+                    {/* Target Line (Red Dashed) */}
                     <Line 
                         type="monotone" 
                         dataKey="Target" 
-                        stroke="#E2445C" 
+                        stroke="#ef4444" 
                         strokeDasharray="5 5" 
                         strokeWidth={2} 
                         dot={false} 
-                        name="Goal (30/pax)"
                     />
                     
-                    {/* The Actual Data Line (Monday Blue) */}
+                    {/* Actual Data Line (Blue) */}
                     <Line 
                         type="monotone" 
                         dataKey="Total" 
-                        stroke="#0073ea" 
+                        stroke="#3b82f6" 
                         strokeWidth={3} 
-                        activeDot={{ r: 8 }} 
-                        name="Team Actual"
+                        activeDot={{ r: 6 }} 
                     />
                 </LineChart>
             </ResponsiveContainer>
