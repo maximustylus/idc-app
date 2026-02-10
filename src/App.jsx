@@ -5,15 +5,30 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import ResponsiveLayout from './components/ResponsiveLayout';
 import KpiChart from './components/KpiChart';
-import TaskProjectBarChart from './components/TaskProjectBarChart'; // NEW CHART
+import TaskProjectBarChart from './components/TaskProjectBarChart';
 import StaffLoadChart from './components/StaffLoadChart';
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
+import { Sun, Moon } from 'lucide-react'; // <--- ADDED ICONS HERE
 
 // Config
 const PILLAR_COLORS = { 'MANAGEMENT': '#FFF2CC', 'CLINICAL': '#FCE4D6', 'EDUCATION': '#FBE5D6', 'RESEARCH': '#E2EFDA', 'A.O.B.': '#E2F0D9' };
 const HEADER_COLORS = { 'MANAGEMENT': '#FFD966', 'CLINICAL': '#F4B084', 'EDUCATION': '#FFC000', 'RESEARCH': '#A9D08E', 'A.O.B.': '#548235' };
 const PIE_COLORS = { 'MANAGEMENT': '#FFD966', 'CLINICAL': '#F4B084', 'EDUCATION': '#FFC000', 'RESEARCH': '#A9D08E', 'A.O.B.': '#548235' };
+
+// Label Function (Math to center text in slice)
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+        <text x={x} y={y} fill="#1f2937" textAnchor="middle" dominantBaseline="central" style={{ fontSize: '11px', fontWeight: 'bold', pointerEvents: 'none' }}>
+            {`${(percent * 100).toFixed(0)}%`}
+        </text>
+    );
+};
 
 function App() {
     const [teamData, setTeamData] = useState([]);
@@ -69,9 +84,17 @@ function App() {
                     </div>
                 </div>
                 <div className="flex gap-3 items-center">
-                    <button onClick={() => setDarkMode(!darkMode)} className="text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 px-3 py-2 transition-colors">
-                        {darkMode ? 'Light Mode' : 'Dark Mode'}
+                    
+                    {/* --- THEME TOGGLE ICON --- */}
+                    <button 
+                        onClick={() => setDarkMode(!darkMode)} 
+                        className="p-2 rounded-full text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700 transition-all"
+                        title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    >
+                        {darkMode ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
+                    {/* ------------------------- */}
+
                     {user ? (
                         <>
                             <button onClick={() => setShowAdmin(!showAdmin)} className={`px-4 py-2 text-xs font-bold uppercase tracking-wide rounded transition-all border ${showAdmin ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600'}`}>
@@ -94,7 +117,7 @@ function App() {
             
             {/* ROW 1: KEY METRICS */}
             <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                {/* DOMAIN DISTRIBUTION (Now a true PIE) */}
+                {/* DOMAIN DISTRIBUTION (With % Labels) */}
                 <div className="monday-card p-6 min-h-[360px] flex flex-col">
                     <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
                         Domain Distribution
@@ -102,20 +125,36 @@ function App() {
                     <div className="flex-grow w-full">
                         <ResponsiveContainer width="100%" height={250}>
                             <PieChart>
-                                {/* Removed innerRadius to make it a PIE, not a DONUT */}
-                                <Pie data={getPieData()} cx="50%" cy="50%" outerRadius={90} paddingAngle={2} dataKey="value">
+                                <Pie 
+                                    data={getPieData()} 
+                                    cx="50%" 
+                                    cy="50%" 
+                                    labelLine={false} 
+                                    label={renderCustomizedLabel} 
+                                    outerRadius={90} 
+                                    dataKey="value"
+                                >
                                     {getPieData().map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || '#94a3b8'} stroke="none"/>
                                     ))}
                                 </Pie>
                                 <RechartsTooltip contentStyle={{ borderRadius: '6px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', fontSize: '12px' }}/>
-                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px' }}/>
+                                <Legend 
+                                    verticalAlign="bottom" 
+                                    height={36} 
+                                    iconType="circle" 
+                                    wrapperStyle={{ 
+                                        fontSize: '11px', 
+                                        color: darkMode ? '#ffffff' : '#000000',
+                                        transition: 'color 0.3s ease'
+                                    }}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* TASK STATUS (2 Horizontal Bars) */}
+                {/* TASK STATUS (Horizontal) */}
                 <div className="monday-card p-6 min-h-[360px] flex flex-col">
                     <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-6">
                         Task & Project Completion
