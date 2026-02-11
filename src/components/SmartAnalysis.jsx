@@ -17,6 +17,14 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [error, setError] = useState('');
     const [debugInfo, setDebugInfo] = useState('');
 
+    // --- CONFIGURATION: EXACT MAP OF MODELS TO API VERSIONS ---
+    // This prevents the "v1beta vs v1" mismatch error.
+    const MODEL_STRATEGIES = [
+        { name: 'gemini-1.5-flash', version: 'v1beta' }, // Fast & New
+        { name: 'gemini-pro',       version: 'v1' },     // Stable Classic
+        { name: 'gemini-1.0-pro',   version: 'v1' }      // Legacy Backup
+    ];
+
     const handleAnalyze = async () => {
         const cleanKey = apiKey.trim();
         if (cleanKey) localStorage.setItem('idc_gemini_key', cleanKey);
@@ -31,47 +39,6 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
         setDebugInfo('');
         
         try {
-            // --- STEP 1: DISCOVER AVAILABLE MODELS (Like your Python Script) ---
-            setStatus('Connecting to Google...');
-            
-            // We hit the 'v1beta' endpoint to list models. This usually works for everyone.
-            const listResponse = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`
-            );
-
-            if (!listResponse.ok) {
-                const errData = await listResponse.json();
-                throw new Error(`Connection Failed: ${errData.error?.message || listResponse.statusText}`);
-            }
-
-            const listData = await listResponse.json();
-            const models = listData.models || [];
-
-            // --- STEP 2: SELECT THE BEST MODEL ---
-            setStatus('Selecting best AI brain...');
-            
-            let selectedModel = '';
-            
-            // Priority 1: Flash (Fastest)
-            if (models.some(m => m.name.includes('gemini-1.5-flash'))) {
-                selectedModel = 'gemini-1.5-flash';
-            } 
-            // Priority 2: Pro (Stable)
-            else if (models.some(m => m.name.includes('gemini-pro'))) {
-                selectedModel = 'gemini-pro';
-            }
-            // Priority 3: Anything else that supports generation
-            else if (models.length > 0) {
-                selectedModel = models[0].name.replace('models/', '');
-            } else {
-                throw new Error("No available models found for this API Key.");
-            }
-
-            setDebugInfo(`Using Model: ${selectedModel}`);
-
-            // --- STEP 3: GENERATE CONTENT ---
-            setStatus('Analyzing Team Data...');
-            
             const snapshot = JSON.stringify({
                 projects_and_tasks: teamData,
                 clinical_workload: staffLoads
@@ -99,33 +66,54 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                 TONE: Professional, concise, and actionable.
             `;
 
-            // Note: We use the same 'v1beta' endpoint for generation to match the discovery
-            const genUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${cleanKey}`;
+            // --- THE BRUTE FORCE LOOP ---
+            for (const strategy of MODEL_STRATEGIES) {
+                setStatus(`Trying ${strategy.name}...`);
+                
+                try {
+                    // CONSTRUCT THE EXACT URL FOR THIS PAIRING
+                    const url = `https://generativelanguage.googleapis.com/${strategy.version}/models/${strategy.name}:generateContent?key=${cleanKey}`;
+                    
+                    console.log(`Attempting: ${url}`); // For debugging in console
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: promptText }] }]
+                        })
+                    });
 
-            const genResponse = await fetch(genUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: promptText }] }]
-                })
-            });
+                    const data = await response.json();
 
-            const genData = await genResponse.json();
+                    // IF THIS MODEL FAILS, LOG IT AND CONTINUE TO NEXT
+                    if (!response.ok) {
+                        console.warn(`Failed ${strategy.name}: ${data.error?.message}`);
+                        setDebugInfo(prev => `${prev} | ${strategy.name}: ${data.error?.message?.substring(0, 50)}...`);
+                        continue; 
+                    }
 
-            if (!genResponse.ok) {
-                throw new Error(genData.error?.message || "Generation Failed");
+                    // SUCCESS!
+                    if (data.candidates && data.candidates[0].content) {
+                        setResult(data.candidates[0].content.parts[0].text);
+                        setLoading(false);
+                        setStatus('GENERATE EXECUTIVE BRIEF');
+                        return; // EXIT THE FUNCTION IMMEDIATELY
+                    }
+
+                } catch (netErr) {
+                    console.warn(`Network Error on ${strategy.name}`, netErr);
+                }
             }
 
-            if (genData.candidates && genData.candidates[0].content) {
-                setResult(genData.candidates[0].content.parts[0].text);
-            } else {
-                throw new Error("AI returned no text. (Safety Blocked?)");
-            }
+            // IF WE GET HERE, EVERY SINGLE STRATEGY FAILED
+            throw new Error("All AI models failed. Check your API Key permissions.");
 
         } catch (err) {
-            console.error("Gemini Critical Failure:", err);
+            console.error("Critical Failure:", err);
             setError('Analysis Failed');
-            setDebugInfo(err.message);
+            // Show the cumulative log of what went wrong
+            if (!debugInfo) setDebugInfo(err.message);
         } finally {
             setLoading(false);
             setStatus('GENERATE EXECUTIVE BRIEF');
@@ -204,9 +192,9 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                                 <Bug size={16} />
                                                 <span>{error}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-xs mb-1">
+                                            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-[10px] mb-1 break-all">
                                                 <Network size={12} />
-                                                <span>Debug: {debugInfo}</span>
+                                                <span>Errors: {debugInfo}</span>
                                             </div>
                                         </div>
                                     )}
