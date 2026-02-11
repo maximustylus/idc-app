@@ -15,30 +15,14 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [errorDetails, setErrorDetails] = useState('');
-    const [currentModel, setCurrentModel] = useState('gemini-1.5-flash'); // Track which model we are trying
+    const [statusMessage, setStatusMessage] = useState('GENERATE EXECUTIVE BRIEF');
 
-    // --- HELPER: GENERIC API CALL ---
-    const callGeminiAPI = async (modelName, prompt, key) => {
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
-                })
-            }
-        );
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-            // Throw specific error object to catch in main loop
-            throw { status: response.status, message: data.error?.message || "API Error" };
-        }
-        
-        return data.candidates[0].content.parts[0].text;
-    };
+    // --- CONFIGURATION: The correct map of Models to API Versions ---
+    const MODEL_ATTEMPTS = [
+        { name: 'gemini-1.5-flash', version: 'v1beta' }, // Fast & New
+        { name: 'gemini-pro',       version: 'v1' },     // Stable & Standard
+        { name: 'gemini-1.0-pro',   version: 'v1' }      // Legacy Backup
+    ];
 
     const handleAnalyze = async () => {
         const cleanKey = apiKey.trim();
@@ -81,29 +65,47 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
             TONE: Professional, concise, and actionable.
         `;
 
-        // 2. SMART FALLBACK LOGIC
-        try {
+        // 2. THE LOOP: Try models one by one until one works
+        for (const modelConfig of MODEL_ATTEMPTS) {
             try {
-                // ATTEMPT 1: Try Flash (Fastest)
-                setCurrentModel('gemini-1.5-flash');
-                const text = await callGeminiAPI('gemini-1.5-flash', promptText, cleanKey);
-                setResult(text);
-            } catch (firstError) {
-                // ATTEMPT 2: If Flash fails (404), try Pro (Stable)
-                console.warn("Flash failed, switching to Gemini Pro...", firstError);
+                setStatusMessage(`Trying ${modelConfig.name}...`);
                 
-                setCurrentModel('gemini-pro');
-                const text = await callGeminiAPI('gemini-pro', promptText, cleanKey);
-                setResult(text);
+                // Construct the SPECIFIC URL for this model version
+                const url = `https://generativelanguage.googleapis.com/${modelConfig.version}/models/${modelConfig.name}:generateContent?key=${cleanKey}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    // Start next iteration of loop if this fails
+                    console.warn(`Failed on ${modelConfig.name}:`, data.error?.message);
+                    continue; 
+                }
+
+                // SUCCESS! Extract text and break the loop
+                if (data.candidates && data.candidates[0].content) {
+                    const text = data.candidates[0].content.parts[0].text;
+                    setResult(text);
+                    setLoading(false);
+                    return; // EXIT FUNCTION, WE ARE DONE
+                }
+
+            } catch (e) {
+                console.warn(`Network error on ${modelConfig.name}`, e);
             }
-        } catch (finalError) {
-            // If BOTH fail, show the error
-            console.error("All models failed:", finalError);
-            setError(`Analysis failed on model: ${currentModel}`);
-            setErrorDetails(finalError.message || JSON.stringify(finalError));
-        } finally {
-            setLoading(false);
         }
+
+        // 3. IF WE GET HERE, ALL MODELS FAILED
+        setLoading(false);
+        setError('All AI models failed.');
+        setErrorDetails('Your API key might be invalid, or your region is blocking Google AI.');
     };
 
     // FUNCTION TO PUBLISH REPORT TO DASHBOARD
@@ -167,7 +169,7 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                         {loading ? (
                                             <span className="flex items-center gap-2">
                                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                {currentModel === 'gemini-1.5-flash' ? 'TRYING FLASH...' : 'SWITCHING TO PRO...'}
+                                                {statusMessage}
                                             </span>
                                         ) : 'GENERATE EXECUTIVE BRIEF'}
                                     </button>
