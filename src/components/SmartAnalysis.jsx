@@ -1,201 +1,75 @@
-import React, { useState } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { db } from '../firebase'; 
-import { doc, setDoc } from 'firebase/firestore'; 
-import { 
-    JOB_DESCRIPTIONS, 
-    TIME_MATRIX, 
-    COMPETENCY_FRAMEWORK, 
-    CAREER_PATH 
-} from '../knowledgeBase';
-import { Sparkles, Lock, X, Bug } from 'lucide-react';
+import os
+import json
+import google.generativeai as genai
 
-const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
-    // Load key from browser memory if it exists
-    const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState(null);
-    const [error, setError] = useState('');
-    const [errorDetails, setErrorDetails] = useState('');
+api_key = os.environ.get("GOOGLE_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
 
-    const handleAnalyze = async () => {
-        const cleanKey = apiKey.trim();
+SYSTEM_INSTRUCTION = """
+You are a senior Singaporean Mortgage Banker (SmartSAY Advisor). 
+Analyze the provided financial calculation JSON for a property client.
 
-        // SAVE THE KEY TO BROWSER MEMORY
-        if (cleanKey) localStorage.setItem('idc_gemini_key', cleanKey);
+Your Goal: Write a brief, professional executive summary (3-4 sentences).
 
-        if (!cleanKey) {
-            setError('Please enter your Gemini API Key.');
-            return;
+Guidelines:
+1. Tone: Empathetic, professional.
+2. For BUYERS: Focus on TDSR/MSR, Cash Top-up, and Grants.
+3. For SELLERS (Standard): Focus on Net Cash Proceeds.
+4. For SENIORS (55+): You MUST mention if they met the Full Retirement Sum (FRS) in their RA. Explain how much of their CPF refund went to RA vs OA.
+5. Rules: Use Singapore terms (CPF, MSR, TDSR, HDB, RA, OA). No markdown.
+"""
+
+def get_working_model_name():
+    try:
+        models = [m for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        for m in models:
+            if 'flash' in m.name: return m.name
+        for m in models:
+            if 'pro' in m.name: return m.name
+        if models: return models[0].name
+    except:
+        pass
+    return 'models/gemini-pro'
+
+def generate_analysis(data: dict):
+    if not api_key:
+        return "⚠️ Error: No Google API Key found."
+
+    # --- PREPARE DATA ---
+    transaction_type = "Purchase"
+    if "net_cash_proceeds" in data:
+        transaction_type = "Senior Sale" if data.get("is_senior") else "Sale"
+    
+    summary_data = {"transaction": transaction_type, "figures": {}}
+
+    if transaction_type == "Purchase":
+        summary_data["figures"] = {
+            "income": data.get("gross_income", 0),
+            "property": data.get("property_type", "hdb"),
+            "loan_eligible": data.get("max_loan", 0),
+            "max_budget": data.get("max_purchase_budget", 0),
+            "cash_topup_monthly": data.get("monthly_cash_topup", 0)
+        }
+    elif transaction_type == "Senior Sale":
+        summary_data["figures"] = {
+            "net_cash": data.get("net_cash_proceeds", 0),
+            "owner1_to_ra": data.get("owner1_to_ra", 0),
+            "owner1_to_oa": data.get("owner1_to_oa", 0),
+            "owner1_met_frs": data.get("owner1_met_frs", False)
+        }
+    else:
+        summary_data["figures"] = {
+            "net_cash": data.get("net_cash_proceeds", 0),
+            "cpf_refunded": data.get("total_cpf_refund", 0)
         }
 
-        setLoading(true);
-        setError('');
-        setErrorDetails('');
+    full_prompt = f"{SYSTEM_INSTRUCTION}\n\nClient Data:\n{json.dumps(summary_data)}"
 
-        try {
-            const genAI = new GoogleGenerativeAI(cleanKey);
-            
-            // --- UPDATED FOR NEW SDK ---
-            // Using the latest 1.5 Flash model
-            const model = genAI.getGenerativeModel({ 
-                model: "gemini-1.5-flash" 
-            });
-
-            const snapshot = JSON.stringify({
-                projects_and_tasks: teamData,
-                clinical_workload: staffLoads
-            });
-
-            const prompt = `
-                ACT AS: A Senior Clinical Lead and HR Specialist at KK Women's and Children's Hospital (SingHealth).
-                
-                REFERENCE MATERIAL:
-                - Job Descriptions: ${JOB_DESCRIPTIONS}
-                - Time Matrix Rules: ${TIME_MATRIX}
-                - Competency Levels: ${COMPETENCY_FRAMEWORK}
-                - Career Path: ${CAREER_PATH}
-
-                LIVE DATA TO ANALYZE:
-                ${snapshot}
-
-                TASK:
-                Analyze the team's performance.
-                Provide a "Clinical Leadership Executive Brief" in these 3 specific sections:
-                1. 🚨 ROLE MISALIGNMENT & BURNOUT
-                2. 📈 PROMOTION & TALENT READINESS
-                3. ⚖️ JOY AT WORK RECOMMENDATIONS
-
-                TONE: Professional, concise, and actionable.
-            `;
-
-            const aiResult = await model.generateContent(prompt);
-            const response = await aiResult.response;
-            const text = response.text();
-            
-            setResult(text);
-            
-        } catch (err) {
-            console.error("Gemini Error:", err);
-            setError('Analysis failed.');
-            setErrorDetails(err.message || JSON.stringify(err));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // FUNCTION TO PUBLISH REPORT TO DASHBOARD
-    const handlePublish = async () => {
-        if (!result) return;
-        try {
-            await setDoc(doc(db, 'system_data', 'dashboard_summary'), {
-                text: result,
-                timestamp: new Date()
-            });
-            alert("✅ Report Published to Main Dashboard!");
-            onClose(); 
-        } catch (e) {
-            alert("❌ Error publishing: " + e.message);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4">
-            <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
-                
-                {/* Header */}
-                <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 flex justify-between items-center text-white">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <Sparkles size={20} className="animate-pulse" />
-                            <h2 className="text-2xl font-black tracking-tight">IDC SMART ANALYSIS</h2>
-                        </div>
-                        <p className="text-indigo-100 text-sm font-bold uppercase tracking-widest opacity-80">Clinical Intelligence v1.2</p>
-                    </div>
-                    <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-full transition-colors">
-                        <X size={28} />
-                    </button>
-                </div>
-
-                <div className="p-8 overflow-y-auto flex-1 bg-slate-50/50 dark:bg-slate-900/50">
-                    {!result ? (
-                        <div className="flex flex-col items-center justify-center py-12">
-                            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 max-w-md w-full text-center">
-                                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Secure AI Integration</h3>
-                                
-                                <div className="space-y-4">
-                                    <div className="relative text-left">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">Google Gemini API Key</label>
-                                        <div className="relative">
-                                            <Lock className="absolute left-3 top-3.5 text-slate-300" size={16} />
-                                            <input 
-                                                type="password" 
-                                                placeholder="Enter Key..." 
-                                                value={apiKey}
-                                                onChange={(e) => setApiKey(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 dark:text-white"
-                                            />
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={handleAnalyze} 
-                                        disabled={loading || !apiKey}
-                                        className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white font-black rounded-xl hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
-                                    >
-                                        {loading ? (
-                                            <span className="flex items-center gap-2">
-                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                PROCESSING...
-                                            </span>
-                                        ) : 'GENERATE EXECUTIVE BRIEF'}
-                                    </button>
-                                    
-                                    {error && (
-                                        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-left">
-                                            <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm mb-1">
-                                                <Bug size={16} />
-                                                <span>{error}</span>
-                                            </div>
-                                            <p className="text-xs font-mono text-red-500 dark:text-red-300 break-all">
-                                                {errorDetails}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* RESULTS SECTION */}
-                            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 prose dark:prose-invert max-w-none">
-                                <div className="whitespace-pre-line text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                                    {result}
-                                </div>
-                            </div>
-                            
-                            {/* ACTION BUTTONS */}
-                            <div className="flex flex-col md:flex-row gap-4 mt-8">
-                                <button 
-                                    onClick={handlePublish}
-                                    className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
-                                >
-                                    <Sparkles size={16} />
-                                    PUBLISH TO TEAM DASHBOARD
-                                </button>
-                                
-                                <button 
-                                    onClick={() => setResult(null)}
-                                    className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                    Retry
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export default SmartAnalysis;
+    try:
+        model_name = get_working_model_name()
+        model = genai.GenerativeModel(model_name)
+        response = model.generate_content(full_prompt)
+        return response.text
+    except Exception as e:
+        return f"AI Error: {str(e)}"
