@@ -1,16 +1,21 @@
+import SmartAnalysis from './SmartAnalysis';
+import { Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import StaffLoadEditor from './StaffLoadEditor';
 import { db } from '../firebase';
 import { updateDoc, doc, arrayUnion, arrayRemove, getDoc, writeBatch } from 'firebase/firestore';
-// We now import these lists from utils so everything stays consistent
 import { MONTHS, STAFF_LIST, DOMAIN_LIST, STATUS_OPTIONS } from '../utils';
 
-const AdminPanel = ({ teamData }) => {
+// FIX 1: Added 'staffLoads' here so we can pass it to the AI
+const AdminPanel = ({ teamData, staffLoads }) => {
     // States for "Add New" form
     const [newOwner, setNewOwner] = useState('');
     const [newDomain, setNewDomain] = useState('MANAGEMENT');
     const [newType, setNewType] = useState('Task');
     const [newTitle, setNewTitle] = useState('');
+    
+    // State for AI Modal
+    const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
     
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -89,6 +94,13 @@ const AdminPanel = ({ teamData }) => {
     return (
         <div className="monday-card p-6 mt-6 mb-12 dark:bg-slate-800 dark:border-slate-700">
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
+                <button 
+                    onClick={() => setIsAnalysisOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded hover:opacity-90 shadow-lg"
+                    >
+                    <Sparkles size={14} />
+                    GENERATE AI REPORT
+                </button>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase">Admin Database</h2>
                 {message && <span className="text-xs font-bold px-3 py-1 bg-blue-100 text-blue-700 rounded">{message}</span>}
             </div>
@@ -107,7 +119,7 @@ const AdminPanel = ({ teamData }) => {
                 <button onClick={handleAddItem} disabled={loading} className="lg:col-span-4 w-full py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-xs">ADD NEW ENTRY</button>
             </div>
 
-            {/* SECTION 2: EXCEL GRID (Replaces old KPI update) */}
+            {/* SECTION 2: EXCEL GRID */}
             <StaffLoadEditor />
 
             {/* SECTION 3: MASTER TASK LIST */}
@@ -181,6 +193,15 @@ const AdminPanel = ({ teamData }) => {
                     </tbody>
                 </table>
             </div>
+
+            {/* FIX 2: MOVED THIS INSIDE THE RETURN STATEMENT */}
+            {isAnalysisOpen && (
+                <SmartAnalysis 
+                    teamData={teamData} 
+                    staffLoads={staffLoads} 
+                    onClose={() => setIsAnalysisOpen(false)} 
+                />
+            )}
         </div>
     );
 };
