@@ -290,8 +290,8 @@ function App() {
         <div className="flex items-center gap-4 self-start md:self-center">
           <img src="/logo.png" alt="SSMC Logo" className="h-12 w-auto object-contain" />
           <div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-none">SSMC@KKH</h1>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Leadership Dashboard v1.1</p>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-none">IDC APP v1.1</h1>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Interactive Dashboard for Clinicians</p>
           </div>
         </div>
 
