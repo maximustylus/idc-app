@@ -12,7 +12,7 @@ import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Upload, Download
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
 import ResponsiveLayout from './components/ResponsiveLayout';
-import SmartReportView from './components/SmartReportView'; // <--- NEW IMPORT
+// NOTE: SmartReportView removed from here to keep dashboard public
 
 // Utils
 import { STAFF_LIST, MONTHS, DOMAIN_LIST } from './utils';
@@ -113,7 +113,7 @@ function App() {
 
   // --- SUB-VIEWS ---
 
-  // 1. DASHBOARD VIEW
+  // 1. DASHBOARD VIEW (Public Charts Only)
   const DashboardView = ({ isArchive = false }) => (
     <>
       {isArchive && (
@@ -134,9 +134,6 @@ function App() {
           <span className="text-xs font-mono text-amber-700 uppercase">Read Only Mode</span>
         </div>
       )}
-
-      {/* NEW SMART REPORT CARD (The Viewer) */}
-      {!isArchive && <SmartReportView />}
 
       {/* Row 1 */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
