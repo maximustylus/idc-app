@@ -3,8 +3,8 @@ import { db, auth } from './firebase';
 import { collection, onSnapshot, doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, 
-  PieChart, Pie, Legend 
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend 
 } from 'recharts';
 import { Sun, Moon, LogOut, LayoutDashboard } from 'lucide-react';
 
@@ -18,6 +18,21 @@ import { STAFF_LIST, MONTHS, DOMAIN_LIST, STATUS_OPTIONS } from './utils';
 
 // --- COLORS ---
 const COLORS = ['#FFC107', '#FF9800', '#FF5722', '#4CAF50', '#2196F3']; // Management, Clinical, Edu, Research, Other
+const STATUS_COLORS = {
+  1: '#EF4444', // Stuck (Red)
+  2: '#A855F7', // Planning (Purple)
+  3: '#F59E0B', // Working (Orange)
+  4: '#3B82F6', // Review (Blue)
+  5: '#10B981'  // Done (Green)
+};
+
+// Placeholder Data for Patient Attendance (Restoring the curve)
+const ATTENDANCE_DATA = [
+  { name: 'Jan', value: 300 }, { name: 'Feb', value: 10 }, { name: 'Mar', value: 5 }, 
+  { name: 'Apr', value: 8 }, { name: 'May', value: 12 }, { name: 'Jun', value: 15 }, 
+  { name: 'Jul', value: 20 }, { name: 'Aug', value: 18 }, { name: 'Sep', value: 25 }, 
+  { name: 'Oct', value: 30 }, { name: 'Nov', value: 35 }, { name: 'Dec', value: 40 }
+];
 
 function App() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -26,8 +41,8 @@ function App() {
   const [user, setUser] = useState(null);
   
   // Data States
-  const [teamData, setTeamData] = useState([]); // For Swimlanes & Project Charts
-  const [staffLoads, setStaffLoads] = useState({}); // For Clinical Load Charts
+  const [teamData, setTeamData] = useState([]); 
+  const [staffLoads, setStaffLoads] = useState({});
 
   // 0. Auth Listener
   useEffect(() => {
@@ -35,7 +50,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // 1. Fetch Swimlane Data (Tasks/Projects) - Powers Pie & Stacked Bar
+  // 1. Fetch Swimlane Data
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'cep_team'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -47,7 +62,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Fetch Clinical Load Data - Powers the 6 Individual Charts
+  // 2. Fetch Clinical Load Data
   useEffect(() => {
     const unsubscribes = STAFF_LIST.map(staff => {
       return onSnapshot(doc(db, 'staff_loads', staff), (docSnap) => {
@@ -63,7 +78,7 @@ function App() {
 
   // --- HELPERS FOR CHARTS ---
 
-  // A. Pie Chart Data (Count projects by Domain)
+  // A. Pie Chart Data
   const getPieData = () => {
     const counts = { MANAGEMENT: 0, CLINICAL: 0, EDUCATION: 0, RESEARCH: 0 };
     teamData.forEach(staff => {
@@ -76,22 +91,27 @@ function App() {
     })).filter(d => d.value > 0);
   };
 
-  // B. Stacked Bar Data (Count Tasks vs Projects)
-  const getStackedData = () => {
-    return teamData.map(staff => {
-      const tasks = (staff.projects || []).filter(p => p.item_type === 'Task').length;
-      const projects = (staff.projects || []).filter(p => p.item_type === 'Project').length;
-      return { name: staff.staff_name, Task: tasks, Project: projects };
+  // B. Status Bar Data (Restored "Before" Logic)
+  const getStatusData = () => {
+    const tasks = { name: 'Tasks', 1:0, 2:0, 3:0, 4:0, 5:0 };
+    const projects = { name: 'Projects', 1:0, 2:0, 3:0, 4:0, 5:0 };
+
+    teamData.forEach(staff => {
+      (staff.projects || []).forEach(p => {
+        const status = p.status_dots || 2;
+        if (p.item_type === 'Project') projects[status]++;
+        else tasks[status]++;
+      });
     });
+    return [tasks, projects];
   };
 
-  // C. Clinical Load Data (For the 6 small charts)
+  // C. Clinical Load Data
   const getClinicalData = (staffName) => {
     const data = staffLoads[staffName] || Array(12).fill(0);
     return MONTHS.map((m, i) => ({ name: m, value: data[i] || 0 }));
   };
 
-  // Theme Toggle
   const toggleTheme = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle('dark');
@@ -137,17 +157,15 @@ function App() {
         </div>
       </div>
 
-      {/* --- MODALS --- */}
       {isLoginOpen && <Login onClose={() => setIsLoginOpen(false)} />}
-
-      {/* --- ADMIN PANEL --- */}
+      
       {isAdminOpen && (
         <div className="md:col-span-2">
           <AdminPanel teamData={teamData} />
         </div>
       )}
 
-      {/* --- ROW 1: PIE CHART & STACKED BAR (RESTORED) --- */}
+      {/* --- ROW 1: DOMAIN & STATUS (RESTORED) --- */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Domain Distribution</h2>
         <div className="h-64">
@@ -172,22 +190,45 @@ function App() {
       </div>
 
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Task vs Project Load</h2>
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Task & Project Completion</h2>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={getStackedData()} layout="vertical">
+            <BarChart data={getStatusData()} layout="vertical">
               <XAxis type="number" hide />
               <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 12}} />
               <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }} />
               <Legend />
-              <Bar dataKey="Task" stackId="a" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
-              <Bar dataKey="Project" stackId="a" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={20} />
+              {/* Stacked Bars for Status */}
+              <Bar dataKey="1" stackId="a" fill={STATUS_COLORS[1]} name="Stuck" radius={[4, 0, 0, 4]} barSize={30} />
+              <Bar dataKey="2" stackId="a" fill={STATUS_COLORS[2]} name="Planning" barSize={30} />
+              <Bar dataKey="3" stackId="a" fill={STATUS_COLORS[3]} name="Working" barSize={30} />
+              <Bar dataKey="4" stackId="a" fill={STATUS_COLORS[4]} name="Review" barSize={30} />
+              <Bar dataKey="5" stackId="a" fill={STATUS_COLORS[5]} name="Done" radius={[0, 4, 4, 0]} barSize={30} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* --- ROW 2: INDIVIDUAL CLINICAL LOAD (NEW FEATURE) --- */}
+      {/* --- ROW 2: ATTENDANCE LINE CHART (RESTORED) --- */}
+      <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Monthly Patient Attendance (Team)</h2>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={ATTENDANCE_DATA}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }} />
+              {/* Threshold Line */}
+              <Line type="monotone" dataKey={() => 180} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={1} dot={false} name="Target" />
+              {/* Main Data Line */}
+              <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} dot={{r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* --- ROW 3: INDIVIDUAL CLINICAL LOAD (NEW) --- */}
       <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Individual Clinical Load (Real-Time)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -224,7 +265,7 @@ function App() {
         </div>
       </div>
 
-      {/* --- ROW 3: DEPARTMENT OVERVIEW (SWIMLANES) --- */}
+      {/* --- ROW 4: DEPARTMENT OVERVIEW (SWIMLANES) --- */}
       <div className="md:col-span-2 mt-8">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Department Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -238,7 +279,6 @@ function App() {
               }`}>
                 <h3 className="font-black text-slate-800 text-sm tracking-wide">{domain}</h3>
               </div>
-
               <div className="flex flex-col gap-2">
                 {teamData.map(staff => (
                   (staff.projects || [])
@@ -250,7 +290,6 @@ function App() {
                           {p.item_type === 'Project' && <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">PROJ</span>}
                         </div>
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-tight mb-2">{p.title}</p>
-                        
                         <div className="flex gap-1 justify-end">
                           {[1,2,3,4,5].map(val => (
                             <div 
