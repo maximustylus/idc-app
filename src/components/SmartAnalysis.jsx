@@ -6,28 +6,34 @@ import {
     COMPETENCY_FRAMEWORK, 
     CAREER_PATH 
 } from '../knowledgeBase';
-import { Sparkles, Lock, X, AlertCircle, TrendingUp, Scale } from 'lucide-react';
+import { Sparkles, Lock, X, AlertCircle, TrendingUp, Scale, Bug } from 'lucide-react';
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [apiKey, setApiKey] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
+    const [errorDetails, setErrorDetails] = useState(''); // To show the raw error
 
     const handleAnalyze = async () => {
-        if (!apiKey) {
-            setError('Please enter your Gemini API Key to continue.');
+        // 1. Clean the key (remove accidental spaces)
+        const cleanKey = apiKey.trim();
+
+        if (!cleanKey) {
+            setError('Please enter your Gemini API Key.');
             return;
         }
 
         setLoading(true);
         setError('');
+        setErrorDetails('');
 
         try {
-            const genAI = new GoogleGenerativeAI(apiKey);
+            // 2. Initialize the Brain
+            const genAI = new GoogleGenerativeAI(cleanKey);
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-            // Prepare the snapshot for the AI
+            // 3. Prepare the Data Packet
             const snapshot = JSON.stringify({
                 projects_and_tasks: teamData,
                 clinical_workload: staffLoads
@@ -46,31 +52,26 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                 ${snapshot}
 
                 TASK:
-                Perform a deep analysis of the team's current performance against their JDs and Competency levels.
+                Analyze the team's performance.
                 Provide a "Clinical Leadership Executive Brief" in these 3 specific sections:
+                1. 🚨 ROLE MISALIGNMENT & BURNOUT
+                2. 📈 PROMOTION & TALENT READINESS
+                3. ⚖️ JOY AT WORK RECOMMENDATIONS
 
-                1. 🚨 ROLE MISALIGNMENT & BURNOUT: 
-                Compare Clinical Loads vs Admin/Research tasks. Using the Time Matrix, flag anyone doing work below or significantly above their expected JG level.
-                
-                2. 📈 PROMOTION & TALENT READINESS: 
-                Identify staff members whose current project types (Management, Research, Education) suggest they are operating at a higher Competency Level than their current role.
-                
-                3. ⚖️ JOY AT WORK RECOMMENDATIONS: 
-                Suggest specific task re-distributions. If someone is "Stuck" and "Overloaded," suggest who has the capacity to assist based on the data.
-
-                TONE: High-level leadership tone. Professional, concise, and actionable.
+                TONE: Professional, concise, and actionable.
             `;
 
             const aiResult = await model.generateContent(prompt);
             const response = await aiResult.response;
             const text = response.text();
             
-            // Basic formatting for the display
             setResult(text);
             
         } catch (err) {
-            console.error(err);
-            setError('Analysis failed. Ensure your API Key is correct and has Gemini 1.5 access.');
+            console.error("Gemini Error:", err);
+            // Show the specific error message to the user
+            setError('Analysis failed.');
+            setErrorDetails(err.message || JSON.stringify(err));
         } finally {
             setLoading(false);
         }
@@ -99,9 +100,6 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                         <div className="flex flex-col items-center justify-center py-12">
                             <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 max-w-md w-full text-center">
                                 <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Secure AI Integration</h3>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
-                                    Cross-reference current team data with KKH Job Descriptions and SingHealth Competency Frameworks.
-                                </p>
                                 
                                 <div className="space-y-4">
                                     <div className="relative text-left">
@@ -129,34 +127,30 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                             </span>
                                         ) : 'GENERATE EXECUTIVE BRIEF'}
                                     </button>
-                                    {error && <p className="text-red-500 text-xs font-bold mt-2">{error}</p>}
+                                    
+                                    {/* ERROR DISPLAY SECTION */}
+                                    {error && (
+                                        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-left">
+                                            <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm mb-1">
+                                                <Bug size={16} />
+                                                <span>{error}</span>
+                                            </div>
+                                            <p className="text-xs font-mono text-red-500 dark:text-red-300 break-all">
+                                                {errorDetails}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     ) : (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                                <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800/30 flex items-center gap-3">
-                                    <AlertCircle className="text-red-600" />
-                                    <span className="text-xs font-bold text-red-800 dark:text-red-300">Burnout Risks</span>
-                                </div>
-                                <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/30 flex items-center gap-3">
-                                    <TrendingUp className="text-indigo-600" />
-                                    <span className="text-xs font-bold text-indigo-800 dark:text-indigo-300">Talent Readiness</span>
-                                </div>
-                                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/30 flex items-center gap-3">
-                                    <Scale className="text-emerald-600" />
-                                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Workload Balance</span>
-                                </div>
-                            </div>
-                            
-                            {/* AI Output Content */}
+                            {/* RESULTS SECTION */}
                             <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 prose dark:prose-invert max-w-none">
                                 <div className="whitespace-pre-line text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                                     {result}
                                 </div>
                             </div>
-                            
                             <button 
                                 onClick={() => setResult(null)}
                                 className="mt-8 px-8 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
