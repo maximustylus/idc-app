@@ -1,3 +1,5 @@
+import { db } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { 
