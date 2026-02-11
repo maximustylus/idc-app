@@ -7,7 +7,7 @@ import {
     COMPETENCY_FRAMEWORK, 
     CAREER_PATH 
 } from '../knowledgeBase';
-import { Sparkles, Lock, X, Bug, ShieldCheck, UserCog } from 'lucide-react';
+import { Sparkles, Lock, X, Bug, Radar, UserCog } from 'lucide-react';
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
@@ -17,7 +17,7 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [error, setError] = useState('');
     const [debugLog, setDebugLog] = useState('');
 
-    // --- 1. HARDCODED STAFF CONTEXT (Your Request) ---
+    // --- 1. HARDCODED STAFF CONTEXT ---
     const STAFF_PROFILES = {
         "Alif":      { role: "Senior CEP", grade: "JG14", focus: "Leadership, Research, Clinical" },
         "Fadzlynn":  { role: "CEP I",      grade: "JG13", focus: "Clinical Lead, Specialized Projects" },
@@ -26,13 +26,6 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
         "Brandon":   { role: "CEP III",    grade: "JG11", focus: "Clinical Execution, Basic Education" },
         "Nisa":      { role: "Administrator", grade: "Admin", focus: "Operations, Budget, Rostering" }
     };
-
-    // --- 2. ROBUST MODEL FINDER ---
-    const MODEL_STRATEGIES = [
-        { name: 'gemini-1.5-flash', version: 'v1beta' }, // Priority 1: Fast
-        { name: 'gemini-pro',       version: 'v1' },     // Priority 2: Stable
-        { name: 'gemini-1.0-pro',   version: 'v1' }      // Priority 3: Backup
-    ];
 
     const handleAnalyze = async () => {
         const cleanKey = apiKey.trim();
@@ -48,7 +41,43 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
         setDebugLog('');
         
         try {
-            // Prepare Data Snapshot
+            // --- PHASE 1: THE HUNT (List Available Models) ---
+            // This is the logic that WORKED for you. We keep it exactly as is.
+            setStatus('Scanning for available AI models...');
+            
+            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`;
+            
+            const listResponse = await fetch(listUrl);
+            const listData = await listResponse.json();
+
+            if (!listResponse.ok) {
+                throw new Error(`Model Scan Failed: ${listData.error?.message || "Check API Key"}`);
+            }
+
+            const allModels = listData.models || [];
+            
+            const chatModels = allModels.filter(m => 
+                m.supportedGenerationMethods && 
+                m.supportedGenerationMethods.includes("generateContent")
+            );
+
+            if (chatModels.length === 0) {
+                throw new Error("No text-generation models found for this API key.");
+            }
+
+            // --- PHASE 2: THE SEEKER (Pick the Best One) ---
+            setStatus('Selecting best model...');
+            
+            let bestModel = chatModels.find(m => m.name.includes('flash'));
+            if (!bestModel) bestModel = chatModels.find(m => m.name.includes('pro'));
+            if (!bestModel) bestModel = chatModels[0];
+
+            const modelName = bestModel.name; 
+            setDebugLog(`Selected Model: ${modelName}`);
+
+            // --- PHASE 3: EXECUTE (Generate with NEW PROMPT) ---
+            setStatus(`Analyzing using ${modelName.replace('models/', '')}...`);
+
             const snapshot = JSON.stringify({
                 projects_and_tasks: teamData,
                 clinical_workload: staffLoads
@@ -56,14 +85,13 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
 
             const staffContext = JSON.stringify(STAFF_PROFILES);
 
-            // --- 3. REFINED PROMPT (Separating Admin vs Clinical) ---
             const promptText = `
                 ACT AS: A Senior Clinical Lead and HR Specialist at KK Women's and Children's Hospital (SingHealth).
                 
                 CRITICAL CONTEXT (DO NOT GUESS - USE THESE FACTS):
                 ${staffContext}
 
-                REFERENCE RULES:
+                REFERENCE MATERIAL:
                 - Job Descriptions: ${JOB_DESCRIPTIONS}
                 - Time Matrix Rules: ${TIME_MATRIX}
                 - Competency Levels: ${COMPETENCY_FRAMEWORK}
@@ -80,7 +108,7 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                 2. For CEPs (Alif, Fadzlynn, Derlinder, Ying Xian, Brandon), evaluate their Clinical vs Admin/Research mix against their specific JG targets.
                 3. COMPARE: Check if their actual work matches their JG expectation.
 
-                OUTPUT FORMAT (Use Markdown for bolding and lists):
+                OUTPUT FORMAT (Use Markdown):
                 
                 ### 1. 🚨 ROLE MISALIGNMENT & BURNOUT
                 (Identify mismatches. Example: Is Brandon (JG11) doing too much Education? Is Alif (JG14) doing enough Strategic work?)
@@ -95,45 +123,32 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                 (Specific actionable steps)
             `;
 
-            // --- 4. EXECUTION LOOP ---
-            for (const strategy of MODEL_STRATEGIES) {
-                setStatus(`Trying ${strategy.name}...`);
-                
-                try {
-                    const url = `https://generativelanguage.googleapis.com/${strategy.version}/models/${strategy.name}:generateContent?key=${cleanKey}`;
-                    
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-                    });
+            const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${cleanKey}`;
 
-                    const data = await response.json();
+            const genResponse = await fetch(generateUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: promptText }] }]
+                })
+            });
 
-                    if (!response.ok) {
-                        console.warn(`Failed ${strategy.name}: ${data.error?.message}`);
-                        setDebugLog(prev => `${prev} | ${strategy.name} failed`);
-                        continue; 
-                    }
+            const genData = await genResponse.json();
 
-                    if (data.candidates && data.candidates[0].content) {
-                        setResult(data.candidates[0].content.parts[0].text);
-                        setLoading(false);
-                        setStatus('GENERATE EXECUTIVE BRIEF');
-                        return; // Success!
-                    }
-
-                } catch (netErr) {
-                    console.warn(`Network Error on ${strategy.name}`, netErr);
-                }
+            if (!genResponse.ok) {
+                throw new Error(`Generation Failed (${modelName}): ${genData.error?.message}`);
             }
 
-            throw new Error("All AI models failed. Check your API Key permissions.");
+            if (genData.candidates && genData.candidates[0].content) {
+                setResult(genData.candidates[0].content.parts[0].text);
+            } else {
+                throw new Error("AI connected but returned no text. (Safety Filter Triggered?)");
+            }
 
         } catch (err) {
             console.error("Critical Failure:", err);
             setError('Analysis Failed');
-            if (!debugLog) setDebugLog(err.message);
+            setDebugLog(prev => `${prev}\nError: ${err.message}`);
         } finally {
             setLoading(false);
             setStatus('GENERATE EXECUTIVE BRIEF');
@@ -215,7 +230,7 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                                 <span>{error}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-[10px] mb-1 break-all">
-                                                <ShieldCheck size={12} />
+                                                <Radar size={12} />
                                                 <span>Log: {debugLog}</span>
                                             </div>
                                         </div>
@@ -225,8 +240,9 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                         </div>
                     ) : (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* RESULTS SECTION - UPDATED FOR FORMATTING */}
+                            {/* RESULTS SECTION */}
                             <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700">
+                                {/* ADDED: whitespace-pre-wrap to fix formatting */}
                                 <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                                     {result}
                                 </div>
