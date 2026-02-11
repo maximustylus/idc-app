@@ -11,8 +11,8 @@ const SmartReportView = () => {
     // --- SECURITY GATE ---
     // Only Alif and Nisa are authorized to see this sensitive HR analysis.
     const isAuthorized = 
-        currentUser?.email === 'alif@kkh.com.sg' || 
-        currentUser?.email === 'nisa@kkh.com.sg'; 
+        currentUser?.email === 'muhammad.alif@kkh.com.sg' || 
+        currentUser?.email === 'siti.nur.anisah.nh@kkh.com.sg'; 
 
     useEffect(() => {
         const unsub = onSnapshot(doc(db, 'system_data', 'dashboard_summary'), (doc) => {
