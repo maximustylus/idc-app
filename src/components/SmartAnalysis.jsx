@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { db } from '../firebase'; // Import database connection
-import { doc, setDoc } from 'firebase/firestore'; // Import save function
+import { db } from '../firebase'; 
+import { doc, setDoc } from 'firebase/firestore'; 
 import { 
     JOB_DESCRIPTIONS, 
     TIME_MATRIX, 
     COMPETENCY_FRAMEWORK, 
     CAREER_PATH 
 } from '../knowledgeBase';
-import { Sparkles, Lock, X, AlertCircle, TrendingUp, Scale, Bug } from 'lucide-react';
+import { Sparkles, Lock, X, Bug } from 'lucide-react';
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
-    // Load key from browser memory if it exists (So you don't have to type it every time)
+    // Load key from browser memory if it exists
     const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
@@ -35,7 +35,12 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
 
         try {
             const genAI = new GoogleGenerativeAI(cleanKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            
+            // --- THE FIX IS HERE: FORCE v1beta ---
+            const model = genAI.getGenerativeModel(
+                { model: "gemini-1.5-flash" }, 
+                { apiVersion: "v1beta" } 
+            );
 
             const snapshot = JSON.stringify({
                 projects_and_tasks: teamData,
