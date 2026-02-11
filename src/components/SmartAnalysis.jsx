@@ -36,9 +36,11 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
         try {
             const genAI = new GoogleGenerativeAI(cleanKey);
             
-            // --- FIX: SWAPPED TO STABLE MODEL (gemini-pro) ---
-            // This model is fully supported on the standard v1 API
-            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+            // --- UPDATED FOR NEW SDK ---
+            // Using the latest 1.5 Flash model
+            const model = genAI.getGenerativeModel({ 
+                model: "gemini-1.5-flash" 
+            });
 
             const snapshot = JSON.stringify({
                 projects_and_tasks: teamData,
