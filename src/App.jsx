@@ -6,16 +6,16 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend 
 } from 'recharts';
-import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Upload, Download, FileCode, Sparkles } from 'lucide-react';
+import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Upload, Download, FileCode } from 'lucide-react';
 
 // Components
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
 import ResponsiveLayout from './components/ResponsiveLayout';
-import SmartAnalysis from './components/SmartAnalysis';
+import SmartReportView from './components/SmartReportView'; // <--- NEW IMPORT
 
 // Utils
-import { STAFF_LIST, MONTHS, DOMAIN_LIST, STATUS_OPTIONS } from './utils';
+import { STAFF_LIST, MONTHS, DOMAIN_LIST } from './utils';
 
 // --- COLORS ---
 const COLORS = ['#FFC107', '#FF9800', '#FF5722', '#4CAF50', '#2196F3']; 
@@ -31,11 +31,10 @@ const ATTENDANCE_DATA = [
 
 function App() {
   // --- STATE MANAGEMENT ---
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'archive', 'roster'
+  const [currentView, setCurrentView] = useState('dashboard');
   const [archiveYear, setArchiveYear] = useState('2025');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false); // <--- NEW STATE FOR AI
   const [isDark, setIsDark] = useState(false);
   const [user, setUser] = useState(null);
   
@@ -105,7 +104,6 @@ function App() {
   const toggleTheme = () => { setIsDark(!isDark); document.documentElement.classList.toggle('dark'); };
   const handleLogout = async () => { await signOut(auth); setIsAdminOpen(false); };
 
-  // Label for Pie Chart
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
@@ -136,6 +134,9 @@ function App() {
           <span className="text-xs font-mono text-amber-700 uppercase">Read Only Mode</span>
         </div>
       )}
+
+      {/* NEW SMART REPORT CARD (The Viewer) */}
+      {!isArchive && <SmartReportView />}
 
       {/* Row 1 */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
@@ -292,7 +293,7 @@ function App() {
         <div className="flex items-center gap-4 self-start md:self-center">
           <img src="/logo.png" alt="SSMC Logo" className="h-12 w-auto object-contain" />
           <div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-none">IDC APP v1.1</h1>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-none">IDC APP v1.2</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Interactive Dashboard for Clinicians</p>
           </div>
         </div>
@@ -330,15 +331,6 @@ function App() {
           
           {user ? (
             <div className="flex gap-2">
-              {/* NEW SMART ANALYSIS BUTTON */}
-              <button 
-                onClick={() => setIsAnalysisOpen(true)}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-bold rounded-lg hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center gap-2"
-              >
-                <Sparkles size={16} />
-                Smart Analysis
-              </button>
-
               <button onClick={() => setIsAdminOpen(!isAdminOpen)} className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-500/30">
                 {isAdminOpen ? 'Close Admin' : 'Admin Panel'}
               </button>
@@ -358,17 +350,9 @@ function App() {
       
       {isAdminOpen && (
         <div className="md:col-span-2">
-          <AdminPanel teamData={teamData} />
+          {/* PASSING staffLoads TO ADMIN PANEL SO AI CAN SEE IT */}
+          <AdminPanel teamData={teamData} staffLoads={staffLoads} />
         </div>
-      )}
-
-      {/* RENDER SMART ANALYSIS MODAL */}
-      {isAnalysisOpen && (
-        <SmartAnalysis 
-          teamData={teamData} 
-          staffLoads={staffLoads} 
-          onClose={() => setIsAnalysisOpen(false)} 
-        />
       )}
 
       {/* --- CONDITIONAL RENDERING --- */}
