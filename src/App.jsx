@@ -6,7 +6,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend 
 } from 'recharts';
-import { Sun, Moon, LogOut, LayoutDashboard } from 'lucide-react';
+import { Sun, Moon, LogOut } from 'lucide-react';
 
 // Components
 import AdminPanel from './components/AdminPanel';
@@ -26,7 +26,7 @@ const STATUS_COLORS = {
   5: '#10B981'  // Done (Green)
 };
 
-// Placeholder Data for Patient Attendance (Restoring the curve)
+// Placeholder Data for Patient Attendance
 const ATTENDANCE_DATA = [
   { name: 'Jan', value: 300 }, { name: 'Feb', value: 10 }, { name: 'Mar', value: 5 }, 
   { name: 'Apr', value: 8 }, { name: 'May', value: 12 }, { name: 'Jun', value: 15 }, 
@@ -91,7 +91,7 @@ function App() {
     })).filter(d => d.value > 0);
   };
 
-  // B. Status Bar Data (Restored "Before" Logic)
+  // B. Status Bar Data
   const getStatusData = () => {
     const tasks = { name: 'Tasks', 1:0, 2:0, 3:0, 4:0, 5:0 };
     const projects = { name: 'Projects', 1:0, 2:0, 3:0, 4:0, 5:0 };
@@ -122,14 +122,27 @@ function App() {
     setIsAdminOpen(false);
   };
 
+  // Custom Label for Pie Chart Percentages
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+  
+    return (
+      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs font-bold">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
   return (
     <ResponsiveLayout>
       {/* --- HEADER --- */}
       <div className="md:col-span-2 flex justify-between items-center mb-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-600 rounded-lg text-white">
-            <LayoutDashboard size={24} />
-          </div>
+        <div className="flex items-center gap-4">
+          {/* LOGO RESTORED HERE */}
+          <img src="/logo.png" alt="SSMC Logo" className="h-12 w-auto object-contain" />
+          
           <div>
             <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-none">SSMC@KKH</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Leadership Dashboard</p>
@@ -165,7 +178,7 @@ function App() {
         </div>
       )}
 
-      {/* --- ROW 1: DOMAIN & STATUS (RESTORED) --- */}
+      {/* --- ROW 1: DOMAIN & STATUS --- */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Domain Distribution</h2>
         <div className="h-64">
@@ -173,9 +186,11 @@ function App() {
             <PieChart>
               <Pie
                 data={getPieData()}
-                innerRadius={60}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={renderCustomizedLabel}
                 outerRadius={80}
-                paddingAngle={5}
                 dataKey="value"
               >
                 {getPieData().map((entry, index) => (
@@ -209,7 +224,7 @@ function App() {
         </div>
       </div>
 
-      {/* --- ROW 2: ATTENDANCE LINE CHART (RESTORED) --- */}
+      {/* --- ROW 2: ATTENDANCE LINE CHART --- */}
       <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Monthly Patient Attendance (Team)</h2>
         <div className="h-64">
@@ -228,7 +243,7 @@ function App() {
         </div>
       </div>
 
-      {/* --- ROW 3: INDIVIDUAL CLINICAL LOAD (NEW) --- */}
+      {/* --- ROW 3: INDIVIDUAL CLINICAL LOAD (UPDATED) --- */}
       <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Individual Clinical Load (Real-Time)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -265,7 +280,7 @@ function App() {
         </div>
       </div>
 
-      {/* --- ROW 4: DEPARTMENT OVERVIEW (SWIMLANES) --- */}
+      {/* --- ROW 4: DEPARTMENT OVERVIEW --- */}
       <div className="md:col-span-2 mt-8">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Department Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
