@@ -7,20 +7,18 @@ import {
     COMPETENCY_FRAMEWORK, 
     CAREER_PATH 
 } from '../knowledgeBase';
-import { Sparkles, Lock, X, Bug } from 'lucide-react';
+import { Sparkles, Lock, X, Bug, Radar } from 'lucide-react';
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
-    // Load key from browser memory if it exists
     const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
     const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState('GENERATE EXECUTIVE BRIEF');
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
-    const [errorDetails, setErrorDetails] = useState('');
+    const [debugLog, setDebugLog] = useState('');
 
     const handleAnalyze = async () => {
         const cleanKey = apiKey.trim();
-
-        // SAVE THE KEY TO BROWSER MEMORY
         if (cleanKey) localStorage.setItem('idc_gemini_key', cleanKey);
 
         if (!cleanKey) {
@@ -30,10 +28,48 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
 
         setLoading(true);
         setError('');
-        setErrorDetails('');
-
+        setDebugLog('');
+        
         try {
-            // 1. Prepare the Data
+            // --- PHASE 1: THE HUNT (List Available Models) ---
+            setStatus('Scanning for available AI models...');
+            
+            // We query v1beta because it lists EVERY model (Legacy + New)
+            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`;
+            
+            const listResponse = await fetch(listUrl);
+            const listData = await listResponse.json();
+
+            if (!listResponse.ok) {
+                throw new Error(`Model Scan Failed: ${listData.error?.message || "Check API Key"}`);
+            }
+
+            const allModels = listData.models || [];
+            
+            // Filter only models that can generate content (ignore embedding models)
+            const chatModels = allModels.filter(m => 
+                m.supportedGenerationMethods && 
+                m.supportedGenerationMethods.includes("generateContent")
+            );
+
+            if (chatModels.length === 0) {
+                throw new Error("No text-generation models found for this API key.");
+            }
+
+            // --- PHASE 2: THE SEEKER (Pick the Best One) ---
+            setStatus('Selecting best model...');
+            
+            // Logic: Try to find 'flash', then 'pro', otherwise take the first one.
+            let bestModel = chatModels.find(m => m.name.includes('flash'));
+            if (!bestModel) bestModel = chatModels.find(m => m.name.includes('pro'));
+            if (!bestModel) bestModel = chatModels[0];
+
+            const modelName = bestModel.name; // e.g., "models/gemini-1.5-flash-001"
+            setDebugLog(`Selected Model: ${modelName}`);
+
+            // --- PHASE 3: EXECUTE (Generate) ---
+            setStatus(`Analyzing using ${modelName.replace('models/', '')}...`);
+
             const snapshot = JSON.stringify({
                 projects_and_tasks: teamData,
                 clinical_workload: staffLoads
@@ -61,47 +97,40 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                 TONE: Professional, concise, and actionable.
             `;
 
-            // 2. THE FIX: USE STANDARD V1 API + GEMINI PRO
-            // We removed "v1beta" and "flash". This is the stable public route.
-            const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${cleanKey}`;
+            // Use the exact name we found in the list
+            // Note: v1beta is safer for the "generateContent" call on newer models
+            const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${cleanKey}`;
 
-            const response = await fetch(url, {
+            const genResponse = await fetch(generateUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: promptText }]
-                    }]
+                    contents: [{ parts: [{ text: promptText }] }]
                 })
             });
 
-            const data = await response.json();
+            const genData = await genResponse.json();
 
-            // 3. Handle Errors
-            if (!response.ok) {
-                throw new Error(data.error?.message || "API Error");
+            if (!genResponse.ok) {
+                throw new Error(`Generation Failed (${modelName}): ${genData.error?.message}`);
             }
 
-            // 4. Extract Text
-            if (data.candidates && data.candidates[0].content) {
-                 const text = data.candidates[0].content.parts[0].text;
-                 setResult(text);
+            if (genData.candidates && genData.candidates[0].content) {
+                setResult(genData.candidates[0].content.parts[0].text);
             } else {
-                 throw new Error("No response text generated. (Safety Blocked?)");
+                throw new Error("AI connected but returned no text. (Safety Filter Triggered?)");
             }
-            
+
         } catch (err) {
-            console.error("Gemini Error:", err);
-            setError('Analysis failed.');
-            setErrorDetails(err.message || JSON.stringify(err));
+            console.error("Critical Failure:", err);
+            setError('Analysis Failed');
+            setDebugLog(prev => `${prev}\nError: ${err.message}`);
         } finally {
             setLoading(false);
+            setStatus('GENERATE EXECUTIVE BRIEF');
         }
     };
 
-    // FUNCTION TO PUBLISH REPORT TO DASHBOARD
     const handlePublish = async () => {
         if (!result) return;
         try {
@@ -162,7 +191,7 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                         {loading ? (
                                             <span className="flex items-center gap-2">
                                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                PROCESSING...
+                                                {status}
                                             </span>
                                         ) : 'GENERATE EXECUTIVE BRIEF'}
                                     </button>
@@ -173,9 +202,10 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                                 <Bug size={16} />
                                                 <span>{error}</span>
                                             </div>
-                                            <p className="text-xs font-mono text-red-500 dark:text-red-300 break-all">
-                                                {errorDetails}
-                                            </p>
+                                            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-[10px] mb-1 break-all">
+                                                <Radar size={12} />
+                                                <span>Log: {debugLog}</span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
