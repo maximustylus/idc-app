@@ -18,7 +18,7 @@ const SmartReportView = () => {
         return () => unsub();
     }, []);
 
-    if (!report) return null; // Don't show anything if no report exists
+    if (!report) return null; // Hide if no report exists
 
     return (
         <div className="md:col-span-2 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-800 p-6 rounded-2xl border border-indigo-100 dark:border-slate-700 shadow-sm mb-6 relative overflow-hidden group">
