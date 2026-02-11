@@ -80,6 +80,20 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
         }
     };
 
+    const handlePublish = async () => {
+    if (!result) return;
+    try {
+        await setDoc(doc(db, 'system_data', 'dashboard_summary'), {
+            text: result,
+            timestamp: new Date()
+        });
+        alert("✅ Report Published to Main Dashboard!");
+        onClose();
+    } catch (e) {
+        alert("❌ Error publishing: " + e.message);
+    }
+};
+    
     return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4">
             <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
@@ -154,13 +168,24 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                     {result}
                                 </div>
                             </div>
-                            <button 
-                                onClick={() => setResult(null)}
-                                className="mt-8 px-8 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                            >
-                                Run New Analysis
-                            </button>
-                        </div>
+                            
+                            {/* ACTION BUTTONS */}
+                            <div className="flex flex-col md:flex-row gap-4 mt-8">
+                                <button 
+                                    onClick={handlePublish}
+                                    className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
+                                >
+                                    <Sparkles size={16} />
+                                    PUBLISH TO TEAM DASHBOARD
+                                </button>
+                                
+                                <button 
+                                    onClick={() => setResult(null)}
+                                    className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                    Retry
+                                </button>
+                            </div>
                     )}
                 </div>
             </div>
