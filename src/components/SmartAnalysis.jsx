@@ -7,22 +7,15 @@ import {
     COMPETENCY_FRAMEWORK, 
     CAREER_PATH 
 } from '../knowledgeBase';
-import { Sparkles, Lock, X, Bug } from 'lucide-react';
+import { Sparkles, Lock, X, Bug, Network } from 'lucide-react';
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
     const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState('GENERATE EXECUTIVE BRIEF');
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
-    const [errorDetails, setErrorDetails] = useState('');
-    const [statusMessage, setStatusMessage] = useState('GENERATE EXECUTIVE BRIEF');
-
-    // --- CONFIGURATION: The correct map of Models to API Versions ---
-    const MODEL_ATTEMPTS = [
-        { name: 'gemini-1.5-flash', version: 'v1beta' }, // Fast & New
-        { name: 'gemini-pro',       version: 'v1' },     // Stable & Standard
-        { name: 'gemini-1.0-pro',   version: 'v1' }      // Legacy Backup
-    ];
+    const [debugInfo, setDebugInfo] = useState('');
 
     const handleAnalyze = async () => {
         const cleanKey = apiKey.trim();
@@ -35,77 +28,108 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
 
         setLoading(true);
         setError('');
-        setErrorDetails('');
-
-        // 1. Prepare Data
-        const snapshot = JSON.stringify({
-            projects_and_tasks: teamData,
-            clinical_workload: staffLoads
-        });
-
-        const promptText = `
-            ACT AS: A Senior Clinical Lead and HR Specialist at KK Women's and Children's Hospital (SingHealth).
+        setDebugInfo('');
+        
+        try {
+            // --- STEP 1: DISCOVER AVAILABLE MODELS (Like your Python Script) ---
+            setStatus('Connecting to Google...');
             
-            REFERENCE MATERIAL:
-            - Job Descriptions: ${JOB_DESCRIPTIONS}
-            - Time Matrix Rules: ${TIME_MATRIX}
-            - Competency Levels: ${COMPETENCY_FRAMEWORK}
-            - Career Path: ${CAREER_PATH}
+            // We hit the 'v1beta' endpoint to list models. This usually works for everyone.
+            const listResponse = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`
+            );
 
-            LIVE DATA TO ANALYZE:
-            ${snapshot}
-
-            TASK:
-            Analyze the team's performance.
-            Provide a "Clinical Leadership Executive Brief" in these 3 specific sections:
-            1. 🚨 ROLE MISALIGNMENT & BURNOUT
-            2. 📈 PROMOTION & TALENT READINESS
-            3. ⚖️ JOY AT WORK RECOMMENDATIONS
-
-            TONE: Professional, concise, and actionable.
-        `;
-
-        // 2. THE LOOP: Try models one by one until one works
-        for (const modelConfig of MODEL_ATTEMPTS) {
-            try {
-                setStatusMessage(`Trying ${modelConfig.name}...`);
-                
-                // Construct the SPECIFIC URL for this model version
-                const url = `https://generativelanguage.googleapis.com/${modelConfig.version}/models/${modelConfig.name}:generateContent?key=${cleanKey}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: promptText }] }]
-                    })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    // Start next iteration of loop if this fails
-                    console.warn(`Failed on ${modelConfig.name}:`, data.error?.message);
-                    continue; 
-                }
-
-                // SUCCESS! Extract text and break the loop
-                if (data.candidates && data.candidates[0].content) {
-                    const text = data.candidates[0].content.parts[0].text;
-                    setResult(text);
-                    setLoading(false);
-                    return; // EXIT FUNCTION, WE ARE DONE
-                }
-
-            } catch (e) {
-                console.warn(`Network error on ${modelConfig.name}`, e);
+            if (!listResponse.ok) {
+                const errData = await listResponse.json();
+                throw new Error(`Connection Failed: ${errData.error?.message || listResponse.statusText}`);
             }
-        }
 
-        // 3. IF WE GET HERE, ALL MODELS FAILED
-        setLoading(false);
-        setError('All AI models failed.');
-        setErrorDetails('Your API key might be invalid, or your region is blocking Google AI.');
+            const listData = await listResponse.json();
+            const models = listData.models || [];
+
+            // --- STEP 2: SELECT THE BEST MODEL ---
+            setStatus('Selecting best AI brain...');
+            
+            let selectedModel = '';
+            
+            // Priority 1: Flash (Fastest)
+            if (models.some(m => m.name.includes('gemini-1.5-flash'))) {
+                selectedModel = 'gemini-1.5-flash';
+            } 
+            // Priority 2: Pro (Stable)
+            else if (models.some(m => m.name.includes('gemini-pro'))) {
+                selectedModel = 'gemini-pro';
+            }
+            // Priority 3: Anything else that supports generation
+            else if (models.length > 0) {
+                selectedModel = models[0].name.replace('models/', '');
+            } else {
+                throw new Error("No available models found for this API Key.");
+            }
+
+            setDebugInfo(`Using Model: ${selectedModel}`);
+
+            // --- STEP 3: GENERATE CONTENT ---
+            setStatus('Analyzing Team Data...');
+            
+            const snapshot = JSON.stringify({
+                projects_and_tasks: teamData,
+                clinical_workload: staffLoads
+            });
+
+            const promptText = `
+                ACT AS: A Senior Clinical Lead and HR Specialist at KK Women's and Children's Hospital (SingHealth).
+                
+                REFERENCE MATERIAL:
+                - Job Descriptions: ${JOB_DESCRIPTIONS}
+                - Time Matrix Rules: ${TIME_MATRIX}
+                - Competency Levels: ${COMPETENCY_FRAMEWORK}
+                - Career Path: ${CAREER_PATH}
+
+                LIVE DATA TO ANALYZE:
+                ${snapshot}
+
+                TASK:
+                Analyze the team's performance.
+                Provide a "Clinical Leadership Executive Brief" in these 3 specific sections:
+                1. 🚨 ROLE MISALIGNMENT & BURNOUT
+                2. 📈 PROMOTION & TALENT READINESS
+                3. ⚖️ JOY AT WORK RECOMMENDATIONS
+
+                TONE: Professional, concise, and actionable.
+            `;
+
+            // Note: We use the same 'v1beta' endpoint for generation to match the discovery
+            const genUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${cleanKey}`;
+
+            const genResponse = await fetch(genUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: promptText }] }]
+                })
+            });
+
+            const genData = await genResponse.json();
+
+            if (!genResponse.ok) {
+                throw new Error(genData.error?.message || "Generation Failed");
+            }
+
+            if (genData.candidates && genData.candidates[0].content) {
+                setResult(genData.candidates[0].content.parts[0].text);
+            } else {
+                throw new Error("AI returned no text. (Safety Blocked?)");
+            }
+
+        } catch (err) {
+            console.error("Gemini Critical Failure:", err);
+            setError('Analysis Failed');
+            setDebugInfo(err.message);
+        } finally {
+            setLoading(false);
+            setStatus('GENERATE EXECUTIVE BRIEF');
+        }
     };
 
     // FUNCTION TO PUBLISH REPORT TO DASHBOARD
@@ -169,7 +193,7 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                         {loading ? (
                                             <span className="flex items-center gap-2">
                                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                {statusMessage}
+                                                {status}
                                             </span>
                                         ) : 'GENERATE EXECUTIVE BRIEF'}
                                     </button>
@@ -180,9 +204,10 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                                 <Bug size={16} />
                                                 <span>{error}</span>
                                             </div>
-                                            <p className="text-xs font-mono text-red-500 dark:text-red-300 break-all">
-                                                {errorDetails}
-                                            </p>
+                                            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-xs mb-1">
+                                                <Network size={12} />
+                                                <span>Debug: {debugInfo}</span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
