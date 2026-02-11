@@ -140,7 +140,6 @@ function App() {
       {/* --- HEADER --- */}
       <div className="md:col-span-2 flex justify-between items-center mb-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-4">
-          {/* LOGO RESTORED HERE */}
           <img src="/logo.png" alt="SSMC Logo" className="h-12 w-auto object-contain" />
           
           <div>
@@ -213,7 +212,6 @@ function App() {
               <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 12}} />
               <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }} />
               <Legend />
-              {/* Stacked Bars for Status */}
               <Bar dataKey="1" stackId="a" fill={STATUS_COLORS[1]} name="Stuck" radius={[4, 0, 0, 4]} barSize={30} />
               <Bar dataKey="2" stackId="a" fill={STATUS_COLORS[2]} name="Planning" barSize={30} />
               <Bar dataKey="3" stackId="a" fill={STATUS_COLORS[3]} name="Working" barSize={30} />
@@ -234,20 +232,19 @@ function App() {
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
               <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }} />
-              {/* Threshold Line */}
               <Line type="monotone" dataKey={() => 180} stroke="#ef4444" strokeDasharray="5 5" strokeWidth={1} dot={false} name="Target" />
-              {/* Main Data Line */}
               <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} dot={{r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* --- ROW 3: INDIVIDUAL CLINICAL LOAD (UPDATED) --- */}
+      {/* --- ROW 3: INDIVIDUAL CLINICAL LOAD (FILTERED) --- */}
       <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Individual Clinical Load (Real-Time)</h2>
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Individual Clinical Load</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {STAFF_LIST.map((staff) => (
+          {/* NISA REMOVED HERE */}
+          {STAFF_LIST.filter(n => n !== 'Nisa').map((staff) => (
             <div key={staff} className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-slate-700 dark:text-slate-200">{staff}</h3>
