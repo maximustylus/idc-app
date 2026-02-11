@@ -9,17 +9,18 @@ import {
 import { Sparkles, Lock, X, AlertCircle, TrendingUp, Scale, Bug } from 'lucide-react';
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
-    const [apiKey, setApiKey] = useState('');
+    const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [errorDetails, setErrorDetails] = useState(''); // To show the raw error
 
     const handleAnalyze = async () => {
-        // 1. Clean the key (remove accidental spaces)
-        const cleanKey = apiKey.trim();
+    const cleanKey = apiKey.trim();
+    
+    if (cleanKey) localStorage.setItem('idc_gemini_key', cleanKey);
 
-        if (!cleanKey) {
+    if (!cleanKey) {
             setError('Please enter your Gemini API Key.');
             return;
         }
