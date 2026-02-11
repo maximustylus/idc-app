@@ -7,7 +7,7 @@ import {
     COMPETENCY_FRAMEWORK, 
     CAREER_PATH 
 } from '../knowledgeBase';
-import { Sparkles, Lock, X, Bug, Radar } from 'lucide-react';
+import { Sparkles, Lock, X, Bug, ShieldCheck, UserCog } from 'lucide-react';
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
@@ -16,6 +16,23 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [debugLog, setDebugLog] = useState('');
+
+    // --- 1. HARDCODED STAFF CONTEXT (Your Request) ---
+    const STAFF_PROFILES = {
+        "Alif":      { role: "Senior CEP", grade: "JG14", focus: "Leadership, Research, Clinical" },
+        "Fadzlynn":  { role: "CEP I",      grade: "JG13", focus: "Clinical Lead, Specialized Projects" },
+        "Derlinder": { role: "CEP II",     grade: "JG12", focus: "Education, Clinical" },
+        "Ying Xian": { role: "CEP II",     grade: "JG12", focus: "Admin Projects, Clinical" },
+        "Brandon":   { role: "CEP III",    grade: "JG11", focus: "Clinical Execution, Basic Education" },
+        "Nisa":      { role: "Administrator", grade: "Admin", focus: "Operations, Budget, Rostering" }
+    };
+
+    // --- 2. ROBUST MODEL FINDER ---
+    const MODEL_STRATEGIES = [
+        { name: 'gemini-1.5-flash', version: 'v1beta' }, // Priority 1: Fast
+        { name: 'gemini-pro',       version: 'v1' },     // Priority 2: Stable
+        { name: 'gemini-1.0-pro',   version: 'v1' }      // Priority 3: Backup
+    ];
 
     const handleAnalyze = async () => {
         const cleanKey = apiKey.trim();
@@ -31,54 +48,22 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
         setDebugLog('');
         
         try {
-            // --- PHASE 1: THE HUNT (List Available Models) ---
-            setStatus('Scanning for available AI models...');
-            
-            // We query v1beta because it lists EVERY model (Legacy + New)
-            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`;
-            
-            const listResponse = await fetch(listUrl);
-            const listData = await listResponse.json();
-
-            if (!listResponse.ok) {
-                throw new Error(`Model Scan Failed: ${listData.error?.message || "Check API Key"}`);
-            }
-
-            const allModels = listData.models || [];
-            
-            // Filter only models that can generate content (ignore embedding models)
-            const chatModels = allModels.filter(m => 
-                m.supportedGenerationMethods && 
-                m.supportedGenerationMethods.includes("generateContent")
-            );
-
-            if (chatModels.length === 0) {
-                throw new Error("No text-generation models found for this API key.");
-            }
-
-            // --- PHASE 2: THE SEEKER (Pick the Best One) ---
-            setStatus('Selecting best model...');
-            
-            // Logic: Try to find 'flash', then 'pro', otherwise take the first one.
-            let bestModel = chatModels.find(m => m.name.includes('flash'));
-            if (!bestModel) bestModel = chatModels.find(m => m.name.includes('pro'));
-            if (!bestModel) bestModel = chatModels[0];
-
-            const modelName = bestModel.name; // e.g., "models/gemini-1.5-flash-001"
-            setDebugLog(`Selected Model: ${modelName}`);
-
-            // --- PHASE 3: EXECUTE (Generate) ---
-            setStatus(`Analyzing using ${modelName.replace('models/', '')}...`);
-
+            // Prepare Data Snapshot
             const snapshot = JSON.stringify({
                 projects_and_tasks: teamData,
                 clinical_workload: staffLoads
             });
 
+            const staffContext = JSON.stringify(STAFF_PROFILES);
+
+            // --- 3. REFINED PROMPT (Separating Admin vs Clinical) ---
             const promptText = `
                 ACT AS: A Senior Clinical Lead and HR Specialist at KK Women's and Children's Hospital (SingHealth).
                 
-                REFERENCE MATERIAL:
+                CRITICAL CONTEXT (DO NOT GUESS - USE THESE FACTS):
+                ${staffContext}
+
+                REFERENCE RULES:
                 - Job Descriptions: ${JOB_DESCRIPTIONS}
                 - Time Matrix Rules: ${TIME_MATRIX}
                 - Competency Levels: ${COMPETENCY_FRAMEWORK}
@@ -88,43 +73,67 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                 ${snapshot}
 
                 TASK:
-                Analyze the team's performance.
-                Provide a "Clinical Leadership Executive Brief" in these 3 specific sections:
-                1. 🚨 ROLE MISALIGNMENT & BURNOUT
-                2. 📈 PROMOTION & TALENT READINESS
-                3. ⚖️ JOY AT WORK RECOMMENDATIONS
+                Analyze the team's performance based on their SPECIFIC Job Grades (JG) provided above.
+                
+                STRICT GUIDELINES:
+                1. NISA is an ADMINISTRATOR. Do NOT evaluate her on Clinical Load. Evaluate her on Operational Efficiency, Budgeting, and Rostering support.
+                2. For CEPs (Alif, Fadzlynn, Derlinder, Ying Xian, Brandon), evaluate their Clinical vs Admin/Research mix against their specific JG targets.
+                3. COMPARE: Check if their actual work matches their JG expectation.
 
-                TONE: Professional, concise, and actionable.
+                OUTPUT FORMAT (Use Markdown for bolding and lists):
+                
+                ### 1. 🚨 ROLE MISALIGNMENT & BURNOUT
+                (Identify mismatches. Example: Is Brandon (JG11) doing too much Education? Is Alif (JG14) doing enough Strategic work?)
+
+                ### 2. 📈 PROMOTION & TALENT READINESS
+                (Based on their JG, are they ready for the next step? e.g. Brandon JG11 -> JG12)
+
+                ### 3. 🛡️ ADMIN & OPERATIONS HEALTH (Nisa Only)
+                (Analyze Nisa's workload separately. Is she overloaded with projects?)
+
+                ### 4. ⚖️ JOY AT WORK RECOMMENDATIONS
+                (Specific actionable steps)
             `;
 
-            // Use the exact name we found in the list
-            // Note: v1beta is safer for the "generateContent" call on newer models
-            const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${cleanKey}`;
+            // --- 4. EXECUTION LOOP ---
+            for (const strategy of MODEL_STRATEGIES) {
+                setStatus(`Trying ${strategy.name}...`);
+                
+                try {
+                    const url = `https://generativelanguage.googleapis.com/${strategy.version}/models/${strategy.name}:generateContent?key=${cleanKey}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                    });
 
-            const genResponse = await fetch(generateUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: promptText }] }]
-                })
-            });
+                    const data = await response.json();
 
-            const genData = await genResponse.json();
+                    if (!response.ok) {
+                        console.warn(`Failed ${strategy.name}: ${data.error?.message}`);
+                        setDebugLog(prev => `${prev} | ${strategy.name} failed`);
+                        continue; 
+                    }
 
-            if (!genResponse.ok) {
-                throw new Error(`Generation Failed (${modelName}): ${genData.error?.message}`);
+                    if (data.candidates && data.candidates[0].content) {
+                        setResult(data.candidates[0].content.parts[0].text);
+                        setLoading(false);
+                        setStatus('GENERATE EXECUTIVE BRIEF');
+                        return; // Success!
+                    }
+
+                } catch (netErr) {
+                    console.warn(`Network Error on ${strategy.name}`, netErr);
+                }
             }
 
-            if (genData.candidates && genData.candidates[0].content) {
-                setResult(genData.candidates[0].content.parts[0].text);
-            } else {
-                throw new Error("AI connected but returned no text. (Safety Filter Triggered?)");
-            }
+            throw new Error("All AI models failed. Check your API Key permissions.");
 
         } catch (err) {
             console.error("Critical Failure:", err);
             setError('Analysis Failed');
-            setDebugLog(prev => `${prev}\nError: ${err.message}`);
+            if (!debugLog) setDebugLog(err.message);
         } finally {
             setLoading(false);
             setStatus('GENERATE EXECUTIVE BRIEF');
@@ -156,7 +165,10 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                             <Sparkles size={20} className="animate-pulse" />
                             <h2 className="text-2xl font-black tracking-tight">IDC SMART ANALYSIS</h2>
                         </div>
-                        <p className="text-indigo-100 text-sm font-bold uppercase tracking-widest opacity-80">Clinical Intelligence v1.2</p>
+                        <div className="flex items-center gap-2 text-indigo-100 text-sm font-bold uppercase tracking-widest opacity-80">
+                            <UserCog size={14} />
+                            <span>Staff Profiles Active</span>
+                        </div>
                     </div>
                     <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-full transition-colors">
                         <X size={28} />
@@ -203,7 +215,7 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                                 <span>{error}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-[10px] mb-1 break-all">
-                                                <Radar size={12} />
+                                                <ShieldCheck size={12} />
                                                 <span>Log: {debugLog}</span>
                                             </div>
                                         </div>
@@ -213,9 +225,9 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                         </div>
                     ) : (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* RESULTS SECTION */}
-                            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 prose dark:prose-invert max-w-none">
-                                <div className="whitespace-pre-line text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                            {/* RESULTS SECTION - UPDATED FOR FORMATTING */}
+                            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700">
+                                <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                                     {result}
                                 </div>
                             </div>
