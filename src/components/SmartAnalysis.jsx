@@ -10,17 +10,38 @@ import {
 import { Sparkles, Lock, X, Bug } from 'lucide-react';
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
-    // Load key from browser memory if it exists
     const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [errorDetails, setErrorDetails] = useState('');
+    const [currentModel, setCurrentModel] = useState('gemini-1.5-flash'); // Track which model we are trying
+
+    // --- HELPER: GENERIC API CALL ---
+    const callGeminiAPI = async (modelName, prompt, key) => {
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            }
+        );
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            // Throw specific error object to catch in main loop
+            throw { status: response.status, message: data.error?.message || "API Error" };
+        }
+        
+        return data.candidates[0].content.parts[0].text;
+    };
 
     const handleAnalyze = async () => {
         const cleanKey = apiKey.trim();
-
-        // SAVE THE KEY TO BROWSER MEMORY
         if (cleanKey) localStorage.setItem('idc_gemini_key', cleanKey);
 
         if (!cleanKey) {
@@ -32,72 +53,54 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
         setError('');
         setErrorDetails('');
 
-        try {
-            // 1. Prepare the Data
-            const snapshot = JSON.stringify({
-                projects_and_tasks: teamData,
-                clinical_workload: staffLoads
-            });
+        // 1. Prepare Data
+        const snapshot = JSON.stringify({
+            projects_and_tasks: teamData,
+            clinical_workload: staffLoads
+        });
 
-            const promptText = `
-                ACT AS: A Senior Clinical Lead and HR Specialist at KK Women's and Children's Hospital (SingHealth).
-                
-                REFERENCE MATERIAL:
-                - Job Descriptions: ${JOB_DESCRIPTIONS}
-                - Time Matrix Rules: ${TIME_MATRIX}
-                - Competency Levels: ${COMPETENCY_FRAMEWORK}
-                - Career Path: ${CAREER_PATH}
-
-                LIVE DATA TO ANALYZE:
-                ${snapshot}
-
-                TASK:
-                Analyze the team's performance.
-                Provide a "Clinical Leadership Executive Brief" in these 3 specific sections:
-                1. 🚨 ROLE MISALIGNMENT & BURNOUT
-                2. 📈 PROMOTION & TALENT READINESS
-                3. ⚖️ JOY AT WORK RECOMMENDATIONS
-
-                TONE: Professional, concise, and actionable.
-            `;
-
-            // 2. THE DIRECT API CALL (Bypassing the broken SDK)
-            // We use standard 'fetch' which works in any browser
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cleanKey}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: promptText }]
-                        }]
-                    })
-                }
-            );
-
-            const data = await response.json();
-
-            // 3. Handle Errors from the API
-            if (!response.ok) {
-                throw new Error(data.error?.message || "API Error");
-            }
-
-            // 4. Extract Text
-            // Safety check: sometimes Gemini returns 'candidates' slightly differently if blocked
-            if (data.candidates && data.candidates[0].content) {
-                 const text = data.candidates[0].content.parts[0].text;
-                 setResult(text);
-            } else {
-                 throw new Error("No response text generated. Check safety filters.");
-            }
+        const promptText = `
+            ACT AS: A Senior Clinical Lead and HR Specialist at KK Women's and Children's Hospital (SingHealth).
             
-        } catch (err) {
-            console.error("Gemini Error:", err);
-            setError('Analysis failed.');
-            setErrorDetails(err.message || JSON.stringify(err));
+            REFERENCE MATERIAL:
+            - Job Descriptions: ${JOB_DESCRIPTIONS}
+            - Time Matrix Rules: ${TIME_MATRIX}
+            - Competency Levels: ${COMPETENCY_FRAMEWORK}
+            - Career Path: ${CAREER_PATH}
+
+            LIVE DATA TO ANALYZE:
+            ${snapshot}
+
+            TASK:
+            Analyze the team's performance.
+            Provide a "Clinical Leadership Executive Brief" in these 3 specific sections:
+            1. 🚨 ROLE MISALIGNMENT & BURNOUT
+            2. 📈 PROMOTION & TALENT READINESS
+            3. ⚖️ JOY AT WORK RECOMMENDATIONS
+
+            TONE: Professional, concise, and actionable.
+        `;
+
+        // 2. SMART FALLBACK LOGIC
+        try {
+            try {
+                // ATTEMPT 1: Try Flash (Fastest)
+                setCurrentModel('gemini-1.5-flash');
+                const text = await callGeminiAPI('gemini-1.5-flash', promptText, cleanKey);
+                setResult(text);
+            } catch (firstError) {
+                // ATTEMPT 2: If Flash fails (404), try Pro (Stable)
+                console.warn("Flash failed, switching to Gemini Pro...", firstError);
+                
+                setCurrentModel('gemini-pro');
+                const text = await callGeminiAPI('gemini-pro', promptText, cleanKey);
+                setResult(text);
+            }
+        } catch (finalError) {
+            // If BOTH fail, show the error
+            console.error("All models failed:", finalError);
+            setError(`Analysis failed on model: ${currentModel}`);
+            setErrorDetails(finalError.message || JSON.stringify(finalError));
         } finally {
             setLoading(false);
         }
@@ -164,7 +167,7 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                         {loading ? (
                                             <span className="flex items-center gap-2">
                                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                PROCESSING...
+                                                {currentModel === 'gemini-1.5-flash' ? 'TRYING FLASH...' : 'SWITCHING TO PRO...'}
                                             </span>
                                         ) : 'GENERATE EXECUTIVE BRIEF'}
                                     </button>
