@@ -1,7 +1,7 @@
-import { db } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { db } from '../firebase'; // Import database connection
+import { doc, setDoc } from 'firebase/firestore'; // Import save function
 import { 
     JOB_DESCRIPTIONS, 
     TIME_MATRIX, 
@@ -11,18 +11,20 @@ import {
 import { Sparkles, Lock, X, AlertCircle, TrendingUp, Scale, Bug } from 'lucide-react';
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
+    // Load key from browser memory if it exists (So you don't have to type it every time)
     const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
-    const [errorDetails, setErrorDetails] = useState(''); // To show the raw error
+    const [errorDetails, setErrorDetails] = useState('');
 
     const handleAnalyze = async () => {
-    const cleanKey = apiKey.trim();
-    
-    if (cleanKey) localStorage.setItem('idc_gemini_key', cleanKey);
+        const cleanKey = apiKey.trim();
 
-    if (!cleanKey) {
+        // SAVE THE KEY TO BROWSER MEMORY
+        if (cleanKey) localStorage.setItem('idc_gemini_key', cleanKey);
+
+        if (!cleanKey) {
             setError('Please enter your Gemini API Key.');
             return;
         }
@@ -32,11 +34,9 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
         setErrorDetails('');
 
         try {
-            // 2. Initialize the Brain
             const genAI = new GoogleGenerativeAI(cleanKey);
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-            // 3. Prepare the Data Packet
             const snapshot = JSON.stringify({
                 projects_and_tasks: teamData,
                 clinical_workload: staffLoads
@@ -72,7 +72,6 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
             
         } catch (err) {
             console.error("Gemini Error:", err);
-            // Show the specific error message to the user
             setError('Analysis failed.');
             setErrorDetails(err.message || JSON.stringify(err));
         } finally {
@@ -80,20 +79,21 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
         }
     };
 
+    // FUNCTION TO PUBLISH REPORT TO DASHBOARD
     const handlePublish = async () => {
-    if (!result) return;
-    try {
-        await setDoc(doc(db, 'system_data', 'dashboard_summary'), {
-            text: result,
-            timestamp: new Date()
-        });
-        alert("✅ Report Published to Main Dashboard!");
-        onClose();
-    } catch (e) {
-        alert("❌ Error publishing: " + e.message);
-    }
-};
-    
+        if (!result) return;
+        try {
+            await setDoc(doc(db, 'system_data', 'dashboard_summary'), {
+                text: result,
+                timestamp: new Date()
+            });
+            alert("✅ Report Published to Main Dashboard!");
+            onClose(); 
+        } catch (e) {
+            alert("❌ Error publishing: " + e.message);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4">
             <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
@@ -145,7 +145,6 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                         ) : 'GENERATE EXECUTIVE BRIEF'}
                                     </button>
                                     
-                                    {/* ERROR DISPLAY SECTION */}
                                     {error && (
                                         <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-left">
                                             <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm mb-1">
@@ -186,6 +185,7 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                     Retry
                                 </button>
                             </div>
+                        </div>
                     )}
                 </div>
             </div>
