@@ -1,12 +1,16 @@
-import SmartAnalysis from './SmartAnalysis';
-import { Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
-import StaffLoadEditor from './StaffLoadEditor';
 import { db } from '../firebase';
 import { updateDoc, doc, arrayUnion, arrayRemove, getDoc, writeBatch } from 'firebase/firestore';
-import { MONTHS, STAFF_LIST, DOMAIN_LIST, STATUS_OPTIONS } from '../utils';
+import { Sparkles } from 'lucide-react';
 
-// FIX 1: Added 'staffLoads' here so we can pass it to the AI
+// Components
+import SmartAnalysis from './SmartAnalysis';
+import SmartReportView from './SmartReportView'; // <--- NEW: Import the Viewer
+import StaffLoadEditor from './StaffLoadEditor';
+
+// Utils
+import { STAFF_LIST, STATUS_OPTIONS } from '../utils';
+
 const AdminPanel = ({ teamData, staffLoads }) => {
     // States for "Add New" form
     const [newOwner, setNewOwner] = useState('');
@@ -93,13 +97,19 @@ const AdminPanel = ({ teamData, staffLoads }) => {
 
     return (
         <div className="monday-card p-6 mt-6 mb-12 dark:bg-slate-800 dark:border-slate-700">
+            
+            {/* --- SECTION 0: SENSITIVE HR REPORT (Only Visible Here) --- */}
+            <div className="mb-8 animate-in fade-in slide-in-from-top-4">
+                <SmartReportView />
+            </div>
+
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
                 <button 
                     onClick={() => setIsAnalysisOpen(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded hover:opacity-90 shadow-lg"
                     >
                     <Sparkles size={14} />
-                    GENERATE AI REPORT
+                    GENERATE NEW REPORT
                 </button>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase">Admin Database</h2>
                 {message && <span className="text-xs font-bold px-3 py-1 bg-blue-100 text-blue-700 rounded">{message}</span>}
@@ -194,7 +204,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                 </table>
             </div>
 
-            {/* FIX 2: MOVED THIS INSIDE THE RETURN STATEMENT */}
+            {/* AI MODAL */}
             {isAnalysisOpen && (
                 <SmartAnalysis 
                     teamData={teamData} 
