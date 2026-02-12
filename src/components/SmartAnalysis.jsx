@@ -7,7 +7,7 @@ import {
     COMPETENCY_FRAMEWORK, 
     CAREER_PATH 
 } from '../knowledgeBase';
-import { Sparkles, Lock, X, Bug, Radar, UserCog } from 'lucide-react';
+import { Sparkles, Lock, X, Bug, Radar, ShieldCheck } from 'lucide-react';
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
@@ -17,7 +17,6 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [error, setError] = useState('');
     const [debugLog, setDebugLog] = useState('');
 
-    // --- 1. HARDCODED STAFF CONTEXT ---
     const STAFF_PROFILES = {
         "Alif":      { role: "Senior CEP", grade: "JG14", focus: "Leadership, Research, Clinical" },
         "Fadzlynn":  { role: "CEP I",      grade: "JG13", focus: "Clinical Lead, Specialized Projects" },
@@ -30,125 +29,74 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const handleAnalyze = async () => {
         const cleanKey = apiKey.trim();
         if (cleanKey) localStorage.setItem('idc_gemini_key', cleanKey);
+        if (!cleanKey) { setError('Please enter your Gemini API Key.'); return; }
 
-        if (!cleanKey) {
-            setError('Please enter your Gemini API Key.');
-            return;
-        }
-
-        setLoading(true);
-        setError('');
-        setDebugLog('');
+        setLoading(true); setError(''); setDebugLog('');
         
         try {
-            // --- PHASE 1: THE HUNT (List Available Models) ---
-            // This is the logic that WORKED for you. We keep it exactly as is.
-            setStatus('Scanning for available AI models...');
-            
+            // PHASE 1: FIND MODEL
+            setStatus('Connecting to Gemini...');
             const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`;
-            
             const listResponse = await fetch(listUrl);
             const listData = await listResponse.json();
+            if (!listResponse.ok) throw new Error(`Connection Error: ${listData.error?.message}`);
 
-            if (!listResponse.ok) {
-                throw new Error(`Model Scan Failed: ${listData.error?.message || "Check API Key"}`);
-            }
-
-            const allModels = listData.models || [];
-            
-            const chatModels = allModels.filter(m => 
-                m.supportedGenerationMethods && 
-                m.supportedGenerationMethods.includes("generateContent")
-            );
-
-            if (chatModels.length === 0) {
-                throw new Error("No text-generation models found for this API key.");
-            }
-
-            // --- PHASE 2: THE SEEKER (Pick the Best One) ---
-            setStatus('Selecting best model...');
-            
-            let bestModel = chatModels.find(m => m.name.includes('flash'));
-            if (!bestModel) bestModel = chatModels.find(m => m.name.includes('pro'));
-            if (!bestModel) bestModel = chatModels[0];
-
+            const chatModels = listData.models.filter(m => m.supportedGenerationMethods.includes("generateContent"));
+            let bestModel = chatModels.find(m => m.name.includes('flash')) || chatModels.find(m => m.name.includes('pro')) || chatModels[0];
             const modelName = bestModel.name; 
-            setDebugLog(`Selected Model: ${modelName}`);
 
-            // --- PHASE 3: EXECUTE (Generate with NEW PROMPT) ---
-            setStatus(`Analyzing using ${modelName.replace('models/', '')}...`);
-
-            const snapshot = JSON.stringify({
-                projects_and_tasks: teamData,
-                clinical_workload: staffLoads
-            });
-
-            const staffContext = JSON.stringify(STAFF_PROFILES);
-
+            // PHASE 2: PREPARE DATA
+            setStatus('Analyzing Team Data...');
+            const snapshot = JSON.stringify({ projects: teamData, workload: staffLoads });
+            
+            // PHASE 3: SEND PROMPT
             const promptText = `
-                ACT AS: A Senior Clinical Lead and HR Specialist at KK Women's and Children's Hospital (SingHealth).
-                
-                CRITICAL CONTEXT (DO NOT GUESS - USE THESE FACTS):
-                ${staffContext}
+                ACT AS: Senior Clinical Lead at KKH.
+                DATA: ${JSON.stringify(STAFF_PROFILES)}
+                LIVE WORKLOAD: ${snapshot}
 
-                REFERENCE MATERIAL:
-                - Job Descriptions: ${JOB_DESCRIPTIONS}
-                - Time Matrix Rules: ${TIME_MATRIX}
-                - Competency Levels: ${COMPETENCY_FRAMEWORK}
-                - Career Path: ${CAREER_PATH}
+                TASK: Generate TWO reports.
+                1. PRIVATE_EXECUTIVE_BRIEF (For Leads): Audit staff against their JG11-JG14 grades. Be critical.
+                2. PUBLIC_TEAM_PULSE (For Staff): Remove JGs. Focus on "Joy at Work" and team wins.
 
-                LIVE DATA TO ANALYZE:
-                ${snapshot}
-
-                TASK:
-                Analyze the team's performance based on their SPECIFIC Job Grades (JG) provided above.
-                
-                STRICT GUIDELINES:
-                1. NISA is an ADMINISTRATOR. Do NOT evaluate her on Clinical Load. Evaluate her on Operational Efficiency, Budgeting, and Rostering support.
-                2. For CEPs (Alif, Fadzlynn, Derlinder, Ying Xian, Brandon), evaluate their Clinical vs Admin/Research mix against their specific JG targets.
-                3. COMPARE: Check if their actual work matches their JG expectation.
-
-                OUTPUT FORMAT (Use Markdown):
-                
-                ### 1. 🚨 ROLE MISALIGNMENT & BURNOUT
-                (Identify mismatches. Example: Is Brandon (JG11) doing too much Education? Is Alif (JG14) doing enough Strategic work?)
-
-                ### 2. 📈 PROMOTION & TALENT READINESS
-                (Based on their JG, are they ready for the next step? e.g. Brandon JG11 -> JG12)
-
-                ### 3. 🛡️ ADMIN & OPERATIONS HEALTH (Nisa Only)
-                (Analyze Nisa's workload separately. Is she overloaded with projects?)
-
-                ### 4. ⚖️ JOY AT WORK RECOMMENDATIONS
-                (Specific actionable steps)
+                CRITICAL OUTPUT FORMAT:
+                You must return valid JSON. Do not include markdown formatting (like \`\`\`json).
+                Structure:
+                {
+                    "private": "Report text here...",
+                    "public": "Report text here..."
+                }
             `;
 
             const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${cleanKey}`;
-
             const genResponse = await fetch(generateUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: promptText }] }]
-                })
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
             });
 
             const genData = await genResponse.json();
+            if (!genResponse.ok) throw new Error(genData.error?.message);
 
-            if (!genResponse.ok) {
-                throw new Error(`Generation Failed (${modelName}): ${genData.error?.message}`);
-            }
+            // PHASE 4: ROBUST JSON PARSING (The Fix)
+            const rawText = genData.candidates[0].content.parts[0].text;
+            
+            // 1. Extract JSON using Regex (ignores "Here is your JSON" text)
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("AI did not return valid JSON object.");
+            
+            const parsedObj = JSON.parse(jsonMatch[0]);
 
-            if (genData.candidates && genData.candidates[0].content) {
-                setResult(genData.candidates[0].content.parts[0].text);
-            } else {
-                throw new Error("AI connected but returned no text. (Safety Filter Triggered?)");
-            }
+            // 2. Fuzzy Key Matching (Handles "Private" vs "private")
+            const privateText = parsedObj.private || parsedObj.Private || parsedObj.privateReport || parsedObj.private_text || "Error: Private report missing.";
+            const publicText = parsedObj.public || parsedObj.Public || parsedObj.publicReport || parsedObj.public_text || "Error: Public report missing.";
+
+            setResult({ private: privateText, public: publicText });
 
         } catch (err) {
-            console.error("Critical Failure:", err);
+            console.error(err);
             setError('Analysis Failed');
-            setDebugLog(prev => `${prev}\nError: ${err.message}`);
+            setDebugLog(err.message);
         } finally {
             setLoading(false);
             setStatus('GENERATE EXECUTIVE BRIEF');
@@ -159,112 +107,58 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
         if (!result) return;
         try {
             await setDoc(doc(db, 'system_data', 'dashboard_summary'), {
-                text: result,
+                privateText: result.private,
+                publicText: result.public,
                 timestamp: new Date()
             });
-            alert("✅ Report Published to Main Dashboard!");
+            alert("✅ SUCCESS: Reports published to Admin Panel!");
             onClose(); 
         } catch (e) {
-            alert("❌ Error publishing: " + e.message);
+            alert("❌ Error saving to database: " + e.message);
         }
     };
 
     return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4">
             <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
-                
-                {/* Header */}
                 <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 flex justify-between items-center text-white">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <Sparkles size={20} className="animate-pulse" />
-                            <h2 className="text-2xl font-black tracking-tight">IDC SMART ANALYSIS</h2>
-                        </div>
-                        <div className="flex items-center gap-2 text-indigo-100 text-sm font-bold uppercase tracking-widest opacity-80">
-                            <UserCog size={14} />
-                            <span>Staff Profiles Active</span>
+                    <div className="flex items-center gap-3">
+                        <ShieldCheck size={28} />
+                        <div>
+                            <h2 className="text-2xl font-black tracking-tight uppercase">Dual-Stream Analysis</h2>
+                            <p className="text-xs opacity-70 font-bold uppercase tracking-widest">Generating Secure Intelligence...</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-full transition-colors">
-                        <X size={28} />
-                    </button>
+                    <button onClick={onClose} className="hover:bg-white/20 p-2 rounded-full transition-colors"><X size={28} /></button>
                 </div>
 
                 <div className="p-8 overflow-y-auto flex-1 bg-slate-50/50 dark:bg-slate-900/50">
                     {!result ? (
                         <div className="flex flex-col items-center justify-center py-12">
                             <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 max-w-md w-full text-center">
-                                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Secure AI Integration</h3>
-                                
+                                <h3 className="text-xl font-bold mb-4">Secure HR Integration</h3>
                                 <div className="space-y-4">
-                                    <div className="relative text-left">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase ml-1 mb-1 block">Google Gemini API Key</label>
-                                        <div className="relative">
-                                            <Lock className="absolute left-3 top-3.5 text-slate-300" size={16} />
-                                            <input 
-                                                type="password" 
-                                                placeholder="Enter Key..." 
-                                                value={apiKey}
-                                                onChange={(e) => setApiKey(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-700 dark:text-white"
-                                            />
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={handleAnalyze} 
-                                        disabled={loading || !apiKey}
-                                        className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white font-black rounded-xl hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
-                                    >
-                                        {loading ? (
-                                            <span className="flex items-center gap-2">
-                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                {status}
-                                            </span>
-                                        ) : 'GENERATE EXECUTIVE BRIEF'}
+                                    <input type="password" placeholder="Paste Gemini API Key..." value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border rounded-xl" />
+                                    <button onClick={handleAnalyze} disabled={loading || !apiKey} className="w-full py-4 bg-slate-900 text-white font-black rounded-xl uppercase tracking-tighter">
+                                        {loading ? status : 'Generate Analysis'}
                                     </button>
-                                    
-                                    {error && (
-                                        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-left">
-                                            <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm mb-1">
-                                                <Bug size={16} />
-                                                <span>{error}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-[10px] mb-1 break-all">
-                                                <Radar size={12} />
-                                                <span>Log: {debugLog}</span>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
+                                {error && <div className="mt-4 p-3 bg-red-50 text-red-600 text-xs font-bold rounded">{error} <br/> {debugLog}</div>}
                             </div>
                         </div>
                     ) : (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* RESULTS SECTION */}
-                            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700">
-                                {/* ADDED: whitespace-pre-wrap to fix formatting */}
-                                <div className="prose dark:prose-invert max-w-none whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-                                    {result}
-                                </div>
+                        <div className="space-y-6">
+                            <div className="bg-white p-6 rounded-2xl border-2 border-indigo-500">
+                                <h3 className="text-xs font-black text-indigo-500 mb-2 uppercase">Preview: Private Brief (Lead Only)</h3>
+                                <div className="whitespace-pre-wrap text-sm text-slate-700 h-32 overflow-y-auto border p-2 rounded">{result.private}</div>
                             </div>
-                            
-                            {/* ACTION BUTTONS */}
-                            <div className="flex flex-col md:flex-row gap-4 mt-8">
-                                <button 
-                                    onClick={handlePublish}
-                                    className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2"
-                                >
-                                    <Sparkles size={16} />
-                                    PUBLISH TO TEAM DASHBOARD
-                                </button>
-                                
-                                <button 
-                                    onClick={() => setResult(null)}
-                                    className="px-8 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                    Retry
-                                </button>
+                            <div className="bg-slate-100 p-6 rounded-2xl border border-slate-300">
+                                <h3 className="text-xs font-black text-slate-500 mb-2 uppercase">Preview: Team Pulse (Public)</h3>
+                                <div className="whitespace-pre-wrap text-sm text-slate-600 h-24 overflow-y-auto border p-2 rounded">{result.public}</div>
                             </div>
+                            <button onClick={handlePublish} className="w-full py-4 bg-indigo-600 text-white font-black rounded-xl shadow-lg uppercase tracking-tighter hover:bg-indigo-700">
+                                CONFIRM & PUBLISH REPORT
+                            </button>
                         </div>
                     )}
                 </div>
