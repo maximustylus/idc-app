@@ -12,7 +12,6 @@ import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Upload, Download
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
 import ResponsiveLayout from './components/ResponsiveLayout';
-// NOTE: SmartReportView removed from here to keep dashboard public
 
 // Utils
 import { STAFF_LIST, MONTHS, DOMAIN_LIST } from './utils';
@@ -21,7 +20,6 @@ import { STAFF_LIST, MONTHS, DOMAIN_LIST } from './utils';
 const COLORS = ['#FFC107', '#FF9800', '#FF5722', '#4CAF50', '#2196F3']; 
 const STATUS_COLORS = { 1: '#EF4444', 2: '#A855F7', 3: '#F59E0B', 4: '#3B82F6', 5: '#10B981' };
 
-// Placeholder Data for Attendance
 const ATTENDANCE_DATA = [
   { name: 'Jan', value: 300 }, { name: 'Feb', value: 10 }, { name: 'Mar', value: 5 }, 
   { name: 'Apr', value: 8 }, { name: 'May', value: 12 }, { name: 'Jun', value: 15 }, 
@@ -30,7 +28,6 @@ const ATTENDANCE_DATA = [
 ];
 
 function App() {
-  // --- STATE MANAGEMENT ---
   const [currentView, setCurrentView] = useState('dashboard');
   const [archiveYear, setArchiveYear] = useState('2025');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -38,17 +35,14 @@ function App() {
   const [isDark, setIsDark] = useState(false);
   const [user, setUser] = useState(null);
   
-  // Data States
   const [teamData, setTeamData] = useState([]); 
   const [staffLoads, setStaffLoads] = useState({});
 
-  // 0. Auth Listener
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
     return () => unsubscribe();
   }, []);
 
-  // 1. Fetch Data
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'cep_team'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -73,7 +67,6 @@ function App() {
     return () => unsubscribes.forEach(u => u());
   }, []);
 
-  // --- CHART HELPERS ---
   const getPieData = () => {
     const counts = { MANAGEMENT: 0, CLINICAL: 0, EDUCATION: 0, RESEARCH: 0 };
     teamData.forEach(staff => {
@@ -113,7 +106,6 @@ function App() {
 
   // --- SUB-VIEWS ---
 
-  // 1. DASHBOARD VIEW (Public Charts Only)
   const DashboardView = ({ isArchive = false }) => (
     <>
       {isArchive && (
@@ -135,7 +127,6 @@ function App() {
         </div>
       )}
 
-      {/* Row 1 */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Domain Distribution</h2>
         <div className="h-64">
@@ -170,7 +161,6 @@ function App() {
         </div>
       </div>
 
-      {/* Row 2 */}
       <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Monthly Patient Attendance (Team)</h2>
         <div className="h-64">
@@ -187,7 +177,6 @@ function App() {
         </div>
       </div>
 
-      {/* Row 3 - Clinical Load */}
       <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Individual Clinical Load</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -217,7 +206,6 @@ function App() {
         </div>
       </div>
 
-      {/* Row 4 - Swimlanes */}
       <div className="md:col-span-2 mt-8">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Department Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -255,7 +243,6 @@ function App() {
     </>
   );
 
-  // 2. ROSTER VIEW
   const RosterView = () => (
     <div className="md:col-span-2 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center min-h-[400px]">
       <div className="bg-blue-50 dark:bg-slate-700 p-4 rounded-full mb-4">
@@ -283,10 +270,8 @@ function App() {
 
   return (
     <ResponsiveLayout>
-      {/* --- HEADER --- */}
       <div className="md:col-span-2 flex flex-col md:flex-row justify-between items-center mb-6 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 gap-4">
         
-        {/* Left: Logo & Title */}
         <div className="flex items-center gap-4 self-start md:self-center">
           <img src="/logo.png" alt="SSMC Logo" className="h-12 w-auto object-contain" />
           <div>
@@ -295,7 +280,6 @@ function App() {
           </div>
         </div>
 
-        {/* Center: Navigation Tabs */}
         <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1 rounded-lg">
           <button 
             onClick={() => setCurrentView('dashboard')}
@@ -320,7 +304,6 @@ function App() {
           </button>
         </div>
 
-        {/* Right: Actions */}
         <div className="flex items-center gap-3 self-end md:self-center">
           <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300">
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
@@ -345,17 +328,18 @@ function App() {
 
       {isLoginOpen && <Login onClose={() => setIsLoginOpen(false)} />}
       
-      {isAdminOpen && (
+      {/* EXCLUSIVE VIEW LOGIC: If Admin is open, HIDE everything else. */}
+      {isAdminOpen ? (
         <div className="md:col-span-2">
-          {/* PASSING staffLoads TO ADMIN PANEL SO AI CAN SEE IT */}
           <AdminPanel teamData={teamData} staffLoads={staffLoads} />
         </div>
+      ) : (
+        <>
+          {currentView === 'dashboard' && <DashboardView />}
+          {currentView === 'archive' && <DashboardView isArchive={true} />}
+          {currentView === 'roster' && <RosterView />}
+        </>
       )}
-
-      {/* --- CONDITIONAL RENDERING --- */}
-      {currentView === 'dashboard' && <DashboardView />}
-      {currentView === 'archive' && <DashboardView isArchive={true} />}
-      {currentView === 'roster' && <RosterView />}
 
     </ResponsiveLayout>
   );
