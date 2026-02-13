@@ -20,16 +20,9 @@ import { STAFF_LIST, MONTHS, DOMAIN_LIST } from './utils';
 const COLORS = ['#FFC107', '#FF9800', '#FF5722', '#4CAF50', '#2196F3']; 
 const STATUS_COLORS = { 1: '#EF4444', 2: '#A855F7', 3: '#F59E0B', 4: '#3B82F6', 5: '#10B981' };
 
-const ATTENDANCE_DATA = [
-  { name: 'Jan', value: 300 }, { name: 'Feb', value: 10 }, { name: 'Mar', value: 5 }, 
-  { name: 'Apr', value: 8 }, { name: 'May', value: 12 }, { name: 'Jun', value: 15 }, 
-  { name: 'Jul', value: 20 }, { name: 'Aug', value: 18 }, { name: 'Sep', value: 25 }, 
-  { name: 'Oct', value: 30 }, { name: 'Nov', value: 35 }, { name: 'Dec', value: 40 }
-];
-
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
-  const [archiveYear, setArchiveYear] = useState('2025'); // Default Archive Year
+  const [archiveYear, setArchiveYear] = useState('2025');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -37,6 +30,7 @@ function App() {
   
   const [teamData, setTeamData] = useState([]); 
   const [staffLoads, setStaffLoads] = useState({});
+  const [attendanceData, setAttendanceData] = useState({}); // <--- NEW STATE
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
@@ -67,26 +61,38 @@ function App() {
     return () => unsubscribes.forEach(u => u());
   }, []);
 
-  // --- CRITICAL FIX: DATA FILTERING ENGINE ---
-  // This function creates a "clean" dataset based on whether we are viewing 
-  // the Main Dashboard (Current Year) or the Archive (Past Years).
+  // --- NEW: FETCH ATTENDANCE DATA ---
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'system_data', 'monthly_attendance'), (docSnap) => {
+        if (docSnap.exists()) {
+            setAttendanceData(docSnap.data());
+        }
+    });
+    return () => unsub();
+  }, []);
+
+  // --- HELPER: GET ATTENDANCE FOR CURRENT VIEW ---
+  const getAttendanceForView = () => {
+      const targetYear = currentView === 'archive' ? archiveYear : '2026';
+      const rawValues = attendanceData[targetYear] || Array(12).fill(0);
+      return MONTHS.map((m, i) => ({ name: m, value: rawValues[i] }));
+  };
+
+  // --- DATA FILTERING ENGINE ---
   const getFilteredData = () => {
     const targetYear = currentView === 'archive' ? archiveYear : '2026';
-    
     return teamData.map(staff => ({
       ...staff,
-      // Filter the projects array inside each staff member
       projects: (staff.projects || []).filter(p => {
-        // If a project has no year, assume it's current (2026)
         const projectYear = p.year || '2026';
         return projectYear === targetYear;
       })
     }));
   };
 
-  const filteredTeamData = getFilteredData(); // <--- USE THIS FOR CHARTS
+  const filteredTeamData = getFilteredData(); 
 
-  // --- CHART HELPERS (Now using filteredTeamData) ---
+  // --- CHART HELPERS ---
   const getPieData = () => {
     const counts = { MANAGEMENT: 0, CLINICAL: 0, EDUCATION: 0, RESEARCH: 0 };
     filteredTeamData.forEach(staff => {
@@ -182,12 +188,14 @@ function App() {
         </div>
       </div>
 
-      {/* Row 2 - Attendance (Static for now, can be filtered later if data allows) */}
+      {/* Row 2 - Attendance (NOW DYNAMIC) */}
       <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Monthly Patient Attendance (Team)</h2>
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">
+            Monthly Patient Attendance {isArchive ? `(${archiveYear})` : '(2026)'}
+        </h2>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={ATTENDANCE_DATA}>
+            <LineChart data={getAttendanceForView()}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
