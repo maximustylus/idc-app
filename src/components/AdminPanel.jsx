@@ -177,13 +177,14 @@ const AdminPanel = ({ teamData, staffLoads }) => {
             {/* ADD NEW ENTRY FORM */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                 
-                {/* 1. Target Year (FIXED UI: Increased Padding to pl-14) */}
+                {/* 1. Target Year (FIXED UI: FORCED PADDING) */}
                 <div className="relative">
                     <CalendarClock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
                     <select 
-                        className="input-field w-full pl-14 font-bold text-indigo-600" 
+                        className="input-field w-full font-bold text-indigo-600" 
                         value={newYear} 
                         onChange={(e)=>setNewYear(e.target.value)}
+                        style={{ paddingLeft: '3.5rem' }} // <--- FORCED PADDING FIX
                     >
                         <option value="2026">2026 (Current)</option>
                         <option value="2025">2025</option>
@@ -304,6 +305,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                 </table>
             </div>
 
+            {/* AI REPORT MODAL */}
             {isAnalysisOpen && (
                 <SmartAnalysis 
                     teamData={teamData} 
@@ -312,6 +314,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                 />
             )}
 
+            {/* BULK IMPORT MODAL */}
             {isImportOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4">
                     <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700">
