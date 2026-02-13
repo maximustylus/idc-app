@@ -200,10 +200,10 @@ const AdminPanel = ({ teamData, staffLoads }) => {
     return (
         <div className="monday-card p-6 mt-6 mb-12 dark:bg-slate-800 dark:border-slate-700">
             
-            {/* REPORT SECTION */}
-            <div className="mb-8 animate-in fade-in slide-in-from-top-4">
-                <SmartReportView />
-            </div>
+{/* SECTION 1: REPORT */}
+<div className="mb-8 animate-in fade-in slide-in-from-top-4">
+    <SmartReportView year="2026" /> {/* Explicitly show 2026 in Admin */}
+</div>
 
             {/* HEADER */}
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
