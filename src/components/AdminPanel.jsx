@@ -22,7 +22,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
     const [newTitle, setNewTitle] = useState('');
     const [newYear, setNewYear] = useState('2026'); 
     
-    // --- ATTENDANCE STATE (NEW) ---
+    // --- ATTENDANCE STATE ---
     const [attYear, setAttYear] = useState('2026');
     const [attValues, setAttValues] = useState(Array(12).fill(0));
     const [attLoading, setAttLoading] = useState(false);
@@ -44,7 +44,6 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
                     const data = snap.data();
-                    // Load data for selected year or default to 0s
                     setAttValues(data[attYear] || Array(12).fill(0));
                 } else {
                     setAttValues(Array(12).fill(0));
@@ -63,7 +62,6 @@ const AdminPanel = ({ teamData, staffLoads }) => {
         setAttLoading(true);
         try {
             const docRef = doc(db, 'system_data', 'monthly_attendance');
-            // Save specifically to the year key (e.g., "2025": [10, 20...])
             await setDoc(docRef, { [attYear]: attValues }, { merge: true });
             setMessage(`✅ Saved Attendance for ${attYear}`);
         } catch (error) {
@@ -143,28 +141,53 @@ const AdminPanel = ({ teamData, staffLoads }) => {
         finally { setLoading(false); }
     };
 
+    // --- THE "SUPER IMPORT" FUNCTION ---
     const handleBulkImport = async () => {
         setLoading(true);
         try {
             const data = JSON.parse(jsonInput);
-            if (!Array.isArray(data)) throw new Error("Data must be an array []");
-            let count = 0;
-            for (const item of data) {
-                if (!item.owner || !item.title) continue;
-                const staffId = item.owner.toLowerCase().replace(' ', '_');
-                const staffRef = doc(db, 'cep_team', staffId);
-                await updateDoc(staffRef, {
-                    projects: arrayUnion({
-                        title: item.title,
-                        domain_type: item.domain || 'MANAGEMENT',
-                        item_type: item.type || 'Task',
-                        status_dots: item.status || 2,
-                        year: item.year || '2026'
-                    })
-                });
-                count++;
+            let importedCount = 0;
+
+            // 1. Handle TASKS
+            if (data.tasks && Array.isArray(data.tasks)) {
+                for (const item of data.tasks) {
+                    if (!item.owner || !item.title) continue;
+                    const staffId = item.owner.toLowerCase().replace(' ', '_');
+                    const staffRef = doc(db, 'cep_team', staffId);
+                    await updateDoc(staffRef, {
+                        projects: arrayUnion({
+                            title: item.title,
+                            domain_type: item.domain || 'MANAGEMENT',
+                            item_type: item.type || 'Task',
+                            status_dots: item.status || 2,
+                            year: item.year || '2026'
+                        })
+                    });
+                    importedCount++;
+                }
             }
-            setMessage(`✅ Successfully imported ${count} items!`);
+
+            // 2. Handle ATTENDANCE
+            if (data.attendance && data.year) {
+                 const attRef = doc(db, 'system_data', 'monthly_attendance');
+                 await setDoc(attRef, { [data.year]: data.attendance }, { merge: true });
+                 importedCount++;
+            }
+
+            // 3. Handle CLINICAL LOADS
+            if (data.clinical) {
+                for (const [staffName, loads] of Object.entries(data.clinical)) {
+                    // Normalize staff name to ID
+                    const staffId = staffName.toLowerCase().replace(' ', '_');
+                    // We assume this import overwrites the current load view
+                    const loadRef = doc(db, 'staff_loads', staffName); // Note: StaffLoadEditor uses Name not ID usually, check your utils. 
+                    // Let's rely on the keys in the JSON matching the keys in Firestore
+                    await setDoc(loadRef, { data: loads }, { merge: true });
+                    importedCount++;
+                }
+            }
+
+            setMessage(`✅ Super Import: Processed ${importedCount} items/records!`);
             setIsImportOpen(false);
             setJsonInput('');
         } catch (error) {
@@ -201,7 +224,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
 
             <div className="my-6 border-t border-slate-100 dark:border-slate-700"></div>
 
-            {/* SECTION 2B: PATIENT ATTENDANCE (NEW!) */}
+            {/* SECTION 2B: PATIENT ATTENDANCE */}
             <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-700 mb-8">
                 <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
@@ -377,10 +400,13 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                             <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Agent Bulk Import</h3>
                             <button onClick={() => setIsImportOpen(false)} className="text-slate-400 hover:text-red-500"><X size={24} /></button>
                         </div>
-                        <p className="text-sm text-slate-500 mb-4">Paste the JSON code generated by Gemini Agent here.</p>
+                        <p className="text-sm text-slate-500 mb-4">
+                            Paste the "Super JSON" generated by Gemini here. <br/>
+                            <span className="text-xs text-blue-500 font-bold">Supported: Tasks, Clinical Loads, Attendance.</span>
+                        </p>
                         <textarea 
                             className="w-full h-64 bg-slate-900 text-emerald-400 font-mono text-xs p-4 rounded-xl border border-slate-700 mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            placeholder='[ { "owner": "Alif", "title": "...", "year": "2025" } ]'
+                            placeholder='{ "tasks": [...], "attendance": [...], "clinical": {...} }'
                             value={jsonInput}
                             onChange={(e) => setJsonInput(e.target.value)}
                         />
