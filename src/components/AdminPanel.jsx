@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { db } from '../firebase';
 import { updateDoc, doc, arrayUnion, arrayRemove, getDoc, writeBatch } from 'firebase/firestore';
-import { Sparkles, LayoutList, CalendarClock } from 'lucide-react'; // Added CalendarClock icon
+import { Sparkles, LayoutList, CalendarClock } from 'lucide-react';
 
 // Components
 import SmartAnalysis from './SmartAnalysis';
@@ -17,7 +17,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
     const [newDomain, setNewDomain] = useState('MANAGEMENT');
     const [newType, setNewType] = useState('Task');
     const [newTitle, setNewTitle] = useState('');
-    const [newYear, setNewYear] = useState('2026'); // <--- NEW: Default to current year
+    const [newYear, setNewYear] = useState('2026'); // Default to current year
     
     // State for AI Modal
     const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
@@ -25,7 +25,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
-    // --- 1. ADD NEW ITEM (Now with Year!) ---
+    // --- 1. ADD NEW ITEM ---
     const handleAddItem = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -38,12 +38,11 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                     domain_type: newDomain,
                     item_type: newType,
                     status_dots: 2, // Default: Planning
-                    year: newYear // <--- SAVES THE INDICATED YEAR
+                    year: newYear 
                 })
             });
             setMessage(`✅ Added to ${newYear}: "${newTitle}"`);
             setNewTitle('');
-            // We keep the year selected so you can rapid-fire enter multiple 2023 items!
         } catch (error) { setMessage('❌ Error: ' + error.message); } 
         finally { setLoading(false); }
     };
@@ -120,7 +119,6 @@ const AdminPanel = ({ teamData, staffLoads }) => {
             </div>
 
             {/* SECTION 2: CLINICAL LOADS */}
-            {/* NOTE: If you want to backdate Clinical Loads, StaffLoadEditor needs a similar 'year' prop update! */}
             <StaffLoadEditor />
 
             <div className="my-10 border-t-2 border-slate-100 dark:border-slate-700"></div>
@@ -134,11 +132,14 @@ const AdminPanel = ({ teamData, staffLoads }) => {
             {/* ADD NEW ENTRY FORM */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                 
-                {/* 1. Target Year (NEW) */}
+                {/* 1. Target Year (FIXED UI) */}
                 <div className="relative">
-                    <CalendarClock className="absolute left-3 top-3 text-slate-400" size={16} />
+                    {/* Fixed Icon Position and Pointer Events */}
+                    <CalendarClock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+                    
+                    {/* Increased Padding Left (pl-12) to prevent text overlap */}
                     <select 
-                        className="input-field pl-10 font-bold text-indigo-600" 
+                        className="input-field w-full pl-12 font-bold text-indigo-600" 
                         value={newYear} 
                         onChange={(e)=>setNewYear(e.target.value)}
                     >
@@ -150,24 +151,24 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                 </div>
 
                 {/* 2. Owner */}
-                <select className="input-field" value={newOwner} onChange={(e)=>setNewOwner(e.target.value)}>
+                <select className="input-field w-full" value={newOwner} onChange={(e)=>setNewOwner(e.target.value)}>
                     <option value="">+ Assign To...</option>
                     {STAFF_LIST.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
 
                 {/* 3. Domain */}
-                <select className="input-field" value={newDomain} onChange={(e)=>setNewDomain(e.target.value)}>
+                <select className="input-field w-full" value={newDomain} onChange={(e)=>setNewDomain(e.target.value)}>
                     {DOMAIN_LIST.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
 
                 {/* 4. Type */}
-                <select className="input-field" value={newType} onChange={(e)=>setNewType(e.target.value)}>
+                <select className="input-field w-full" value={newType} onChange={(e)=>setNewType(e.target.value)}>
                     <option value="Task">Task</option>
                     <option value="Project">Project</option>
                 </select>
 
                 {/* 5. Title */}
-                <input className="input-field lg:col-span-2" placeholder="Item Title..." value={newTitle} onChange={(e)=>setNewTitle(e.target.value)} />
+                <input className="input-field w-full lg:col-span-2" placeholder="Item Title..." value={newTitle} onChange={(e)=>setNewTitle(e.target.value)} />
 
                 {/* 6. Add Button */}
                 <button onClick={handleAddItem} disabled={loading} className="lg:col-span-6 w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 text-sm shadow-md transition-all">
@@ -180,7 +181,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                 <table className="w-full text-left bg-white dark:bg-slate-900">
                     <thead className="bg-slate-50 dark:bg-slate-800">
                         <tr>
-                            <th className="admin-table-header py-3 pl-4">Year</th> {/* NEW COLUMN */}
+                            <th className="admin-table-header py-3 pl-4">Year</th>
                             <th className="admin-table-header py-3">Owner</th>
                             <th className="admin-table-header py-3">Domain</th>
                             <th className="admin-table-header py-3 w-1/3">Title</th>
@@ -194,11 +195,11 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                             (staff.projects || []).map((p, idx) => (
                                 <tr key={`${staff.id}-${idx}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                     
-                                    {/* 1. YEAR (NEW - Editable) */}
+                                    {/* 1. YEAR */}
                                     <td className="p-2 pl-4">
                                         <select 
                                             className="bg-transparent text-xs font-bold text-slate-400 outline-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 rounded px-1"
-                                            value={p.year || '2026'} // Default to 2026 if old data has no year
+                                            value={p.year || '2026'} 
                                             onChange={(e) => handleEditField(staff.id, idx, 'year', e.target.value)}
                                         >
                                             <option value="2023">2023</option>
