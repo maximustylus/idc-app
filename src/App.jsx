@@ -132,7 +132,7 @@ function App() {
 
   // --- SUB-VIEWS ---
 
-  const DashboardView = ({ isArchive = false }) => (
+const DashboardView = ({ isArchive = false }) => (
     <>
       {isArchive && (
         <div className="md:col-span-2 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 p-4 rounded-lg mb-4 flex justify-between items-center animate-in fade-in slide-in-from-top-4">
@@ -152,6 +152,12 @@ function App() {
           <span className="text-xs font-mono text-amber-700 uppercase">Read Only Mode</span>
         </div>
       )}
+
+      {/* --- NEW: SMART REPORT IN DASHBOARD --- */}
+      {/* Shows 2026 report normally, or 2025 report if in Archive mode */}
+      <div className="md:col-span-2 mb-6">
+        <SmartReportView year={isArchive ? archiveYear : '2026'} />
+      </div>
 
       {/* Row 1 */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
