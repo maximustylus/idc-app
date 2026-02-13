@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { db } from '../firebase';
 import { updateDoc, doc, arrayUnion, arrayRemove, getDoc, writeBatch } from 'firebase/firestore';
-import { Sparkles, LayoutList, CalendarClock } from 'lucide-react';
+import { Sparkles, LayoutList, CalendarClock, FileJson, X } from 'lucide-react'; // Added FileJson, X
 
 // Components
 import SmartAnalysis from './SmartAnalysis';
@@ -17,10 +17,12 @@ const AdminPanel = ({ teamData, staffLoads }) => {
     const [newDomain, setNewDomain] = useState('MANAGEMENT');
     const [newType, setNewType] = useState('Task');
     const [newTitle, setNewTitle] = useState('');
-    const [newYear, setNewYear] = useState('2026'); // Default to current year
+    const [newYear, setNewYear] = useState('2026'); 
     
-    // State for AI Modal
+    // State for Modals
     const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
+    const [isImportOpen, setIsImportOpen] = useState(false); // <--- NEW IMPORT STATE
+    const [jsonInput, setJsonInput] = useState(''); // <--- NEW JSON INPUT
     
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -37,7 +39,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                     title: newTitle,
                     domain_type: newDomain,
                     item_type: newType,
-                    status_dots: 2, // Default: Planning
+                    status_dots: 2, 
                     year: newYear 
                 })
             });
@@ -97,6 +99,51 @@ const AdminPanel = ({ teamData, staffLoads }) => {
         finally { setLoading(false); }
     };
 
+    // --- 5. BULK IMPORT JSON (THE AGENT LINK) ---
+    const handleBulkImport = async () => {
+        setLoading(true);
+        try {
+            const data = JSON.parse(jsonInput);
+            if (!Array.isArray(data)) throw new Error("Data must be an array []");
+
+            const batch = writeBatch(db);
+            let count = 0;
+
+            // Group by Staff to minimize writes
+            // Structure expected: { owner: "Alif", title: "XYZ", year: "2025", ... }
+            for (const item of data) {
+                if (!item.owner || !item.title) continue;
+                
+                const staffId = item.owner.toLowerCase().replace(' ', '_');
+                const staffRef = doc(db, 'cep_team', staffId);
+                
+                // Note: Firestore batch doesn't support arrayUnion on same doc multiple times easily
+                // So we do individual updates for simplicity in this logic, or we group them.
+                // For safety/simplicity in this script, we will use updateDoc inside loop (slower but safer)
+                // OR better:
+                
+                await updateDoc(staffRef, {
+                    projects: arrayUnion({
+                        title: item.title,
+                        domain_type: item.domain || 'MANAGEMENT',
+                        item_type: item.type || 'Task',
+                        status_dots: item.status || 2,
+                        year: item.year || '2026'
+                    })
+                });
+                count++;
+            }
+
+            setMessage(`✅ Successfully imported ${count} items!`);
+            setIsImportOpen(false);
+            setJsonInput('');
+        } catch (error) {
+            alert("Import Failed: " + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="monday-card p-6 mt-6 mb-12 dark:bg-slate-800 dark:border-slate-700">
             
@@ -107,13 +154,22 @@ const AdminPanel = ({ teamData, staffLoads }) => {
 
             {/* HEADER */}
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
-                <button 
-                    onClick={() => setIsAnalysisOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded hover:opacity-90 shadow-lg"
-                    >
-                    <Sparkles size={14} />
-                    GENERATE NEW REPORT
-                </button>
+                <div className="flex gap-2">
+                    <button 
+                        onClick={() => setIsAnalysisOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded hover:opacity-90 shadow-lg"
+                        >
+                        <Sparkles size={14} />
+                        GENERATE REPORT
+                    </button>
+                    <button 
+                        onClick={() => setIsImportOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white text-xs font-bold rounded hover:bg-slate-600 shadow-lg"
+                        >
+                        <FileJson size={14} />
+                        BULK IMPORT
+                    </button>
+                </div>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase">Admin Database</h2>
                 {message && <span className="text-xs font-bold px-3 py-1 bg-blue-100 text-blue-700 rounded">{message}</span>}
             </div>
@@ -132,12 +188,9 @@ const AdminPanel = ({ teamData, staffLoads }) => {
             {/* ADD NEW ENTRY FORM */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                 
-                {/* 1. Target Year (FIXED UI) */}
+                {/* 1. Target Year */}
                 <div className="relative">
-                    {/* Fixed Icon Position and Pointer Events */}
                     <CalendarClock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
-                    
-                    {/* Increased Padding Left (pl-12) to prevent text overlap */}
                     <select 
                         className="input-field w-full pl-12 font-bold text-indigo-600" 
                         value={newYear} 
@@ -194,7 +247,6 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                         {teamData.map(staff => (
                             (staff.projects || []).map((p, idx) => (
                                 <tr key={`${staff.id}-${idx}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                                    
                                     {/* 1. YEAR */}
                                     <td className="p-2 pl-4">
                                         <select 
@@ -208,7 +260,6 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                                             <option value="2026">2026</option>
                                         </select>
                                     </td>
-
                                     {/* 2. OWNER */}
                                     <td className="p-2">
                                         <select 
@@ -219,7 +270,6 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                                             {STAFF_LIST.map(n => <option key={n} value={n}>{n}</option>)}
                                         </select>
                                     </td>
-
                                     {/* 3. DOMAIN */}
                                     <td className="p-2">
                                         <select 
@@ -230,12 +280,10 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                                             {DOMAIN_LIST.map(d => <option key={d} value={d}>{d}</option>)}
                                         </select>
                                     </td>
-
                                     {/* 4. TITLE */}
                                     <td className="p-2 text-sm text-slate-700 dark:text-slate-300 font-medium">
                                         {p.title}
                                     </td>
-
                                     {/* 5. TYPE */}
                                     <td className="p-2">
                                         <select 
@@ -248,7 +296,6 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                                             <option value="Project">PROJECT</option>
                                         </select>
                                     </td>
-
                                     {/* 6. STATUS */}
                                     <td className="p-2">
                                         <select 
@@ -262,7 +309,6 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                                             ))}
                                         </select>
                                     </td>
-
                                     {/* 7. DELETE */}
                                     <td className="p-2 text-right pr-4">
                                         <button onClick={() => handleDelete(staff.id, p)} className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
@@ -276,12 +322,41 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                 </table>
             </div>
 
+            {/* AI REPORT MODAL */}
             {isAnalysisOpen && (
                 <SmartAnalysis 
                     teamData={teamData} 
                     staffLoads={staffLoads} 
                     onClose={() => setIsAnalysisOpen(false)} 
                 />
+            )}
+
+            {/* BULK IMPORT MODAL (THE AGENT PORT) */}
+            {isImportOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Agent Bulk Import</h3>
+                            <button onClick={() => setIsImportOpen(false)} className="text-slate-400 hover:text-red-500"><X size={24} /></button>
+                        </div>
+                        <p className="text-sm text-slate-500 mb-4">
+                            Paste the JSON code generated by Gemini Agent here. This will automatically populate the database for the years specified in the code.
+                        </p>
+                        <textarea 
+                            className="w-full h-64 bg-slate-900 text-emerald-400 font-mono text-xs p-4 rounded-xl border border-slate-700 mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            placeholder='[ { "owner": "Alif", "title": "...", "year": "2025" } ]'
+                            value={jsonInput}
+                            onChange={(e) => setJsonInput(e.target.value)}
+                        />
+                        <button 
+                            onClick={handleBulkImport} 
+                            disabled={loading || !jsonInput}
+                            className="w-full py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg uppercase tracking-wider"
+                        >
+                            {loading ? 'Processing Agent Data...' : 'Execute Import'}
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );
