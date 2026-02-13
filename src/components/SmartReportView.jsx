@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../firebase'; 
 import { doc, onSnapshot } from 'firebase/firestore';
-import { Sparkles, Quote, Lock, Users, ShieldAlert, Loader } from 'lucide-react';
+import { Lock, Users, ShieldAlert, Loader, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown'; // <--- NEW IMPORT
 
 const SmartReportView = () => {
-    const [reports, setReports] = useState(null); // Start as null to distinguish "loading" from "empty"
+    const [reports, setReports] = useState(null); 
     const [lastUpdated, setLastUpdated] = useState(null);
     const currentUser = auth.currentUser;
 
-    // --- SECURITY GATE (Case Insensitive Fix) ---
-    // We lowercase both the logged-in email and the allowed list to prevent mismatch errors.
+    // --- SECURITY GATE ---
     const userEmail = currentUser?.email?.toLowerCase() || '';
     const allowedEmails = [
         'muhammad.alif@kkh.com.sg',
@@ -28,15 +28,13 @@ const SmartReportView = () => {
                 });
                 setLastUpdated(data.timestamp?.toDate());
             } else {
-                setReports({ publicText: '', privateText: '' }); // Document doesn't exist yet
+                setReports({ publicText: '', privateText: '' });
             }
         });
         return () => unsub();
     }, []);
 
-    // --- DEBUGGING STATES (So you know what's wrong) ---
-
-    // 1. Loading State
+    // --- LOADING STATE ---
     if (!reports) {
         return (
             <div className="p-4 border border-slate-200 rounded-xl bg-slate-50 flex items-center gap-2 text-slate-400">
@@ -46,7 +44,7 @@ const SmartReportView = () => {
         );
     }
 
-    // 2. Empty State (Report hasn't been generated yet)
+    // --- EMPTY STATE ---
     if (!reports.privateText && !reports.publicText) {
         return (
             <div className="p-6 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 text-center">
@@ -64,7 +62,8 @@ const SmartReportView = () => {
             {isAuthorized ? (
                 reports.privateText && (
                     <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-900/50 dark:to-slate-900/50 p-6 rounded-2xl border border-indigo-200 dark:border-indigo-800 shadow-lg relative">
-                        <div className="flex items-center gap-3 mb-4">
+                        {/* Header */}
+                        <div className="flex items-center gap-3 mb-6 border-b border-indigo-100 pb-4">
                             <div className="bg-indigo-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-500/30">
                                 <Lock size={20} />
                             </div>
@@ -76,18 +75,56 @@ const SmartReportView = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="whitespace-pre-wrap text-sm text-indigo-950/80 dark:text-slate-200 font-bold leading-relaxed">
-                            {reports.privateText}
+
+                        {/* RENDERED MARKDOWN CONTENT */}
+                        <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300 leading-relaxed">
+                            <ReactMarkdown
+                                components={{
+                                    // Custom styling for Markdown elements
+                                    h1: ({node, ...props}) => <h1 className="text-xl font-black text-indigo-900 mb-3 uppercase tracking-tight" {...props} />,
+                                    h2: ({node, ...props}) => <h2 className="text-lg font-bold text-indigo-800 mt-6 mb-3 border-l-4 border-indigo-500 pl-3" {...props} />,
+                                    h3: ({node, ...props}) => <h3 className="text-md font-bold text-slate-800 mt-4 mb-2 uppercase tracking-wide" {...props} />,
+                                    strong: ({node, ...props}) => <span className="font-bold text-indigo-700 bg-indigo-50 px-1 rounded" {...props} />,
+                                    ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-2 my-2" {...props} />,
+                                    li: ({node, ...props}) => <li className="text-sm" {...props} />,
+                                    p: ({node, ...props}) => <p className="mb-3 text-sm" {...props} />,
+                                }}
+                            >
+                                {reports.privateText}
+                            </ReactMarkdown>
                         </div>
                     </div>
                 )
             ) : (
-                // UNAUTHORIZED MESSAGE (Only shows if you are logged in as someone else)
+                // UNAUTHORIZED MESSAGE
                 <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
                     <ShieldAlert className="text-red-500" size={20} />
                     <div>
                         <h4 className="text-xs font-black text-red-700 uppercase">Access Restricted</h4>
                         <p className="text-[10px] text-red-600">You are logged in as <strong>{userEmail}</strong>. This report is visible only to Leads.</p>
+                    </div>
+                </div>
+            )}
+
+            {/* PUBLIC TEAM PULSE (Visible to Everyone, also rendered with Markdown) */}
+            {reports.publicText && (
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-800 dark:to-slate-800 p-6 rounded-2xl border border-emerald-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="bg-emerald-600 p-2 rounded-lg text-white">
+                            <Users size={20} />
+                        </div>
+                        <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">Team Pulse & Joy at Work</h2>
+                    </div>
+                    <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300">
+                        <ReactMarkdown
+                             components={{
+                                h3: ({node, ...props}) => <h3 className="text-sm font-bold text-emerald-800 mt-4 mb-2 uppercase" {...props} />,
+                                strong: ({node, ...props}) => <span className="font-bold text-emerald-700" {...props} />,
+                                ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-1" {...props} />,
+                            }}
+                        >
+                            {reports.publicText}
+                        </ReactMarkdown>
                     </div>
                 </div>
             )}
