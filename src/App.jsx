@@ -1,3 +1,4 @@
+import SmartReportView from './components/SmartReportView';
 import React, { useState, useEffect } from 'react';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, doc } from 'firebase/firestore';
