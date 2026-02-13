@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { updateDoc, doc, arrayUnion, arrayRemove, getDoc, writeBatch } from 'firebase/firestore';
-import { Sparkles, LayoutList, CalendarClock, FileJson, X } from 'lucide-react';
+import { updateDoc, doc, arrayUnion, arrayRemove, getDoc, setDoc, writeBatch, onSnapshot } from 'firebase/firestore';
+import { Sparkles, LayoutList, CalendarClock, FileJson, X, Users, Save } from 'lucide-react';
 
 // Components
 import SmartAnalysis from './SmartAnalysis';
@@ -11,15 +11,23 @@ import StaffLoadEditor from './StaffLoadEditor';
 // Utils
 import { STAFF_LIST, STATUS_OPTIONS, DOMAIN_LIST } from '../utils';
 
+// Helper for Months
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 const AdminPanel = ({ teamData, staffLoads }) => {
-    // States for "Add New" form
+    // --- TASKS STATE ---
     const [newOwner, setNewOwner] = useState('');
     const [newDomain, setNewDomain] = useState('MANAGEMENT');
     const [newType, setNewType] = useState('Task');
     const [newTitle, setNewTitle] = useState('');
     const [newYear, setNewYear] = useState('2026'); 
     
-    // State for Modals
+    // --- ATTENDANCE STATE (NEW) ---
+    const [attYear, setAttYear] = useState('2026');
+    const [attValues, setAttValues] = useState(Array(12).fill(0));
+    const [attLoading, setAttLoading] = useState(false);
+
+    // --- MODAL STATES ---
     const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
     const [isImportOpen, setIsImportOpen] = useState(false); 
     const [jsonInput, setJsonInput] = useState('');
@@ -27,7 +35,51 @@ const AdminPanel = ({ teamData, staffLoads }) => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
-    // --- 1. ADD NEW ITEM ---
+    // --- EFFECT: FETCH ATTENDANCE WHEN YEAR CHANGES ---
+    useEffect(() => {
+        const fetchAttendance = async () => {
+            setAttLoading(true);
+            try {
+                const docRef = doc(db, 'system_data', 'monthly_attendance');
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    // Load data for selected year or default to 0s
+                    setAttValues(data[attYear] || Array(12).fill(0));
+                } else {
+                    setAttValues(Array(12).fill(0));
+                }
+            } catch (error) {
+                console.error("Error fetching attendance:", error);
+            } finally {
+                setAttLoading(false);
+            }
+        };
+        fetchAttendance();
+    }, [attYear]);
+
+    // --- HANDLER: SAVE ATTENDANCE ---
+    const handleSaveAttendance = async () => {
+        setAttLoading(true);
+        try {
+            const docRef = doc(db, 'system_data', 'monthly_attendance');
+            // Save specifically to the year key (e.g., "2025": [10, 20...])
+            await setDoc(docRef, { [attYear]: attValues }, { merge: true });
+            setMessage(`✅ Saved Attendance for ${attYear}`);
+        } catch (error) {
+            setMessage('❌ Error saving attendance: ' + error.message);
+        } finally {
+            setAttLoading(false);
+        }
+    };
+
+    const handleAttChange = (index, value) => {
+        const newVals = [...attValues];
+        newVals[index] = parseInt(value) || 0;
+        setAttValues(newVals);
+    };
+
+    // --- EXISTING TASK HANDLERS ---
     const handleAddItem = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -49,7 +101,6 @@ const AdminPanel = ({ teamData, staffLoads }) => {
         finally { setLoading(false); }
     };
 
-    // --- 2. DELETE ITEM ---
     const handleDelete = async (staffId, item) => {
         if(!window.confirm(`Delete "${item.title}"?`)) return;
         setLoading(true);
@@ -61,57 +112,47 @@ const AdminPanel = ({ teamData, staffLoads }) => {
         finally { setLoading(false); }
     };
 
-    // --- 3. EDIT ITEM ---
     const handleEditField = async (staffId, itemIndex, field, newValue) => {
         setLoading(true);
         try {
             const staffRef = doc(db, 'cep_team', staffId);
             const snapshot = await getDoc(staffRef);
             if (!snapshot.exists()) throw new Error("Staff not found");
-            
             const projects = snapshot.data().projects || [];
             projects[itemIndex] = { ...projects[itemIndex], [field]: newValue };
-            
             await updateDoc(staffRef, { projects });
             setMessage(`✅ Updated ${field}`);
         } catch (error) { setMessage('❌ Error: ' + error.message); } 
         finally { setLoading(false); }
     };
 
-    // --- 4. RE-DELEGATE ---
     const handleChangeOwner = async (oldStaffId, item, newOwnerName) => {
         if (oldStaffId === newOwnerName.toLowerCase().replace(' ', '_')) return;
         if (!window.confirm(`Move "${item.title}" to ${newOwnerName}?`)) return;
-
         setLoading(true);
         try {
             const batch = writeBatch(db);
             const oldRef = doc(db, 'cep_team', oldStaffId);
             batch.update(oldRef, { projects: arrayRemove(item) });
-
             const newRef = doc(db, 'cep_team', newOwnerName.toLowerCase().replace(' ', '_'));
             const newItem = { ...item }; 
             batch.update(newRef, { projects: arrayUnion(newItem) });
-
             await batch.commit();
             setMessage(`✅ Moved to ${newOwnerName}`);
         } catch (error) { setMessage('❌ Move failed: ' + error.message); } 
         finally { setLoading(false); }
     };
 
-    // --- 5. BULK IMPORT JSON (AGENT MODE) ---
     const handleBulkImport = async () => {
         setLoading(true);
         try {
             const data = JSON.parse(jsonInput);
             if (!Array.isArray(data)) throw new Error("Data must be an array []");
-
             let count = 0;
             for (const item of data) {
                 if (!item.owner || !item.title) continue;
                 const staffId = item.owner.toLowerCase().replace(' ', '_');
                 const staffRef = doc(db, 'cep_team', staffId);
-                
                 await updateDoc(staffRef, {
                     projects: arrayUnion({
                         title: item.title,
@@ -136,7 +177,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
     return (
         <div className="monday-card p-6 mt-6 mb-12 dark:bg-slate-800 dark:border-slate-700">
             
-            {/* SECTION 1: REPORT */}
+            {/* REPORT SECTION */}
             <div className="mb-8 animate-in fade-in slide-in-from-top-4">
                 <SmartReportView />
             </div>
@@ -144,27 +185,65 @@ const AdminPanel = ({ teamData, staffLoads }) => {
             {/* HEADER */}
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex gap-2">
-                    <button 
-                        onClick={() => setIsAnalysisOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded hover:opacity-90 shadow-lg"
-                        >
-                        <Sparkles size={14} />
-                        GENERATE REPORT
+                    <button onClick={() => setIsAnalysisOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded hover:opacity-90 shadow-lg">
+                        <Sparkles size={14} /> GENERATE REPORT
                     </button>
-                    <button 
-                        onClick={() => setIsImportOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white text-xs font-bold rounded hover:bg-slate-600 shadow-lg"
-                        >
-                        <FileJson size={14} />
-                        BULK IMPORT
+                    <button onClick={() => setIsImportOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white text-xs font-bold rounded hover:bg-slate-600 shadow-lg">
+                        <FileJson size={14} /> BULK IMPORT
                     </button>
                 </div>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase">Admin Database</h2>
                 {message && <span className="text-xs font-bold px-3 py-1 bg-blue-100 text-blue-700 rounded">{message}</span>}
             </div>
 
-            {/* SECTION 2: CLINICAL LOADS */}
+            {/* SECTION 2A: CLINICAL LOADS */}
             <StaffLoadEditor />
+
+            <div className="my-6 border-t border-slate-100 dark:border-slate-700"></div>
+
+            {/* SECTION 2B: PATIENT ATTENDANCE (NEW!) */}
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-xl border border-slate-200 dark:border-slate-700 mb-8">
+                <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2">
+                        <Users className="text-slate-400" size={20} />
+                        <h3 className="font-bold text-slate-700 dark:text-white">Update Patient Attendance</h3>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <select 
+                            className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded px-3 py-1 text-sm font-bold"
+                            value={attYear}
+                            onChange={(e) => setAttYear(e.target.value)}
+                        >
+                            <option value="2023">2023</option>
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                        <button 
+                            onClick={handleSaveAttendance} 
+                            disabled={attLoading}
+                            className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 transition-colors"
+                        >
+                            <Save size={14} /> {attLoading ? 'Saving...' : 'Save Changes'}
+                        </button>
+                    </div>
+                </div>
+                
+                {/* ATTENDANCE INPUT GRID */}
+                <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
+                    {MONTH_LABELS.map((month, idx) => (
+                        <div key={month} className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase text-center">{month}</label>
+                            <input 
+                                type="number" 
+                                className="w-full text-center border border-slate-200 dark:border-slate-600 rounded p-1.5 text-sm font-bold dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                value={attValues[idx]}
+                                onChange={(e) => handleAttChange(idx, e.target.value)}
+                            />
+                        </div>
+                    ))}
+                </div>
+            </div>
 
             <div className="my-10 border-t-2 border-slate-100 dark:border-slate-700"></div>
 
@@ -176,15 +255,13 @@ const AdminPanel = ({ teamData, staffLoads }) => {
 
             {/* ADD NEW ENTRY FORM */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                
-                {/* 1. Target Year (FIXED UI: FORCED PADDING) */}
                 <div className="relative">
                     <CalendarClock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
                     <select 
                         className="input-field w-full font-bold text-indigo-600" 
                         value={newYear} 
                         onChange={(e)=>setNewYear(e.target.value)}
-                        style={{ paddingLeft: '3.5rem' }} // <--- FORCED PADDING FIX
+                        style={{ paddingLeft: '3.5rem' }} 
                     >
                         <option value="2026">2026 (Current)</option>
                         <option value="2025">2025</option>
@@ -192,28 +269,18 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                         <option value="2023">2023</option>
                     </select>
                 </div>
-
-                {/* 2. Owner */}
                 <select className="input-field w-full" value={newOwner} onChange={(e)=>setNewOwner(e.target.value)}>
                     <option value="">+ Assign To...</option>
                     {STAFF_LIST.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
-
-                {/* 3. Domain */}
                 <select className="input-field w-full" value={newDomain} onChange={(e)=>setNewDomain(e.target.value)}>
                     {DOMAIN_LIST.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
-
-                {/* 4. Type */}
                 <select className="input-field w-full" value={newType} onChange={(e)=>setNewType(e.target.value)}>
                     <option value="Task">Task</option>
                     <option value="Project">Project</option>
                 </select>
-
-                {/* 5. Title */}
                 <input className="input-field w-full lg:col-span-2" placeholder="Item Title..." value={newTitle} onChange={(e)=>setNewTitle(e.target.value)} />
-
-                {/* 6. Add Button */}
                 <button onClick={handleAddItem} disabled={loading} className="lg:col-span-6 w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 text-sm shadow-md transition-all">
                     ADD ENTRY TO {newYear}
                 </button>
@@ -267,9 +334,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                                             {DOMAIN_LIST.map(d => <option key={d} value={d}>{d}</option>)}
                                         </select>
                                     </td>
-                                    <td className="p-2 text-sm text-slate-700 dark:text-slate-300 font-medium">
-                                        {p.title}
-                                    </td>
+                                    <td className="p-2 text-sm text-slate-700 dark:text-slate-300 font-medium">{p.title}</td>
                                     <td className="p-2">
                                         <select 
                                             className="bg-transparent text-xs font-bold uppercase outline-none cursor-pointer rounded px-2 py-1"
@@ -288,9 +353,7 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                                             value={p.status_dots}
                                             onChange={(e) => handleEditField(staff.id, idx, 'status_dots', parseInt(e.target.value))}
                                         >
-                                            {STATUS_OPTIONS.map(s => (
-                                                <option key={s.val} value={s.val} style={{color:'black'}}>{s.label}</option>
-                                            ))}
+                                            {STATUS_OPTIONS.map(s => <option key={s.val} value={s.val} style={{color:'black'}}>{s.label}</option>)}
                                         </select>
                                     </td>
                                     <td className="p-2 text-right pr-4">
@@ -305,16 +368,8 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                 </table>
             </div>
 
-            {/* AI REPORT MODAL */}
-            {isAnalysisOpen && (
-                <SmartAnalysis 
-                    teamData={teamData} 
-                    staffLoads={staffLoads} 
-                    onClose={() => setIsAnalysisOpen(false)} 
-                />
-            )}
-
-            {/* BULK IMPORT MODAL */}
+            {isAnalysisOpen && <SmartAnalysis teamData={teamData} staffLoads={staffLoads} onClose={() => setIsAnalysisOpen(false)} />}
+            
             {isImportOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4">
                     <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl p-6 border border-slate-200 dark:border-slate-700">
@@ -322,20 +377,14 @@ const AdminPanel = ({ teamData, staffLoads }) => {
                             <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Agent Bulk Import</h3>
                             <button onClick={() => setIsImportOpen(false)} className="text-slate-400 hover:text-red-500"><X size={24} /></button>
                         </div>
-                        <p className="text-sm text-slate-500 mb-4">
-                            Paste the JSON code generated by Gemini Agent here. This will automatically populate the database.
-                        </p>
+                        <p className="text-sm text-slate-500 mb-4">Paste the JSON code generated by Gemini Agent here.</p>
                         <textarea 
                             className="w-full h-64 bg-slate-900 text-emerald-400 font-mono text-xs p-4 rounded-xl border border-slate-700 mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             placeholder='[ { "owner": "Alif", "title": "...", "year": "2025" } ]'
                             value={jsonInput}
                             onChange={(e) => setJsonInput(e.target.value)}
                         />
-                        <button 
-                            onClick={handleBulkImport} 
-                            disabled={loading || !jsonInput}
-                            className="w-full py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg uppercase tracking-wider"
-                        >
+                        <button onClick={handleBulkImport} disabled={loading || !jsonInput} className="w-full py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 shadow-lg uppercase tracking-wider">
                             {loading ? 'Processing Agent Data...' : 'Execute Import'}
                         </button>
                     </div>
