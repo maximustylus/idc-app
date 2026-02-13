@@ -6,7 +6,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend 
 } from 'recharts';
-import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Upload, Download, FileCode } from 'lucide-react';
+import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Upload, Download, FileCode, Filter } from 'lucide-react';
 
 // Components
 import AdminPanel from './components/AdminPanel';
@@ -29,7 +29,7 @@ const ATTENDANCE_DATA = [
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
-  const [archiveYear, setArchiveYear] = useState('2025');
+  const [archiveYear, setArchiveYear] = useState('2025'); // Default Archive Year
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -67,9 +67,29 @@ function App() {
     return () => unsubscribes.forEach(u => u());
   }, []);
 
+  // --- CRITICAL FIX: DATA FILTERING ENGINE ---
+  // This function creates a "clean" dataset based on whether we are viewing 
+  // the Main Dashboard (Current Year) or the Archive (Past Years).
+  const getFilteredData = () => {
+    const targetYear = currentView === 'archive' ? archiveYear : '2026';
+    
+    return teamData.map(staff => ({
+      ...staff,
+      // Filter the projects array inside each staff member
+      projects: (staff.projects || []).filter(p => {
+        // If a project has no year, assume it's current (2026)
+        const projectYear = p.year || '2026';
+        return projectYear === targetYear;
+      })
+    }));
+  };
+
+  const filteredTeamData = getFilteredData(); // <--- USE THIS FOR CHARTS
+
+  // --- CHART HELPERS (Now using filteredTeamData) ---
   const getPieData = () => {
     const counts = { MANAGEMENT: 0, CLINICAL: 0, EDUCATION: 0, RESEARCH: 0 };
-    teamData.forEach(staff => {
+    filteredTeamData.forEach(staff => {
       (staff.projects || []).forEach(p => {
         if (counts[p.domain_type] !== undefined) counts[p.domain_type]++;
       });
@@ -80,7 +100,7 @@ function App() {
   const getStatusData = () => {
     const tasks = { name: 'Tasks', 1:0, 2:0, 3:0, 4:0, 5:0 };
     const projects = { name: 'Projects', 1:0, 2:0, 3:0, 4:0, 5:0 };
-    teamData.forEach(staff => {
+    filteredTeamData.forEach(staff => {
       (staff.projects || []).forEach(p => {
         const status = p.status_dots || 2;
         if (p.item_type === 'Project') projects[status]++; else tasks[status]++;
@@ -127,8 +147,9 @@ function App() {
         </div>
       )}
 
+      {/* Row 1 */}
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Domain Distribution</h2>
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Domain Distribution {isArchive ? `(${archiveYear})` : '(2026)'}</h2>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -143,7 +164,7 @@ function App() {
       </div>
 
       <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Task & Project Completion</h2>
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Task & Project Completion {isArchive ? `(${archiveYear})` : '(2026)'}</h2>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={getStatusData()} layout="vertical">
@@ -161,6 +182,7 @@ function App() {
         </div>
       </div>
 
+      {/* Row 2 - Attendance (Static for now, can be filtered later if data allows) */}
       <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Monthly Patient Attendance (Team)</h2>
         <div className="h-64">
@@ -177,6 +199,7 @@ function App() {
         </div>
       </div>
 
+      {/* Row 3 - Clinical Load */}
       <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Individual Clinical Load</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -206,39 +229,53 @@ function App() {
         </div>
       </div>
 
+      {/* Row 4 - Swimlanes (USING FILTERED DATA) */}
       <div className="md:col-span-2 mt-8">
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Department Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {DOMAIN_LIST.map((domain) => (
-            <div key={domain} className="flex flex-col gap-3">
-              <div className={`p-3 rounded-lg text-center border-b-4 shadow-sm ${
-                domain === 'MANAGEMENT' ? 'bg-amber-50 border-amber-300' :
-                domain === 'CLINICAL' ? 'bg-orange-50 border-orange-300' :
-                domain === 'EDUCATION' ? 'bg-blue-50 border-blue-300' : 'bg-emerald-50 border-emerald-300'
-              }`}>
-                <h3 className="font-black text-slate-800 text-sm tracking-wide">{domain}</h3>
-              </div>
-              <div className="flex flex-col gap-2">
-                {teamData.map(staff => (
-                  (staff.projects || []).filter(p => p.domain_type === domain).map((p, idx) => (
-                      <div key={`${staff.staff_name}-${idx}`} className="bg-white dark:bg-slate-800 p-3 rounded border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow group relative">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase">{staff.staff_name}</span>
-                          {p.item_type === 'Project' && <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">PROJ</span>}
-                        </div>
-                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-tight mb-2">{p.title}</p>
-                        <div className="flex gap-1 justify-end">
-                          {[1,2,3,4,5].map(val => (
-                            <div key={val} className={`w-1.5 h-1.5 rounded-full transition-colors ${p.status_dots >= val ? (p.status_dots === 5 ? 'bg-emerald-500' : p.status_dots === 1 ? 'bg-red-500' : 'bg-blue-500') : 'bg-slate-100 dark:bg-slate-700'}`} />
-                          ))}
-                        </div>
-                      </div>
-                    ))
-                ))}
-              </div>
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">
+            Department Overview {isArchive ? `(${archiveYear})` : '(2026)'}
+        </h2>
+        
+        {/* EMPTY STATE CHECK */}
+        {filteredTeamData.every(staff => staff.projects.length === 0) ? (
+            <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
+                <Filter className="mx-auto text-slate-300 mb-2" size={32} />
+                <h3 className="text-slate-400 font-bold uppercase">No data found for {isArchive ? archiveYear : '2026'}</h3>
+                <p className="text-xs text-slate-400 mt-1">Try switching years or adding entries in the Admin Panel.</p>
             </div>
-          ))}
-        </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {DOMAIN_LIST.map((domain) => (
+                <div key={domain} className="flex flex-col gap-3">
+                <div className={`p-3 rounded-lg text-center border-b-4 shadow-sm ${
+                    domain === 'MANAGEMENT' ? 'bg-amber-50 border-amber-300' :
+                    domain === 'CLINICAL' ? 'bg-orange-50 border-orange-300' :
+                    domain === 'EDUCATION' ? 'bg-blue-50 border-blue-300' : 'bg-emerald-50 border-emerald-300'
+                }`}>
+                    <h3 className="font-black text-slate-800 text-sm tracking-wide">{domain}</h3>
+                </div>
+                <div className="flex flex-col gap-2">
+                    {/* HERE WE USE filteredTeamData */}
+                    {filteredTeamData.map(staff => (
+                    (staff.projects || []).filter(p => p.domain_type === domain).map((p, idx) => (
+                        <div key={`${staff.staff_name}-${idx}`} className="bg-white dark:bg-slate-800 p-3 rounded border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow group relative">
+                            <div className="flex justify-between items-start mb-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">{staff.staff_name}</span>
+                            {p.item_type === 'Project' && <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">PROJ</span>}
+                            </div>
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-tight mb-2">{p.title}</p>
+                            <div className="flex gap-1 justify-end">
+                            {[1,2,3,4,5].map(val => (
+                                <div key={val} className={`w-1.5 h-1.5 rounded-full transition-colors ${p.status_dots >= val ? (p.status_dots === 5 ? 'bg-emerald-500' : p.status_dots === 1 ? 'bg-red-500' : 'bg-blue-500') : 'bg-slate-100 dark:bg-slate-700'}`} />
+                            ))}
+                            </div>
+                        </div>
+                        ))
+                    ))}
+                </div>
+                </div>
+            ))}
+            </div>
+        )}
       </div>
     </>
   );
@@ -328,7 +365,6 @@ function App() {
 
       {isLoginOpen && <Login onClose={() => setIsLoginOpen(false)} />}
       
-      {/* EXCLUSIVE VIEW LOGIC: If Admin is open, HIDE everything else. */}
       {isAdminOpen ? (
         <div className="md:col-span-2">
           <AdminPanel teamData={teamData} staffLoads={staffLoads} />
