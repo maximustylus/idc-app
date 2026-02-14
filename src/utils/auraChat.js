@@ -1,8 +1,10 @@
 // src/utils/auraChat.js
 
-// --- THE "SPLIT KEY" TRICK ---
+// --- ⚠️ CRITICAL STEP: PASTE YOUR KEY BELOW ⚠️ ---
 const PART_1 = "AIzaSy"; 
-const PART_2 = "BzLnky2jOu5r-5YnXnw5xnp96GEEWrED8"; // REPLACE THIS WITH YOUR REAL KEY PART 2
+// PASTE THE REST OF YOUR KEY INSIDE THE QUOTES BELOW (Delete the placeholder text first)
+const PART_2 = "BzLnky2jOu5r-5YnXnw5xnp96GEEWrED8"; 
+
 const API_KEY = PART_1 + PART_2;
 
 const SYSTEM_PROMPT = `
@@ -31,9 +33,9 @@ Return ONLY a JSON object:
 `;
 
 export const analyzeWellbeing = async (userText) => {
-    // Safety check
+    // Safety check to remind you if you forgot
     if (!API_KEY || API_KEY.includes("YOUR_REST")) {
-        throw new Error("API Key is missing. Please edit src/utils/auraChat.js");
+        throw new Error("API Key incomplete. Please open src/utils/auraChat.js and paste your key in PART_2.");
     }
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
@@ -53,8 +55,6 @@ export const analyzeWellbeing = async (userText) => {
     if (!response.ok) throw new Error(data.error?.message || "AI Error");
 
     let rawText = data.candidates[0].content.parts[0].text;
-    
-    // Clean up JSON markdown if Gemini adds it
     rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
     
     return JSON.parse(rawText);
