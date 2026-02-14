@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { db, auth } from '../firebase';
-import { doc, setDoc, arrayUnion } from 'firebase/firestore';
-import { X, Send, ChevronUp, BrainCircuit } from 'lucide-react';
-import { analyzeWellbeing } from '../utils/auraChat'; // <--- UPDATED IMPORT
+import { doc, setDoc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { X, Send, ChevronUp, BrainCircuit, Settings, User, Ghost } from 'lucide-react';
+import { analyzeWellbeing } from '../utils/auraChat';
 
 const AuraPulseBot = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+    const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
+    
     const [messages, setMessages] = useState([
         { role: 'bot', text: "Hi! I'm AURA. How are you feeling after your shift today?" }
     ]);
@@ -14,12 +17,26 @@ const AuraPulseBot = () => {
     const [pendingLog, setPendingLog] = useState(null); 
     const messagesEndRef = useRef(null);
 
+    // Scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    }, [messages, pendingLog]);
+
+    // Save Key Handler
+    const handleSaveKey = () => {
+        localStorage.setItem('idc_gemini_key', apiKey);
+        setShowSettings(false);
+        setMessages(prev => [...prev, { role: 'bot', text: "Brain link established! Ready to chat." }]);
+    };
 
     const handleSend = async () => {
         if (!input.trim()) return;
+
+        // Check Key First
+        if (!localStorage.getItem('idc_gemini_key')) {
+            setMessages(prev => [...prev, { role: 'bot', text: "⚠️ I need a Gemini API Key to think. Click the settings gear (top right) to add it." }]);
+            return;
+        }
 
         const userMsg = { role: 'user', text: input };
         setMessages(prev => [...prev, userMsg]);
@@ -38,48 +55,79 @@ const AuraPulseBot = () => {
             });
 
         } catch (error) {
-            setMessages(prev => [...prev, { role: 'bot', text: "I'm having trouble connecting to my brain. Please try again or check your API Key." }]);
+            setMessages(prev => [...prev, { role: 'bot', text: "Connection error. Check your API Key in settings." }]);
             console.error(error);
         } finally {
             setLoading(false);
         }
     };
 
-    const confirmLog = async () => {
+    const confirmLog = async (isAnonymous = false) => {
         if (!pendingLog) return;
+        
+        const timestamp = new Date().toISOString();
+        const displayDate = new Date().toLocaleDateString();
         const user = auth.currentUser;
-        if (!user) {
-            alert("Please log in to save data.");
-            return;
+
+        try {
+            if (isAnonymous || !user) {
+                // --- ANONYMOUS LOGGING ---
+                // We log to a general collection that tracks trends but not names
+                const anonRef = doc(db, 'wellbeing_history', '_anonymous_logs');
+                
+                // Create doc if doesn't exist, then update
+                const docSnap = await getDoc(anonRef);
+                if (!docSnap.exists()) {
+                    await setDoc(anonRef, { logs: [] });
+                }
+
+                await updateDoc(anonRef, {
+                    logs: arrayUnion({
+                        timestamp,
+                        energy: pendingLog.energy,
+                        phase: pendingLog.phase,
+                        // We do NOT log the message note for anonymity
+                        displayDate
+                    })
+                });
+                
+                setMessages(prev => [...prev, { role: 'bot', text: "✅ Logged Anonymously. Your data helps the team pulse without revealing your identity." }]);
+
+            } else {
+                // --- IDENTIFIED LOGGING ---
+                const staffId = user.email.split('@')[0].replace('.', '_');
+
+                // 1. Personal History
+                const logRef = doc(db, 'wellbeing_history', staffId);
+                await setDoc(logRef, {
+                    logs: arrayUnion({
+                        timestamp,
+                        energy: pendingLog.energy,
+                        phase: pendingLog.phase,
+                        note: messages[messages.length - 2].text, // Keep context for personal review
+                        displayDate
+                    })
+                }, { merge: true });
+
+                // 2. Dashboard Pulse (The visual card)
+                await setDoc(doc(db, 'system_data', 'daily_pulse'), {
+                    [staffId]: {
+                        energy: parseInt(pendingLog.energy / 10),
+                        focus: parseInt(pendingLog.energy / 10),
+                        lastUpdate: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                        status: 'checked-in'
+                    }
+                }, { merge: true });
+
+                setMessages(prev => [...prev, { role: 'bot', text: "✅ Logged to your profile. Take care!" }]);
+            }
+        } catch (e) {
+            console.error(e);
+            setMessages(prev => [...prev, { role: 'bot', text: "Error saving log: " + e.message }]);
         }
 
-        const staffId = user.email.split('@')[0].replace('.', '_');
-
-        // 1. Log History
-        const logRef = doc(db, 'wellbeing_history', staffId);
-        await setDoc(logRef, {
-            logs: arrayUnion({
-                timestamp: new Date().toISOString(),
-                energy: pendingLog.energy,
-                phase: pendingLog.phase,
-                note: messages[messages.length - 2].text,
-                displayDate: new Date().toLocaleDateString()
-            })
-        }, { merge: true });
-
-        // 2. Update Live Dashboard Pulse
-        await setDoc(doc(db, 'system_data', 'daily_pulse'), {
-            [staffId]: {
-                energy: parseInt(pendingLog.energy / 10),
-                focus: parseInt(pendingLog.energy / 10),
-                lastUpdate: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                status: 'checked-in'
-            }
-        }, { merge: true });
-
-        setMessages(prev => [...prev, { role: 'bot', text: "✅ Logged successfully. Take care of yourself!" }]);
         setPendingLog(null);
-        setTimeout(() => setIsOpen(false), 3000);
+        setTimeout(() => setIsOpen(false), 4000);
     };
 
     const getPhaseColor = (phase) => {
@@ -106,20 +154,40 @@ const AuraPulseBot = () => {
             {isOpen && (
                 <div className="absolute bottom-20 right-0 w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-bottom-4 flex flex-col max-h-[600px]">
                     
-                    {/* HEADER - UPDATED TO JUST "AURA" */}
+                    {/* HEADER */}
                     <div className="bg-slate-900 p-4 text-white flex justify-between items-center shadow-md z-10">
                         <div className="flex items-center gap-2">
                             <div className="bg-indigo-500 p-1.5 rounded-lg"><BrainCircuit size={16} /></div>
                             <div>
-                                <h3 className="font-black uppercase tracking-wider text-sm">AURA</h3> {/* <--- CHANGED */}
+                                <h3 className="font-black uppercase tracking-wider text-sm">AURA</h3>
                                 <div className="flex items-center gap-1 opacity-70">
                                     <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
                                     <span className="text-[10px] font-bold">Online</span>
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+                        <div className="flex gap-2">
+                            <button onClick={() => setShowSettings(!showSettings)} className="text-slate-400 hover:text-white"><Settings size={18} /></button>
+                            <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+                        </div>
                     </div>
+
+                    {/* SETTINGS LAYER */}
+                    {showSettings && (
+                        <div className="bg-slate-800 p-4 border-b border-slate-700 animate-in slide-in-from-top-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase">Gemini API Key</label>
+                            <div className="flex gap-2 mt-1">
+                                <input 
+                                    type="password" 
+                                    value={apiKey}
+                                    onChange={(e) => setApiKey(e.target.value)}
+                                    className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"
+                                    placeholder="Paste key..."
+                                />
+                                <button onClick={handleSaveKey} className="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded">Save</button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* MESSAGES AREA */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-950/50">
@@ -156,20 +224,21 @@ const AuraPulseBot = () => {
                                     <p className="text-xs font-medium text-slate-700 dark:text-slate-300 italic">"{pendingLog.action}"</p>
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <button 
-                                        onClick={() => setPendingLog(null)} 
-                                        className="flex-1 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+                                        onClick={() => confirmLog(true)} 
+                                        className="py-2 text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center justify-center gap-1"
                                     >
-                                        Ignore
+                                        <Ghost size={12} /> Log Anonymous
                                     </button>
                                     <button 
-                                        onClick={confirmLog} 
-                                        className="flex-1 py-2 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md transition-colors"
+                                        onClick={() => confirmLog(false)} 
+                                        className="py-2 text-[10px] font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md transition-colors flex items-center justify-center gap-1"
                                     >
-                                        Confirm & Log
+                                        <User size={12} /> Log to Profile
                                     </button>
                                 </div>
+                                <button onClick={() => setPendingLog(null)} className="w-full mt-2 text-[10px] text-slate-400 hover:text-red-400">Cancel</button>
                             </div>
                         )}
 
