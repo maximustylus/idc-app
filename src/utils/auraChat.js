@@ -1,6 +1,7 @@
 // src/utils/auraChat.js
 
-const API_KEY = localStorage.getItem('idc_gemini_key') || '';
+// This grabs the key from your hidden .env file automatically
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const SYSTEM_PROMPT = `
 ROLE: You are AURA, an empathetic wellbeing assistant for Allied Health Professionals (AHPs).
@@ -28,7 +29,8 @@ Return ONLY a JSON object:
 `;
 
 export const analyzeWellbeing = async (userText) => {
-    if (!API_KEY) throw new Error("API Key missing. Please set it in Admin Panel.");
+    // If the key is missing in the .env file, throw an error
+    if (!API_KEY) throw new Error("API Key missing. Please add VITE_GEMINI_API_KEY to your .env file.");
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
         method: 'POST',
