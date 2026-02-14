@@ -1,29 +1,34 @@
 import React, { useState } from 'react';
 import { db } from '../firebase'; 
 import { doc, setDoc } from 'firebase/firestore'; 
-import { X, ShieldCheck } from 'lucide-react';
+import { X, ShieldCheck, Sparkles } from 'lucide-react';
+
+// --- NEW: Use the secure .env key ---
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const STAFF_PROFILES = {
-    "Alif":      { role: "Senior CEP", grade: "JG14", focus: "Leadership, Research, Clinical" },
-    "Fadzlynn":  { role: "CEP I",      grade: "JG13", focus: "Clinical Lead, Specialized Projects" },
-    "Derlinder": { role: "CEP II",     grade: "JG12", focus: "Education, Clinical" },
-    "Ying Xian": { role: "CEP II",     grade: "JG12", focus: "Admin Projects, Clinical" },
-    "Brandon":   { role: "CEP III",    grade: "JG11", focus: "Clinical Execution, Basic Education" },
+    "Alif":      { role: "Senior CEP", grade: "JG14", focus: "Leadership, Management, Clinical, Reserach, Education" },
+    "Fadzlynn":  { role: "CEP I",      grade: "JG13", focus: "Clinical Lead, Education Co-Lead" },
+    "Derlinder": { role: "CEP II",     grade: "JG12", focus: "Education Lead, Clinical" },
+    "Ying Xian": { role: "CEP II",     grade: "JG12", focus: "Research Co-Lead, Clinical" },
+    "Brandon":   { role: "CEP III",    grade: "JG11", focus: "Education / Community Co-Lead, Clinical" },
     "Nisa":      { role: "Administrator", grade: "Admin", focus: "Operations, Budget, Rostering" }
 };
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
-    const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
-    const [targetYear, setTargetYear] = useState('2026'); // <--- NEW YEAR SELECTOR
+    // No more manual state for API Key
+    const [targetYear, setTargetYear] = useState('2026'); 
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState('GENERATE ANALYSIS');
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
 
     const handleAnalyze = async () => {
-        const cleanKey = apiKey.trim();
-        if (cleanKey) localStorage.setItem('idc_gemini_key', cleanKey);
-        if (!cleanKey) { setError('Please enter your Gemini API Key.'); return; }
+        // Validation: Check if .env key exists
+        if (!API_KEY) { 
+            setError('Missing API Key in .env file (VITE_GEMINI_API_KEY)'); 
+            return; 
+        }
 
         setLoading(true); setError('');
         
@@ -37,7 +42,8 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
 
             // 2. CONNECT TO GEMINI
             setStatus('Connecting to Gemini...');
-            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`;
+            // Use the constant API_KEY here
+            const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`;
             const listResponse = await fetch(listUrl);
             const listData = await listResponse.json();
             if (!listResponse.ok) throw new Error(`Connection Error: ${listData.error?.message}`);
@@ -66,7 +72,7 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                 }
             `;
 
-            const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${bestModel.name}:generateContent?key=${cleanKey}`;
+            const generateUrl = `https://generativelanguage.googleapis.com/v1beta/${bestModel.name}:generateContent?key=${API_KEY}`;
             const genResponse = await fetch(generateUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -99,7 +105,6 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const handlePublish = async () => {
         if (!result) return;
         try {
-            // SAVE TO YEAR-SPECIFIC DOCUMENT (e.g., 'system_data/reports_2025')
             await setDoc(doc(db, 'system_data', `reports_${targetYear}`), {
                 privateText: result.private,
                 publicText: result.public,
@@ -144,9 +149,14 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                     </select>
                                 </div>
 
-                                <input type="password" placeholder="Gemini API Key..." value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border rounded-xl mb-4" />
-                                <button onClick={handleAnalyze} disabled={loading || !apiKey} className="w-full py-4 bg-slate-900 text-white font-black rounded-xl uppercase tracking-tighter hover:bg-slate-800 transition-all">
-                                    {loading ? status : `Generate ${targetYear} Report`}
+                                {/* INPUT REMOVED - Uses .env now */}
+                                
+                                <button onClick={handleAnalyze} disabled={loading} className="w-full py-4 bg-slate-900 text-white font-black rounded-xl uppercase tracking-tighter hover:bg-slate-800 transition-all flex justify-center items-center gap-2">
+                                    {loading ? (
+                                        <><span>Running Analysis...</span> <Sparkles className="animate-spin" size={16}/></>
+                                    ) : (
+                                        `Generate ${targetYear} Report`
+                                    )}
                                 </button>
                                 {error && <div className="mt-4 p-3 bg-red-50 text-red-600 text-xs font-bold rounded">{error}</div>}
                             </div>
