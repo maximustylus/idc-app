@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { doc, setDoc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
-import { X, Send, ChevronUp, BrainCircuit, Settings, User, Ghost } from 'lucide-react';
+import { X, Send, ChevronUp, BrainCircuit, Ghost, User } from 'lucide-react';
 import { analyzeWellbeing } from '../utils/auraChat';
 
 const AuraPulseBot = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [showSettings, setShowSettings] = useState(false);
-    const [apiKey, setApiKey] = useState(localStorage.getItem('idc_gemini_key') || '');
+    
+    // REMOVED: Settings state and LocalStorage check
     
     const [messages, setMessages] = useState([
         { role: 'bot', text: "Hi! I'm AURA. How are you feeling after your shift today?" }
@@ -22,21 +22,11 @@ const AuraPulseBot = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, pendingLog]);
 
-    // Save Key Handler
-    const handleSaveKey = () => {
-        localStorage.setItem('idc_gemini_key', apiKey);
-        setShowSettings(false);
-        setMessages(prev => [...prev, { role: 'bot', text: "Brain link established! Ready to chat." }]);
-    };
-
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        // Check Key First
-        if (!localStorage.getItem('idc_gemini_key')) {
-            setMessages(prev => [...prev, { role: 'bot', text: "⚠️ I need a Gemini API Key to think. Click the settings gear (top right) to add it." }]);
-            return;
-        }
+        // REMOVED: The check for localStorage key. 
+        // We now rely 100% on the .env file in auraChat.js
 
         const userMsg = { role: 'user', text: input };
         setMessages(prev => [...prev, userMsg]);
@@ -55,7 +45,8 @@ const AuraPulseBot = () => {
             });
 
         } catch (error) {
-            setMessages(prev => [...prev, { role: 'bot', text: "Connection error. Check your API Key in settings." }]);
+            // Updated error message to point to the real issue
+            setMessages(prev => [...prev, { role: 'bot', text: "Connection error. Please check that VITE_GEMINI_API_KEY is correct in your .env file." }]);
             console.error(error);
         } finally {
             setLoading(false);
@@ -72,10 +63,8 @@ const AuraPulseBot = () => {
         try {
             if (isAnonymous || !user) {
                 // --- ANONYMOUS LOGGING ---
-                // We log to a general collection that tracks trends but not names
                 const anonRef = doc(db, 'wellbeing_history', '_anonymous_logs');
                 
-                // Create doc if doesn't exist, then update
                 const docSnap = await getDoc(anonRef);
                 if (!docSnap.exists()) {
                     await setDoc(anonRef, { logs: [] });
@@ -86,7 +75,6 @@ const AuraPulseBot = () => {
                         timestamp,
                         energy: pendingLog.energy,
                         phase: pendingLog.phase,
-                        // We do NOT log the message note for anonymity
                         displayDate
                     })
                 });
@@ -104,12 +92,12 @@ const AuraPulseBot = () => {
                         timestamp,
                         energy: pendingLog.energy,
                         phase: pendingLog.phase,
-                        note: messages[messages.length - 2].text, // Keep context for personal review
+                        note: messages[messages.length - 2].text, 
                         displayDate
                     })
                 }, { merge: true });
 
-                // 2. Dashboard Pulse (The visual card)
+                // 2. Dashboard Pulse
                 await setDoc(doc(db, 'system_data', 'daily_pulse'), {
                     [staffId]: {
                         energy: parseInt(pendingLog.energy / 10),
@@ -154,7 +142,7 @@ const AuraPulseBot = () => {
             {isOpen && (
                 <div className="absolute bottom-20 right-0 w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-bottom-4 flex flex-col max-h-[600px]">
                     
-                    {/* HEADER */}
+                    {/* HEADER - No Settings Gear Anymore */}
                     <div className="bg-slate-900 p-4 text-white flex justify-between items-center shadow-md z-10">
                         <div className="flex items-center gap-2">
                             <div className="bg-indigo-500 p-1.5 rounded-lg"><BrainCircuit size={16} /></div>
@@ -166,28 +154,8 @@ const AuraPulseBot = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => setShowSettings(!showSettings)} className="text-slate-400 hover:text-white"><Settings size={18} /></button>
-                            <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white"><X size={18} /></button>
-                        </div>
+                        <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white"><X size={18} /></button>
                     </div>
-
-                    {/* SETTINGS LAYER */}
-                    {showSettings && (
-                        <div className="bg-slate-800 p-4 border-b border-slate-700 animate-in slide-in-from-top-2">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase">Gemini API Key</label>
-                            <div className="flex gap-2 mt-1">
-                                <input 
-                                    type="password" 
-                                    value={apiKey}
-                                    onChange={(e) => setApiKey(e.target.value)}
-                                    className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"
-                                    placeholder="Paste key..."
-                                />
-                                <button onClick={handleSaveKey} className="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded">Save</button>
-                            </div>
-                        </div>
-                    )}
 
                     {/* MESSAGES AREA */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-950/50">
