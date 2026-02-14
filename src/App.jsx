@@ -6,7 +6,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend 
 } from 'recharts';
-import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Activity } from 'lucide-react';
+import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Activity, Filter } from 'lucide-react';
 
 // Components
 import AdminPanel from './components/AdminPanel';
@@ -20,7 +20,7 @@ import WellbeingView from './components/WellbeingView';
 import AuraPulseBot from './components/AuraPulseBot';
 
 // Utils
-import { STAFF_LIST, MONTHS } from './utils';
+import { STAFF_LIST, MONTHS, DOMAIN_LIST } from './utils';
 
 // --- COLORS ---
 const COLORS = ['#FFC107', '#FF9800', '#FF5722', '#4CAF50', '#2196F3']; 
@@ -246,6 +246,54 @@ function App() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Row 4 - Swimlanes (RESTORED) */}
+      <div className="md:col-span-2 mt-8">
+        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">
+            Department Overview {isArchive ? `(${archiveYear})` : '(2026)'}
+        </h2>
+        
+        {/* EMPTY STATE CHECK */}
+        {filteredTeamData.every(staff => staff.projects.length === 0) ? (
+            <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
+                <Filter className="mx-auto text-slate-300 mb-2" size={32} />
+                <h3 className="text-slate-400 font-bold uppercase">No data found for {isArchive ? archiveYear : '2026'}</h3>
+                <p className="text-xs text-slate-400 mt-1">Try switching years or adding entries in the Admin Panel.</p>
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {DOMAIN_LIST.map((domain) => (
+                <div key={domain} className="flex flex-col gap-3">
+                <div className={`p-3 rounded-lg text-center border-b-4 shadow-sm ${
+                    domain === 'MANAGEMENT' ? 'bg-amber-50 border-amber-300' :
+                    domain === 'CLINICAL' ? 'bg-orange-50 border-orange-300' :
+                    domain === 'EDUCATION' ? 'bg-blue-50 border-blue-300' : 'bg-emerald-50 border-emerald-300'
+                }`}>
+                    <h3 className="font-black text-slate-800 text-sm tracking-wide">{domain}</h3>
+                </div>
+                <div className="flex flex-col gap-2">
+                    {filteredTeamData.map(staff => (
+                    (staff.projects || []).filter(p => p.domain_type === domain).map((p, idx) => (
+                        <div key={`${staff.staff_name}-${idx}`} className="bg-white dark:bg-slate-800 p-3 rounded border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow group relative">
+                            <div className="flex justify-between items-start mb-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">{staff.staff_name}</span>
+                            {p.item_type === 'Project' && <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">PROJ</span>}
+                            </div>
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-tight mb-2">{p.title}</p>
+                            <div className="flex gap-1 justify-end">
+                            {[1,2,3,4,5].map(val => (
+                                <div key={val} className={`w-1.5 h-1.5 rounded-full transition-colors ${p.status_dots >= val ? (p.status_dots === 5 ? 'bg-emerald-500' : p.status_dots === 1 ? 'bg-red-500' : 'bg-blue-500') : 'bg-slate-100 dark:bg-slate-700'}`} />
+                            ))}
+                            </div>
+                        </div>
+                        ))
+                    ))}
+                </div>
+                </div>
+            ))}
+            </div>
+        )}
       </div>
     </>
   );
