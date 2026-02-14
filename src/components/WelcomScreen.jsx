@@ -16,10 +16,10 @@ const WelcomeScreen = () => {
         setError('');
         setLoading(true);
 
-        // 1. DOMAIN LOCK CHECK
-        // We strictly enforce KKH emails only
-        if (!email.toLowerCase().endsWith('@kkh.com.sg') && !email.toLowerCase().endsWith('@singhealth.com.sg')) {
-            setError("Access Restricted: Only @kkh.com.sg or @singhealth.com.sg addresses are allowed.");
+        // --- 1. DOMAIN LOCK CHECK ---
+        // Strictly enforce KKH emails for new registrations
+        if (!isLogin && !email.toLowerCase().endsWith('@kkh.com.sg')) {
+            setError("Access Restricted: Only @kkh.com.sg addresses are allowed for new accounts.");
             setLoading(false);
             return;
         }
@@ -31,6 +31,7 @@ const WelcomeScreen = () => {
             } else {
                 // REGISTER FLOW
                 if (!name) throw new Error("Please enter your display name.");
+                if (password.length < 6) throw new Error("Password must be at least 6 characters.");
                 
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 
