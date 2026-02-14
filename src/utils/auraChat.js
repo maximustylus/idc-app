@@ -1,11 +1,13 @@
 // src/utils/auraChat.js
 
-// --- ⚠️ CRITICAL STEP: PASTE YOUR KEY BELOW ⚠️ ---
+// --- ⚠️ PASTE YOUR API KEY PARTS BELOW ⚠️ ---
 const PART_1 = "AIzaSy"; 
-// PASTE THE REST OF YOUR KEY INSIDE THE QUOTES BELOW (Delete the placeholder text first)
-const PART_2 = "BzLnky2jOu5r-5YnXnw5xnp96GEEWrED8"; 
+const PART_2 = "YOUR_REST_OF_KEY_HERE"; // <--- PASTE THE REST OF YOUR KEY HERE
 
 const API_KEY = PART_1 + PART_2;
+
+// --- FIX: Define the cache variable explicitly ---
+let cachedModelName = null;
 
 const SYSTEM_PROMPT = `
 ROLE: You are AURA, an empathetic wellbeing assistant for Allied Health Professionals (AHPs).
@@ -32,47 +34,43 @@ Return ONLY a JSON object:
 }
 `;
 
-// --- NEW: DYNAMIC MODEL FINDER ---
 const getBestModel = async () => {
+    // If we already found a working model, use it
     if (cachedModelName) return cachedModelName;
 
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
         const data = await response.json();
         
-        if (!response.ok) throw new Error("Could not list models");
+        if (!response.ok) throw new Error("List models failed");
 
         const models = data.models || [];
         
-        // Priority List: Try to find Flash, then Pro, then anything that generates content
+        // Priority: Flash -> Pro -> Any Generator
         const best = models.find(m => m.name.includes('gemini-1.5-flash')) || 
                      models.find(m => m.name.includes('gemini-pro')) ||
                      models.find(m => m.name.includes('generateContent'));
 
-        if (!best) throw new Error("No chat models found on this key.");
-        
-        // Strip the "models/" prefix if it exists to ensure clean URL construction later
-        cachedModelName = best.name.replace('models/', '');
-        console.log("AURA Connected to:", cachedModelName);
-        return cachedModelName;
-
+        if (best) {
+            // Clean the name (remove 'models/' prefix if present)
+            cachedModelName = best.name.replace('models/', '');
+            return cachedModelName;
+        }
     } catch (e) {
-        console.error(e);
-        // Fallback to the old reliable if listing fails
-        return 'gemini-pro';
+        console.warn("Model auto-detect failed, defaulting to gemini-pro");
     }
+    
+    // Safety Fallback
+    return 'gemini-pro';
 };
 
 export const analyzeWellbeing = async (userText) => {
-    // Safety check
     if (!API_KEY || API_KEY.includes("YOUR_REST")) {
-        throw new Error("API Key incomplete. Please open src/utils/auraChat.js and paste your key in PART_2.");
+        throw new Error("API Key missing. Check src/utils/auraChat.js");
     }
 
-    // 1. Get the correct model name
     const modelName = await getBestModel();
 
-    // 2. Call the API
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,7 +85,7 @@ export const analyzeWellbeing = async (userText) => {
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || "AI Error");
+    if (!response.ok) throw new Error(data.error?.message || "AI Connection Error");
 
     let rawText = data.candidates[0].content.parts[0].text;
     rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
