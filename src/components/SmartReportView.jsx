@@ -20,21 +20,16 @@ const SmartReportView = ({ year = '2026' }) => {
     }, [year]);
 
     // --- TEXT FORMATTER ---
-    // Cleans up AI text: removes highlights, adds spacing, handles dark mode
     const formatReportContent = (text) => {
         if (!text) return <p className="text-slate-400 italic">No report data available.</p>;
 
-        // Split by newlines to handle paragraphs
         return text.split('\n').map((line, index) => {
             const cleanLine = line.trim();
-            if (!cleanLine) return <div key={index} className="h-4" />; // Spacer for empty lines
+            if (!cleanLine) return <div key={index} className="h-4" />; 
 
-            // Detection: Is this a Header/Name? (e.g., "Alif (JG14):" or "Overall Assessment:")
-            // We check if the line starts with a name or standard header and has a colon
             const isHeader = /^(Overall Assessment|Individual Staff Audit|Alif|Nisa|Fadzlynn|Derlinder|Ying Xian|Brandon|Conclusion|.*:)/i.test(cleanLine);
 
             if (isHeader && cleanLine.length < 150) {
-                // Render as a Title Block
                 const parts = cleanLine.split(':');
                 const title = parts[0];
                 const content = parts.slice(1).join(':').trim();
@@ -53,10 +48,9 @@ const SmartReportView = ({ year = '2026' }) => {
                 );
             }
 
-            // Standard Paragraph
             return (
                 <p key={index} className="mb-4 text-slate-700 dark:text-slate-300 leading-relaxed text-base">
-                    {cleanLine.replace(/^\*|\-/, '') /* Remove bullet points if AI adds them */}
+                    {cleanLine.replace(/^\*|\-/, '')}
                 </p>
             );
         });
