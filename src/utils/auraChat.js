@@ -32,13 +32,48 @@ Return ONLY a JSON object:
 }
 `;
 
+// --- NEW: DYNAMIC MODEL FINDER ---
+const getBestModel = async () => {
+    if (cachedModelName) return cachedModelName;
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error("Could not list models");
+
+        const models = data.models || [];
+        
+        // Priority List: Try to find Flash, then Pro, then anything that generates content
+        const best = models.find(m => m.name.includes('gemini-1.5-flash')) || 
+                     models.find(m => m.name.includes('gemini-pro')) ||
+                     models.find(m => m.name.includes('generateContent'));
+
+        if (!best) throw new Error("No chat models found on this key.");
+        
+        // Strip the "models/" prefix if it exists to ensure clean URL construction later
+        cachedModelName = best.name.replace('models/', '');
+        console.log("AURA Connected to:", cachedModelName);
+        return cachedModelName;
+
+    } catch (e) {
+        console.error(e);
+        // Fallback to the old reliable if listing fails
+        return 'gemini-pro';
+    }
+};
+
 export const analyzeWellbeing = async (userText) => {
-    // Safety check to remind you if you forgot
+    // Safety check
     if (!API_KEY || API_KEY.includes("YOUR_REST")) {
         throw new Error("API Key incomplete. Please open src/utils/auraChat.js and paste your key in PART_2.");
     }
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+    // 1. Get the correct model name
+    const modelName = await getBestModel();
+
+    // 2. Call the API
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
