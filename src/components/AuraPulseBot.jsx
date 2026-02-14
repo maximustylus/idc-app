@@ -1,23 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
 import { doc, setDoc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
-import { X, Send, ChevronUp, BrainCircuit, Ghost, User } from 'lucide-react';
+import { X, Send, ChevronUp, BrainCircuit, User, Ghost } from 'lucide-react';
 import { analyzeWellbeing } from '../utils/auraChat';
+import { STAFF_LIST } from '../utils';
 
 const AuraPulseBot = () => {
     const [isOpen, setIsOpen] = useState(false);
     
-    // REMOVED: Settings state and LocalStorage check
+    // STATES
+    const [step, setStep] = useState('IDENTITY'); // IDENTITY -> MOOD -> LOGGING
+    const [identifiedUser, setIdentifiedUser] = useState(null); // 'Name' or 'Anonymous'
     
     const [messages, setMessages] = useState([
-        { role: 'bot', text: "Hi! I'm AURA. How are you feeling after your shift today?" }
+        { role: 'bot', text: "Hello! I am AURA. Who am I chatting with? (Enter your name or 'Anon')" }
     ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [pendingLog, setPendingLog] = useState(null); 
     const messagesEndRef = useRef(null);
 
-    // Scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, pendingLog]);
@@ -25,50 +27,64 @@ const AuraPulseBot = () => {
     const handleSend = async () => {
         if (!input.trim()) return;
 
-        // REMOVED: The check for localStorage key. 
-        // We now rely 100% on the .env file in auraChat.js
-
-        const userMsg = { role: 'user', text: input };
+        const userText = input.trim();
+        const userMsg = { role: 'user', text: userText };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
-        setLoading(true);
 
-        try {
-            const analysis = await analyzeWellbeing(input);
+        // --- STEP 1: IDENTIFY USER ---
+        if (step === 'IDENTITY') {
+            const lowerInput = userText.toLowerCase();
             
-            setMessages(prev => [...prev, { role: 'bot', text: analysis.reply }]);
-            
-            setPendingLog({
-                phase: analysis.phase,
-                energy: analysis.energy,
-                action: analysis.action
-            });
+            if (lowerInput.includes('anon')) {
+                setIdentifiedUser('Anonymous');
+                setMessages(prev => [...prev, { role: 'bot', text: "Understood. I will log this session anonymously. How are you feeling today?" }]);
+                setStep('MOOD');
+            } else {
+                // Simple fuzzy match or direct name usage
+                const foundName = STAFF_LIST.find(name => lowerInput.includes(name.toLowerCase())) || userText;
+                setIdentifiedUser(foundName);
+                setMessages(prev => [...prev, { role: 'bot', text: `Hi ${foundName}. How are you feeling after your shift?` }]);
+                setStep('MOOD');
+            }
+            return;
+        }
 
-        } catch (error) {
-            // Updated error message to point to the real issue
-            setMessages(prev => [...prev, { role: 'bot', text: "Connection error. Please check that VITE_GEMINI_API_KEY is correct in your .env file." }]);
-            console.error(error);
-        } finally {
-            setLoading(false);
+        // --- STEP 2: ANALYZE MOOD ---
+        if (step === 'MOOD') {
+            setLoading(true);
+            try {
+                const analysis = await analyzeWellbeing(userText);
+                
+                setMessages(prev => [...prev, { role: 'bot', text: analysis.reply }]);
+                
+                setPendingLog({
+                    phase: analysis.phase,
+                    energy: analysis.energy,
+                    action: analysis.action
+                });
+                setStep('LOGGING'); // Wait for confirmation
+
+            } catch (error) {
+                setMessages(prev => [...prev, { role: 'bot', text: `Error: ${error.message}` }]);
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
-    const confirmLog = async (isAnonymous = false) => {
+    const confirmLog = async () => {
         if (!pendingLog) return;
         
         const timestamp = new Date().toISOString();
         const displayDate = new Date().toLocaleDateString();
-        const user = auth.currentUser;
 
         try {
-            if (isAnonymous || !user) {
+            if (identifiedUser === 'Anonymous') {
                 // --- ANONYMOUS LOGGING ---
                 const anonRef = doc(db, 'wellbeing_history', '_anonymous_logs');
-                
                 const docSnap = await getDoc(anonRef);
-                if (!docSnap.exists()) {
-                    await setDoc(anonRef, { logs: [] });
-                }
+                if (!docSnap.exists()) await setDoc(anonRef, { logs: [] });
 
                 await updateDoc(anonRef, {
                     logs: arrayUnion({
@@ -78,14 +94,12 @@ const AuraPulseBot = () => {
                         displayDate
                     })
                 });
-                
-                setMessages(prev => [...prev, { role: 'bot', text: "✅ Logged Anonymously. Your data helps the team pulse without revealing your identity." }]);
-
+                setMessages(prev => [...prev, { role: 'bot', text: "✅ Logged Anonymously." }]);
             } else {
                 // --- IDENTIFIED LOGGING ---
-                const staffId = user.email.split('@')[0].replace('.', '_');
+                const staffId = identifiedUser.toLowerCase().replace(/ /g, '_'); // Basic cleanup
 
-                // 1. Personal History
+                // 1. Log History
                 const logRef = doc(db, 'wellbeing_history', staffId);
                 await setDoc(logRef, {
                     logs: arrayUnion({
@@ -99,7 +113,7 @@ const AuraPulseBot = () => {
 
                 // 2. Dashboard Pulse
                 await setDoc(doc(db, 'system_data', 'daily_pulse'), {
-                    [staffId]: {
+                    [identifiedUser]: { // Use formatted name for dashboard
                         energy: parseInt(pendingLog.energy / 10),
                         focus: parseInt(pendingLog.energy / 10),
                         lastUpdate: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
@@ -107,15 +121,20 @@ const AuraPulseBot = () => {
                     }
                 }, { merge: true });
 
-                setMessages(prev => [...prev, { role: 'bot', text: "✅ Logged to your profile. Take care!" }]);
+                setMessages(prev => [...prev, { role: 'bot', text: "✅ Logged to your profile." }]);
             }
         } catch (e) {
-            console.error(e);
-            setMessages(prev => [...prev, { role: 'bot', text: "Error saving log: " + e.message }]);
+            setMessages(prev => [...prev, { role: 'bot', text: "Error saving: " + e.message }]);
         }
 
         setPendingLog(null);
-        setTimeout(() => setIsOpen(false), 4000);
+        // Reset after delay
+        setTimeout(() => {
+            setIsOpen(false);
+            setStep('IDENTITY');
+            setIdentifiedUser(null);
+            setMessages([{ role: 'bot', text: "Hello! I am AURA. Who am I chatting with? (Enter your name or 'Anon')" }]);
+        }, 3000);
     };
 
     const getPhaseColor = (phase) => {
@@ -130,7 +149,6 @@ const AuraPulseBot = () => {
 
     return (
         <div className="fixed bottom-6 right-6 z-[200]">
-            {/* TOGGLE BUTTON */}
             <button 
                 onClick={() => setIsOpen(!isOpen)}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-2xl transition-all hover:scale-110 active:scale-95 flex items-center gap-2 group"
@@ -138,11 +156,9 @@ const AuraPulseBot = () => {
                 {isOpen ? <ChevronUp size={24} className="rotate-180" /> : <BrainCircuit size={24} className="group-hover:animate-pulse" />}
             </button>
 
-            {/* CHAT WINDOW */}
             {isOpen && (
                 <div className="absolute bottom-20 right-0 w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-bottom-4 flex flex-col max-h-[600px]">
                     
-                    {/* HEADER - No Settings Gear Anymore */}
                     <div className="bg-slate-900 p-4 text-white flex justify-between items-center shadow-md z-10">
                         <div className="flex items-center gap-2">
                             <div className="bg-indigo-500 p-1.5 rounded-lg"><BrainCircuit size={16} /></div>
@@ -157,7 +173,6 @@ const AuraPulseBot = () => {
                         <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white"><X size={18} /></button>
                     </div>
 
-                    {/* MESSAGES AREA */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-950/50">
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'bot' ? 'justify-start' : 'justify-end'}`}>
@@ -171,7 +186,6 @@ const AuraPulseBot = () => {
                             </div>
                         ))}
                         
-                        {/* PENDING LOG CARD */}
                         {pendingLog && (
                             <div className="mx-4 mt-2 bg-white dark:bg-slate-800 rounded-xl border-2 border-indigo-100 dark:border-slate-700 p-4 shadow-lg animate-in fade-in zoom-in-95">
                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">AI Assessment</h4>
@@ -192,20 +206,13 @@ const AuraPulseBot = () => {
                                     <p className="text-xs font-medium text-slate-700 dark:text-slate-300 italic">"{pendingLog.action}"</p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button 
-                                        onClick={() => confirmLog(true)} 
-                                        className="py-2 text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center justify-center gap-1"
-                                    >
-                                        <Ghost size={12} /> Log Anonymous
-                                    </button>
-                                    <button 
-                                        onClick={() => confirmLog(false)} 
-                                        className="py-2 text-[10px] font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md transition-colors flex items-center justify-center gap-1"
-                                    >
-                                        <User size={12} /> Log to Profile
-                                    </button>
-                                </div>
+                                <button 
+                                    onClick={confirmLog} 
+                                    className="w-full py-3 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {identifiedUser === 'Anonymous' ? <Ghost size={14}/> : <User size={14}/>}
+                                    Confirm Log ({identifiedUser})
+                                </button>
                                 <button onClick={() => setPendingLog(null)} className="w-full mt-2 text-[10px] text-slate-400 hover:text-red-400">Cancel</button>
                             </div>
                         )}
@@ -222,7 +229,6 @@ const AuraPulseBot = () => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* INPUT AREA */}
                     <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
                         <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-2 border border-transparent focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
                             <input 
@@ -230,7 +236,7 @@ const AuraPulseBot = () => {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                placeholder="Type a message..."
+                                placeholder={step === 'IDENTITY' ? "Enter Name or 'Anon'..." : "Type message..."}
                                 disabled={loading || pendingLog}
                                 className="flex-1 bg-transparent text-sm font-medium text-slate-700 dark:text-white outline-none placeholder:text-slate-400"
                             />
