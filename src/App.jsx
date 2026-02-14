@@ -1,4 +1,3 @@
-import SmartReportView from './components/SmartReportView';
 import React, { useState, useEffect } from 'react';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, doc } from 'firebase/firestore';
@@ -7,15 +6,21 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend 
 } from 'recharts';
-import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Upload, Download, FileCode, Filter } from 'lucide-react';
+import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Activity } from 'lucide-react';
 
 // Components
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
 import ResponsiveLayout from './components/ResponsiveLayout';
+import SmartReportView from './components/SmartReportView';
+
+// --- NEW V1.3 COMPONENTS ---
+import RosterView from './components/RosterView';
+import WellbeingView from './components/WellbeingView';
+import AuraPulseBot from './components/AuraPulseBot';
 
 // Utils
-import { STAFF_LIST, MONTHS, DOMAIN_LIST } from './utils';
+import { STAFF_LIST, MONTHS } from './utils';
 
 // --- COLORS ---
 const COLORS = ['#FFC107', '#FF9800', '#FF5722', '#4CAF50', '#2196F3']; 
@@ -31,7 +36,7 @@ function App() {
   
   const [teamData, setTeamData] = useState([]); 
   const [staffLoads, setStaffLoads] = useState({});
-  const [attendanceData, setAttendanceData] = useState({}); // <--- NEW STATE
+  const [attendanceData, setAttendanceData] = useState({}); 
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
@@ -62,7 +67,7 @@ function App() {
     return () => unsubscribes.forEach(u => u());
   }, []);
 
-  // --- NEW: FETCH ATTENDANCE DATA ---
+  // --- FETCH ATTENDANCE DATA ---
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'system_data', 'monthly_attendance'), (docSnap) => {
         if (docSnap.exists()) {
@@ -133,7 +138,7 @@ function App() {
 
   // --- SUB-VIEWS ---
 
-const DashboardView = ({ isArchive = false }) => (
+  const DashboardView = ({ isArchive = false }) => (
     <>
       {isArchive && (
         <div className="md:col-span-2 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 p-4 rounded-lg mb-4 flex justify-between items-center animate-in fade-in slide-in-from-top-4">
@@ -154,8 +159,7 @@ const DashboardView = ({ isArchive = false }) => (
         </div>
       )}
 
-      {/* --- NEW: SMART REPORT IN DASHBOARD --- */}
-      {/* Shows 2026 report normally, or 2025 report if in Archive mode */}
+      {/* SMART REPORT */}
       <div className="md:col-span-2 mb-6">
         <SmartReportView year={isArchive ? archiveYear : '2026'} />
       </div>
@@ -195,7 +199,7 @@ const DashboardView = ({ isArchive = false }) => (
         </div>
       </div>
 
-      {/* Row 2 - Attendance (NOW DYNAMIC) */}
+      {/* Row 2 - Attendance */}
       <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mt-6">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">
             Monthly Patient Attendance {isArchive ? `(${archiveYear})` : '(2026)'}
@@ -243,81 +247,7 @@ const DashboardView = ({ isArchive = false }) => (
           ))}
         </div>
       </div>
-
-      {/* Row 4 - Swimlanes (USING FILTERED DATA) */}
-      <div className="md:col-span-2 mt-8">
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">
-            Department Overview {isArchive ? `(${archiveYear})` : '(2026)'}
-        </h2>
-        
-        {/* EMPTY STATE CHECK */}
-        {filteredTeamData.every(staff => staff.projects.length === 0) ? (
-            <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
-                <Filter className="mx-auto text-slate-300 mb-2" size={32} />
-                <h3 className="text-slate-400 font-bold uppercase">No data found for {isArchive ? archiveYear : '2026'}</h3>
-                <p className="text-xs text-slate-400 mt-1">Try switching years or adding entries in the Admin Panel.</p>
-            </div>
-        ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {DOMAIN_LIST.map((domain) => (
-                <div key={domain} className="flex flex-col gap-3">
-                <div className={`p-3 rounded-lg text-center border-b-4 shadow-sm ${
-                    domain === 'MANAGEMENT' ? 'bg-amber-50 border-amber-300' :
-                    domain === 'CLINICAL' ? 'bg-orange-50 border-orange-300' :
-                    domain === 'EDUCATION' ? 'bg-blue-50 border-blue-300' : 'bg-emerald-50 border-emerald-300'
-                }`}>
-                    <h3 className="font-black text-slate-800 text-sm tracking-wide">{domain}</h3>
-                </div>
-                <div className="flex flex-col gap-2">
-                    {/* HERE WE USE filteredTeamData */}
-                    {filteredTeamData.map(staff => (
-                    (staff.projects || []).filter(p => p.domain_type === domain).map((p, idx) => (
-                        <div key={`${staff.staff_name}-${idx}`} className="bg-white dark:bg-slate-800 p-3 rounded border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow group relative">
-                            <div className="flex justify-between items-start mb-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">{staff.staff_name}</span>
-                            {p.item_type === 'Project' && <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">PROJ</span>}
-                            </div>
-                            <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-tight mb-2">{p.title}</p>
-                            <div className="flex gap-1 justify-end">
-                            {[1,2,3,4,5].map(val => (
-                                <div key={val} className={`w-1.5 h-1.5 rounded-full transition-colors ${p.status_dots >= val ? (p.status_dots === 5 ? 'bg-emerald-500' : p.status_dots === 1 ? 'bg-red-500' : 'bg-blue-500') : 'bg-slate-100 dark:bg-slate-700'}`} />
-                            ))}
-                            </div>
-                        </div>
-                        ))
-                    ))}
-                </div>
-                </div>
-            ))}
-            </div>
-        )}
-      </div>
     </>
-  );
-
-  const RosterView = () => (
-    <div className="md:col-span-2 bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center min-h-[400px]">
-      <div className="bg-blue-50 dark:bg-slate-700 p-4 rounded-full mb-4">
-        <FileCode size={48} className="text-blue-600 dark:text-blue-400" />
-      </div>
-      <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Roster Generator (v1.2)</h2>
-      <p className="text-slate-500 dark:text-slate-400 text-center max-w-md mb-8">
-        This feature is coming soon. It will allow you to upload your R or Python scripts to automatically generate .ics calendar files for the team.
-      </p>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-lg">
-        <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-6 flex flex-col items-center hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group">
-          <Upload className="text-slate-400 group-hover:text-blue-500 mb-2" />
-          <span className="font-bold text-slate-600 dark:text-slate-300">Upload Script</span>
-          <span className="text-xs text-slate-400">(.R or .py)</span>
-        </div>
-        <div className="border border-slate-200 dark:border-slate-600 rounded-xl p-6 flex flex-col items-center opacity-50 cursor-not-allowed">
-          <Download className="text-slate-400 mb-2" />
-          <span className="font-bold text-slate-600 dark:text-slate-300">Download .ICS</span>
-          <span className="text-xs text-slate-400">Waiting for script...</span>
-        </div>
-      </div>
-    </div>
   );
 
   return (
@@ -327,7 +257,7 @@ const DashboardView = ({ isArchive = false }) => (
         <div className="flex items-center gap-4 self-start md:self-center">
           <img src="/logo.png" alt="SSMC Logo" className="h-12 w-auto object-contain" />
           <div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-none">IDC APP v1.2</h1>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-none">IDC APP v1.3</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Interactive Dashboard for Clinicians</p>
           </div>
         </div>
@@ -353,6 +283,13 @@ const DashboardView = ({ isArchive = false }) => (
           >
             <Calendar size={16} />
             Roster
+          </button>
+          <button 
+            onClick={() => setCurrentView('pulse')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${currentView === 'pulse' ? 'bg-white dark:bg-slate-700 shadow text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          >
+            <Activity size={16} />
+            Pulse
           </button>
         </div>
 
@@ -389,8 +326,12 @@ const DashboardView = ({ isArchive = false }) => (
           {currentView === 'dashboard' && <DashboardView />}
           {currentView === 'archive' && <DashboardView isArchive={true} />}
           {currentView === 'roster' && <RosterView />}
+          {currentView === 'pulse' && <WellbeingView />}
         </>
       )}
+
+      {/* AURA GLOBAL BOT */}
+      <AuraPulseBot />
 
     </ResponsiveLayout>
   );
