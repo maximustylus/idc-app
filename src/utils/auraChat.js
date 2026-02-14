@@ -1,3 +1,10 @@
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+// --- ADD THIS LINE TO DEBUG ---
+console.log("DEBUG: Current API Key is:", API_KEY); 
+
+const SYSTEM_PROMPT = `...`
+
 // src/utils/auraChat.js
 
 // This grabs the key from your hidden .env file automatically
