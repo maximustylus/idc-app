@@ -1,31 +1,25 @@
-# Security Policy
+# Security Policy (Pilot Phase)
+
+## Project Status
+**Current Status:** Alpha / Pilot
+This application is currently a clinician-led initiative for internal evaluation within the Sport & Exercise Medicine Centre. It is **not** yet a fully integrated hospital system managed by Synapxe.
 
 ## Supported Versions
 
-The following versions of the IDC App are currently supported with security patches and hotfixes.
+| Version | Status |
+| ------- | ------ |
+| 1.3.x   | **Active Pilot** (Evaluated by Senior CEPs) |
+| < 1.3   | Deprecated |
 
-| Version | Supported          | Status |
-| ------- | ------------------ | ------ |
-| 1.3.x   | :white_check_mark: | **Current Stable (Live)** |
-| 1.2.x   | :warning:          | Maintenance Mode |
-| < 1.2   | :x:                | End of Life |
+## Reporting Issues
 
-## Reporting a Vulnerability
-
-We take the security of patient data and clinician privacy seriously. If you discover a vulnerability in the IDC App or AURA AI modules, please follow these steps:
+As this is a pilot project, please report any bugs or data concerns directly to the project lead.
 
 ### How to Report
-Please **DO NOT** open a public GitHub issue for sensitive security vulnerabilities.
+1.  **Direct Contact:** Please message **Alif (Senior CEP)** directly via KKH email or internal comms.
+2.  **Scope:** Report issues related to roster generation, dashboard accuracy, or AURA bot responses.
+3.  **Data Privacy:** Do not input real patient identifiers (NRIC, Full Names) into the AI chat features during this pilot phase. Use "Patient A" or anonymized references only.
 
-1.  **Email:** Send a detailed report to the lead developer at `alif@[hidden-for-privacy].sg` or the KKH IT Security Office.
-2.  **Subject Line:** Please use `[SECURITY] Vulnerability Report - IDC App v1.3`.
-3.  **Details:** Include steps to reproduce the issue and the potential impact (e.g., "Bypass of Domain Lock", "AURA API Key exposure").
-
-### Response Timeline
-* **Acknowledgement:** We will acknowledge your report within 48 hours.
-* **Assessment:** We will confirm the vulnerability and provide an estimated timeline for a fix within 5 business days.
-* **Resolution:** A patch will be deployed to the `main` branch and automatically pushed to the live Firebase host.
-
-### Policy
-* We ask that you do not disclose the issue publicly until a patch has been released.
-* This project is for internal KKH use; external penetration testing is not authorized without prior written consent from SingHealth/KKH administration.
+### Incident Response
+* Issues will be addressed by the development team (Lead Clinician) within 24-48 hours.
+* Critical bugs will result in a temporary suspension of the app access until resolved.
