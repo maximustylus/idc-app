@@ -10,14 +10,12 @@ import { Sun, Moon, LogOut, LayoutDashboard, Archive, Calendar, Activity, Filter
 
 // Components
 import AdminPanel from './components/AdminPanel';
-import Login from './components/Login';
 import ResponsiveLayout from './components/ResponsiveLayout';
 import SmartReportView from './components/SmartReportView';
-
-// --- NEW V1.3 COMPONENTS ---
 import RosterView from './components/RosterView';
 import WellbeingView from './components/WellbeingView';
 import AuraPulseBot from './components/AuraPulseBot';
+import WelcomeScreen from './components/WelcomeScreen'; // <--- NEW IMPORT
 
 // Utils
 import { STAFF_LIST, MONTHS, DOMAIN_LIST } from './utils';
@@ -30,19 +28,26 @@ function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [archiveYear, setArchiveYear] = useState('2025');
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
-  const [user, setUser] = useState(null);
   
+  // --- AUTH STATE ---
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true); // Gatekeeper loading state
+  
+  const [isDark, setIsDark] = useState(false);
   const [teamData, setTeamData] = useState([]); 
   const [staffLoads, setStaffLoads] = useState({});
   const [attendanceData, setAttendanceData] = useState({}); 
 
+  // --- 1. GLOBAL AUTH LISTENER (THE GATEKEEPER) ---
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
+    const unsubscribe = auth.onAuthStateChanged((u) => {
+        setUser(u);
+        setAuthLoading(false); // Auth check done
+    });
     return () => unsubscribe();
   }, []);
 
+  // --- DATA FETCHING (Same as before) ---
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'cep_team'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -67,7 +72,6 @@ function App() {
     return () => unsubscribes.forEach(u => u());
   }, []);
 
-  // --- FETCH ATTENDANCE DATA ---
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'system_data', 'monthly_attendance'), (docSnap) => {
         if (docSnap.exists()) {
@@ -77,14 +81,25 @@ function App() {
     return () => unsub();
   }, []);
 
-  // --- HELPER: GET ATTENDANCE FOR CURRENT VIEW ---
+  // --- 2. RENDER THE GATE ---
+  if (authLoading) return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+          <div className="animate-spin w-10 h-10 border-4 border-indigo-600 rounded-full border-t-transparent"></div>
+      </div>
+  );
+
+  // IF NOT LOGGED IN -> SHOW WELCOME SCREEN
+  if (!user) {
+      return <WelcomeScreen />;
+  }
+
+  // --- HELPERS (Keep your existing logic) ---
   const getAttendanceForView = () => {
       const targetYear = currentView === 'archive' ? archiveYear : '2026';
       const rawValues = attendanceData[targetYear] || Array(12).fill(0);
       return MONTHS.map((m, i) => ({ name: m, value: rawValues[i] }));
   };
 
-  // --- DATA FILTERING ENGINE ---
   const getFilteredData = () => {
     const targetYear = currentView === 'archive' ? archiveYear : '2026';
     return teamData.map(staff => ({
@@ -98,7 +113,6 @@ function App() {
 
   const filteredTeamData = getFilteredData(); 
 
-  // --- CHART HELPERS ---
   const getPieData = () => {
     const counts = { MANAGEMENT: 0, CLINICAL: 0, EDUCATION: 0, RESEARCH: 0 };
     filteredTeamData.forEach(staff => {
@@ -127,7 +141,10 @@ function App() {
   };
 
   const toggleTheme = () => { setIsDark(!isDark); document.documentElement.classList.toggle('dark'); };
-  const handleLogout = async () => { await signOut(auth); setIsAdminOpen(false); };
+  const handleLogout = async () => { 
+      await signOut(auth); 
+      setIsAdminOpen(false); // Close admin panel on logout
+  };
 
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -137,7 +154,6 @@ function App() {
   };
 
   // --- SUB-VIEWS ---
-
   const DashboardView = ({ isArchive = false }) => (
     <>
       {isArchive && (
@@ -248,13 +264,12 @@ function App() {
         </div>
       </div>
 
-      {/* Row 4 - Swimlanes (RESTORED) */}
+      {/* Row 4 - Swimlanes */}
       <div className="md:col-span-2 mt-8">
         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">
             Department Overview {isArchive ? `(${archiveYear})` : '(2026)'}
         </h2>
         
-        {/* EMPTY STATE CHECK */}
         {filteredTeamData.every(staff => staff.projects.length === 0) ? (
             <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
                 <Filter className="mx-auto text-slate-300 mb-2" size={32} />
@@ -346,24 +361,22 @@ function App() {
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
           
-          {user ? (
-            <div className="flex gap-2">
-              <button onClick={() => setIsAdminOpen(!isAdminOpen)} className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-500/30">
-                {isAdminOpen ? 'Close Admin' : 'Admin Panel'}
-              </button>
-              <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
-                <LogOut size={20} />
-              </button>
+          <div className="flex gap-2 items-center">
+            {/* User Badge */}
+            <div className="hidden md:block text-right mr-2">
+                <div className="text-xs font-bold text-slate-800 dark:text-white">{user.displayName || user.email}</div>
+                <div className="text-[10px] text-slate-400 uppercase">Authenticated</div>
             </div>
-          ) : (
-            <button onClick={() => setIsLoginOpen(true)} className="px-4 py-2 bg-slate-800 text-white text-sm font-bold rounded-lg hover:bg-slate-700 transition-colors">
-              Admin Login
+
+            <button onClick={() => setIsAdminOpen(!isAdminOpen)} className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-500/30">
+                {isAdminOpen ? 'Close Panel' : 'Admin'}
             </button>
-          )}
+            <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 transition-colors bg-slate-100 dark:bg-slate-800 rounded-lg">
+                <LogOut size={20} />
+            </button>
+          </div>
         </div>
       </div>
-
-      {isLoginOpen && <Login onClose={() => setIsLoginOpen(false)} />}
       
       {isAdminOpen ? (
         <div className="md:col-span-2">
