@@ -2,7 +2,7 @@
 
 // --- ⚠️ PASTE YOUR API KEY PARTS BELOW ⚠️ ---
 const PART_1 = "AIzaSy"; 
-const PART_2 = "YOUR_REST_OF_KEY_HERE"; // <--- PASTE THE REST OF YOUR KEY HERE
+const PART_2 = "BzLnky2jOu5r-5YnXnw5xnp96GEEWrED8"; // <--- PASTE THE REST OF YOUR KEY HERE
 
 const API_KEY = PART_1 + PART_2;
 
