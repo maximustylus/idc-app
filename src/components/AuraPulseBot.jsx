@@ -1,122 +1,210 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { doc, setDoc, arrayUnion } from 'firebase/firestore';
-import { X, BrainCircuit, ChevronUp } from 'lucide-react';
+import { X, Send, ChevronUp, BrainCircuit } from 'lucide-react';
+import { analyzeWellbeing } from '../utils/auraChat'; // <--- UPDATED IMPORT
 
 const AuraPulseBot = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [step, setStep] = useState(0); 
-    const [chat, setChat] = useState([{ role: 'bot', text: 'Hello! I am AURA Pulse. Where are you on the continuum today?' }]);
-    const [stats, setStats] = useState({ energy: 50, phase: 'HEALTHY' });
+    const [messages, setMessages] = useState([
+        { role: 'bot', text: "Hi! I'm AURA. How are you feeling after your shift today?" }
+    ]);
+    const [input, setInput] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [pendingLog, setPendingLog] = useState(null); 
+    const messagesEndRef = useRef(null);
 
-    // Continuum definitions
-    const PHASES = [
-        { label: 'HEALTHY', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: 'Normal functioning' },
-        { label: 'REACTING', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', desc: 'Irritable / Nervous' },
-        { label: 'INJURED', color: 'bg-orange-100 text-orange-700 border-orange-200', desc: 'Anxiety / Fatigue' },
-        { label: 'ILL', color: 'bg-red-100 text-red-700 border-red-200', desc: 'Distress / Illness' }
-    ];
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
-    const handleCheckIn = async () => {
+    const handleSend = async () => {
+        if (!input.trim()) return;
+
+        const userMsg = { role: 'user', text: input };
+        setMessages(prev => [...prev, userMsg]);
+        setInput('');
+        setLoading(true);
+
+        try {
+            const analysis = await analyzeWellbeing(input);
+            
+            setMessages(prev => [...prev, { role: 'bot', text: analysis.reply }]);
+            
+            setPendingLog({
+                phase: analysis.phase,
+                energy: analysis.energy,
+                action: analysis.action
+            });
+
+        } catch (error) {
+            setMessages(prev => [...prev, { role: 'bot', text: "I'm having trouble connecting to my brain. Please try again or check your API Key." }]);
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmLog = async () => {
+        if (!pendingLog) return;
         const user = auth.currentUser;
         if (!user) {
-            setChat([...chat, { role: 'bot', text: 'Please log in to save your check-in.' }]);
+            alert("Please log in to save data.");
             return;
         }
 
         const staffId = user.email.split('@')[0].replace('.', '_');
-        const logRef = doc(db, 'wellbeing_history', staffId);
 
-        // Also update daily pulse for the dashboard view
+        // 1. Log History
+        const logRef = doc(db, 'wellbeing_history', staffId);
+        await setDoc(logRef, {
+            logs: arrayUnion({
+                timestamp: new Date().toISOString(),
+                energy: pendingLog.energy,
+                phase: pendingLog.phase,
+                note: messages[messages.length - 2].text,
+                displayDate: new Date().toLocaleDateString()
+            })
+        }, { merge: true });
+
+        // 2. Update Live Dashboard Pulse
         await setDoc(doc(db, 'system_data', 'daily_pulse'), {
             [staffId]: {
-                energy: parseInt(stats.energy / 10), // Scale to 1-10 for dashboard
-                focus: parseInt(stats.energy / 10),  // mirroring for now
+                energy: parseInt(pendingLog.energy / 10),
+                focus: parseInt(pendingLog.energy / 10),
                 lastUpdate: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 status: 'checked-in'
             }
         }, { merge: true });
 
-        // Log history
-        await setDoc(logRef, {
-            logs: arrayUnion({
-                timestamp: new Date().toISOString(),
-                energy: stats.energy,
-                phase: stats.phase,
-                displayDate: new Date().toLocaleDateString()
-            })
-        }, { merge: true });
+        setMessages(prev => [...prev, { role: 'bot', text: "✅ Logged successfully. Take care of yourself!" }]);
+        setPendingLog(null);
+        setTimeout(() => setIsOpen(false), 3000);
+    };
 
-        setChat([...chat, { role: 'bot', text: `Logged: ${stats.phase} at ${stats.energy}%. Take care!` }]);
-        setTimeout(() => { setIsOpen(false); setStep(0); }, 2000);
+    const getPhaseColor = (phase) => {
+        switch(phase) {
+            case 'HEALTHY': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            case 'REACTING': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+            case 'INJURED': return 'bg-orange-100 text-orange-800 border-orange-200';
+            case 'ILL': return 'bg-red-100 text-red-800 border-red-200';
+            default: return 'bg-slate-100';
+        }
     };
 
     return (
         <div className="fixed bottom-6 right-6 z-[200]">
+            {/* TOGGLE BUTTON */}
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-2xl transition-all hover:scale-110 active:scale-95 flex items-center gap-2"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-2xl transition-all hover:scale-110 active:scale-95 flex items-center gap-2 group"
             >
-                {isOpen ? <ChevronUp size={24} className="rotate-180" /> : <BrainCircuit size={24} />}
+                {isOpen ? <ChevronUp size={24} className="rotate-180" /> : <BrainCircuit size={24} className="group-hover:animate-pulse" />}
             </button>
 
+            {/* CHAT WINDOW */}
             {isOpen && (
-                <div className="absolute bottom-20 right-0 w-80 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-bottom-4">
-                    <div className="bg-slate-900 p-4 text-white flex justify-between items-center">
-                        <span className="font-black uppercase tracking-widest text-xs">AURA Assistant</span>
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <div className="absolute bottom-20 right-0 w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in slide-in-from-bottom-4 flex flex-col max-h-[600px]">
+                    
+                    {/* HEADER - UPDATED TO JUST "AURA" */}
+                    <div className="bg-slate-900 p-4 text-white flex justify-between items-center shadow-md z-10">
+                        <div className="flex items-center gap-2">
+                            <div className="bg-indigo-500 p-1.5 rounded-lg"><BrainCircuit size={16} /></div>
+                            <div>
+                                <h3 className="font-black uppercase tracking-wider text-sm">AURA</h3> {/* <--- CHANGED */}
+                                <div className="flex items-center gap-1 opacity-70">
+                                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
+                                    <span className="text-[10px] font-bold">Online</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white"><X size={18} /></button>
                     </div>
 
-                    <div className="h-48 overflow-y-auto p-4 space-y-3 bg-slate-50/50 dark:bg-slate-950/50">
-                        {chat.map((m, i) => (
+                    {/* MESSAGES AREA */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-950/50">
+                        {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'bot' ? 'justify-start' : 'justify-end'}`}>
-                                <div className={`max-w-[85%] p-3 rounded-xl text-xs font-medium ${m.role === 'bot' ? 'bg-white text-slate-700 shadow-sm' : 'bg-indigo-600 text-white'}`}>
+                                <div className={`max-w-[85%] p-3 rounded-2xl text-xs font-medium leading-relaxed shadow-sm ${
+                                    m.role === 'bot' 
+                                        ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none' 
+                                        : 'bg-indigo-600 text-white rounded-tr-none'
+                                }`}>
                                     {m.text}
                                 </div>
                             </div>
                         ))}
+                        
+                        {/* PENDING LOG CARD */}
+                        {pendingLog && (
+                            <div className="mx-4 mt-2 bg-white dark:bg-slate-800 rounded-xl border-2 border-indigo-100 dark:border-slate-700 p-4 shadow-lg animate-in fade-in zoom-in-95">
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">AI Assessment</h4>
+                                
+                                <div className="flex gap-3 mb-4">
+                                    <div className={`flex-1 p-2 rounded-lg text-center border ${getPhaseColor(pendingLog.phase)}`}>
+                                        <div className="text-[9px] font-bold uppercase opacity-70">Continuum</div>
+                                        <div className="text-xs font-black">{pendingLog.phase}</div>
+                                    </div>
+                                    <div className="flex-1 p-2 rounded-lg text-center border bg-blue-50 text-blue-800 border-blue-200">
+                                        <div className="text-[9px] font-bold uppercase opacity-70">Battery</div>
+                                        <div className="text-xs font-black">{pendingLog.energy}%</div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded mb-3">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase">Suggested Action:</span>
+                                    <p className="text-xs font-medium text-slate-700 dark:text-slate-300 italic">"{pendingLog.action}"</p>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => setPendingLog(null)} 
+                                        className="flex-1 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+                                    >
+                                        Ignore
+                                    </button>
+                                    <button 
+                                        onClick={confirmLog} 
+                                        className="flex-1 py-2 text-xs font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md transition-colors"
+                                    >
+                                        Confirm & Log
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {loading && (
+                            <div className="flex justify-start">
+                                <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl rounded-tl-none shadow-sm flex gap-1">
+                                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></div>
+                                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-75"></div>
+                                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-150"></div>
+                                </div>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
                     </div>
 
-                    <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                        {step === 0 && (
-                            <div className="grid grid-cols-2 gap-2">
-                                {PHASES.map(p => (
-                                    <button 
-                                        key={p.label} 
-                                        onClick={() => {
-                                            setChat([...chat, { role: 'user', text: p.label }]);
-                                            setStats({ ...stats, phase: p.label });
-                                            setStep(1);
-                                        }}
-                                        className={`py-2 px-1 text-[10px] font-bold border rounded-lg transition-colors uppercase flex flex-col items-center ${p.color}`}
-                                    >
-                                        <span>{p.label}</span>
-                                        <span className="opacity-60 text-[8px]">{p.desc}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {step === 1 && (
-                            <div className="space-y-3">
-                                <div className="flex justify-between">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase">Social Battery</label>
-                                    <span className="text-xs font-bold text-indigo-600">{stats.energy}%</span>
-                                </div>
-                                <input 
-                                    type="range" className="w-full accent-indigo-600 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" 
-                                    min="0" max="100"
-                                    value={stats.energy} 
-                                    onChange={(e) => setStats({...stats, energy: e.target.value})}
-                                />
-                                <button 
-                                    onClick={handleCheckIn}
-                                    className="w-full py-3 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors"
-                                >
-                                    Log Check-in
-                                </button>
-                            </div>
-                        )}
+                    {/* INPUT AREA */}
+                    <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-full px-4 py-2 border border-transparent focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition-all">
+                            <input 
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                placeholder="Type a message..."
+                                disabled={loading || pendingLog}
+                                className="flex-1 bg-transparent text-sm font-medium text-slate-700 dark:text-white outline-none placeholder:text-slate-400"
+                            />
+                            <button 
+                                onClick={handleSend} 
+                                disabled={!input.trim() || loading || pendingLog}
+                                className="p-1.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-colors"
+                            >
+                                <Send size={14} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
