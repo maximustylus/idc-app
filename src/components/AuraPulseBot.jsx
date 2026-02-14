@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { db } from '../firebase';
-import { doc, setDoc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
-import { X, Send, ChevronUp, BrainCircuit, User, Ghost, RefreshCw, Shield } from 'lucide-react';
-import { analyzeWellbeing } from '../utils/auraChat'; // Assuming this exists
+import { doc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { X, Send, ChevronUp, BrainCircuit, User, Shield, RefreshCw } from 'lucide-react';
+import { analyzeWellbeing } from '../utils/auraChat'; 
 import { STAFF_LIST } from '../utils';
 
 const AuraPulseBot = () => {
@@ -14,7 +14,7 @@ const AuraPulseBot = () => {
     const [messages, setMessages] = useState([
         { 
             role: 'bot', 
-            text: "Hi! AURA here, your Adaptive Understanding & Real-time Analytics Bot. Who am I chatting with? (Enter your name or input 'Anon')" 
+            text: "Hi! AURA here, your Adaptive Understanding & Real-time Analytics Bot. Who am I chatting with? (Enter your name or select 'Anonymous')" 
         }
     ]);
     const [input, setInput] = useState('');
@@ -43,7 +43,7 @@ const AuraPulseBot = () => {
             return;
         }
 
-        // 2. Clean up name input (remove "I am", "My name is")
+        // 2. Clean up name input
         const cleanName = userText.replace(/^(my name is|i am|i'm|this is)\s+/i, '').trim();
         
         // 3. Match against Staff List or use raw input
@@ -60,9 +60,6 @@ const AuraPulseBot = () => {
     const handleMoodAnalysis = async (userText) => {
         setLoading(true);
         try {
-            // Simulated delay for "Thinking" feel
-            // await new Promise(r => setTimeout(r, 800)); 
-            
             const analysis = await analyzeWellbeing(userText);
             
             setMessages(prev => [...prev, { role: 'bot', text: analysis.reply }]);
@@ -73,7 +70,7 @@ const AuraPulseBot = () => {
                 action: analysis.action,
                 originalText: userText
             });
-            setStep('LOGGING'); // Wait for confirmation
+            setStep('LOGGING'); 
 
         } catch (error) {
             setMessages(prev => [...prev, { role: 'bot', text: `System Error: ${error.message}. Please try again.` }]);
@@ -86,7 +83,6 @@ const AuraPulseBot = () => {
         if (!input.trim()) return;
         const userText = input.trim();
         
-        // Add user message
         setMessages(prev => [...prev, { role: 'user', text: userText }]);
         setInput('');
 
@@ -108,7 +104,6 @@ const AuraPulseBot = () => {
             if (identifiedUser === 'Anonymous') {
                 // --- ANONYMOUS LOGGING ---
                 const anonRef = doc(db, 'wellbeing_history', '_anonymous_logs');
-                // Ensure doc exists
                 await setDoc(anonRef, { last_updated: timestamp }, { merge: true }); 
                 
                 await updateDoc(anonRef, {
@@ -122,7 +117,7 @@ const AuraPulseBot = () => {
                 setMessages(prev => [...prev, { role: 'bot', text: "✅ Data captured anonymously." }]);
             } else {
                 // --- IDENTIFIED LOGGING ---
-                const staffId = identifiedUser.toLowerCase().replace(/[^a-z0-9]/g, '_'); // Safer cleanup
+                const staffId = identifiedUser.toLowerCase().replace(/[^a-z0-9]/g, '_'); 
 
                 // 1. Log History
                 const logRef = doc(db, 'wellbeing_history', staffId);
@@ -136,11 +131,11 @@ const AuraPulseBot = () => {
                     })
                 }, { merge: true });
 
-                // 2. Dashboard Pulse (Real-time IDC Update)
+                // 2. Dashboard Pulse
                 await setDoc(doc(db, 'system_data', 'daily_pulse'), {
                     [identifiedUser]: { 
                         energy: parseInt(pendingLog.energy / 10),
-                        focus: parseInt(pendingLog.energy / 10), // Simplification
+                        focus: parseInt(pendingLog.energy / 10),
                         lastUpdate: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                         status: 'checked-in'
                     }
@@ -155,12 +150,12 @@ const AuraPulseBot = () => {
             setLoading(false);
             setPendingLog(null);
             
-            // Reset Flow after short delay
+            // Reset Flow
             setTimeout(() => {
                 setIsOpen(false);
                 setStep('IDENTITY');
                 setIdentifiedUser(null);
-                setMessages([{ role: 'bot', text: "Hi! AURA here. Who am I chatting with? (Enter name or input 'Anon')" }]);
+                setMessages([{ role: 'bot', text: "Hi! AURA here, your Adaptive Understanding & Real-time Analytics Bot. Who am I chatting with? (Enter your name or select 'Anonymous')" }]);
             }, 2500);
         }
     };
@@ -293,15 +288,7 @@ const AuraPulseBot = () => {
                                 >
                                     🕵️ Stay Anonymous
                                 </button>
-                                {STAFF_LIST.slice(0, 2).map(staff => (
-                                    <button 
-                                        key={staff}
-                                        onClick={() => handleIdentity(staff)}
-                                        className="whitespace-nowrap px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full border border-indigo-100 hover:bg-indigo-100 transition-colors"
-                                    >
-                                        👤 {staff}
-                                    </button>
-                                ))}
+                                {/* STAFF LIST BUTTONS REMOVED AS REQUESTED */}
                             </div>
                         )}
 
