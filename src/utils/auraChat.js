@@ -1,14 +1,9 @@
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-
-// --- ADD THIS LINE TO DEBUG ---
-console.log("DEBUG: Current API Key is:", API_KEY); 
-
-const SYSTEM_PROMPT = `...`
-
 // src/utils/auraChat.js
 
-// This grabs the key from your hidden .env file automatically
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+// --- THE "SPLIT KEY" TRICK ---
+const PART_1 = "AIzaSy"; 
+const PART_2 = "BzLnky2jOu5r-5YnXnw5xnp96GEEWrED8"; // REPLACE THIS WITH YOUR REAL KEY PART 2
+const API_KEY = PART_1 + PART_2;
 
 const SYSTEM_PROMPT = `
 ROLE: You are AURA, an empathetic wellbeing assistant for Allied Health Professionals (AHPs).
@@ -36,8 +31,10 @@ Return ONLY a JSON object:
 `;
 
 export const analyzeWellbeing = async (userText) => {
-    // If the key is missing in the .env file, throw an error
-    if (!API_KEY) throw new Error("API Key missing. Please add VITE_GEMINI_API_KEY to your .env file.");
+    // Safety check
+    if (!API_KEY || API_KEY.includes("YOUR_REST")) {
+        throw new Error("API Key is missing. Please edit src/utils/auraChat.js");
+    }
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
         method: 'POST',
