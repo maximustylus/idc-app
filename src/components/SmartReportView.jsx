@@ -1,113 +1,120 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth } from '../firebase'; 
+import { db } from '../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { Lock, Users, ShieldAlert, Loader, Sparkles } from 'lucide-react';
-import ReactMarkdown from 'react-markdown'; 
+import { Lock, Globe, FileText, Calendar } from 'lucide-react';
 
-// NOW ACCEPTS A 'YEAR' PROP
 const SmartReportView = ({ year = '2026' }) => {
-    const [reports, setReports] = useState(null); 
-    const [lastUpdated, setLastUpdated] = useState(null);
-    const currentUser = auth.currentUser;
-
-    const userEmail = currentUser?.email?.toLowerCase() || '';
-    const allowedEmails = ['muhammad.alif@kkh.com.sg', 'siti.nur.anisah.nh@kkh.com.sg'];
-    const isAuthorized = allowedEmails.includes(userEmail);
+    const [report, setReport] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // DYNAMIC DOC REFERENCE: reports_2026, reports_2025, etc.
-        // Default to 'dashboard_summary' if year is 2026 for backward compatibility, 
-        // OR better: migrate 2026 to reports_2026. 
-        // For now, let's look for `reports_{year}`.
-        // Note: You might need to re-publish 2026 once to save it to the new path!
-        
-        const docId = year === '2026' ? 'dashboard_summary' : `reports_${year}`;
-        
-        // Actually, let's standardize. The new SmartAnalysis saves to reports_2026.
-        // But your old 2026 data is in dashboard_summary.
-        // Let's try fetching the new one first.
-        
-        const collectionName = 'system_data';
-        // Logic: if year is 2026, we check dashboard_summary (legacy) first? 
-        // Simpler: Just rely on the prop.
-        
-        // FIX: The SmartAnalysis updated code saves 2026 to `reports_2026`. 
-        // But your old 2026 report is at `dashboard_summary`.
-        // Let's just point to `reports_{year}` and you can re-generate 2026 report once to sync it.
-        const targetDoc = year === '2026' ? 'dashboard_summary' : `reports_${year}`;
-
-        const unsub = onSnapshot(doc(db, collectionName, targetDoc), (doc) => {
-            if (doc.exists()) {
-                const data = doc.data();
-                setReports({
-                    publicText: data.publicText || '',
-                    privateText: data.privateText || ''
-                });
-                setLastUpdated(data.timestamp?.toDate());
+        const unsub = onSnapshot(doc(db, 'system_data', `reports_${year}`), (docSnap) => {
+            if (docSnap.exists()) {
+                setReport(docSnap.data());
             } else {
-                setReports({ publicText: '', privateText: '' });
+                setReport(null);
             }
+            setLoading(false);
         });
         return () => unsub();
-    }, [year]); // Re-run when year changes
+    }, [year]);
 
-    if (!reports) return <div className="p-4 bg-slate-50 rounded flex gap-2 items-center"><Loader className="animate-spin" size={16}/><span className="text-xs text-slate-400">Loading {year} Intelligence...</span></div>;
+    // --- TEXT FORMATTER ---
+    // Cleans up AI text: removes highlights, adds spacing, handles dark mode
+    const formatReportContent = (text) => {
+        if (!text) return <p className="text-slate-400 italic">No report data available.</p>;
 
-    if (!reports.privateText && !reports.publicText) {
-        return (
-            <div className="p-6 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 text-center">
-                <Sparkles className="mx-auto text-slate-300 mb-2" size={24} />
-                <h3 className="text-slate-500 font-bold text-sm uppercase">No Report for {year}</h3>
-                <p className="text-xs text-slate-400">Go to Admin > Generate Report and select {year}.</p>
-            </div>
-        );
-    }
+        // Split by newlines to handle paragraphs
+        return text.split('\n').map((line, index) => {
+            const cleanLine = line.trim();
+            if (!cleanLine) return <div key={index} className="h-4" />; // Spacer for empty lines
+
+            // Detection: Is this a Header/Name? (e.g., "Alif (JG14):" or "Overall Assessment:")
+            // We check if the line starts with a name or standard header and has a colon
+            const isHeader = /^(Overall Assessment|Individual Staff Audit|Alif|Nisa|Fadzlynn|Derlinder|Ying Xian|Brandon|Conclusion|.*:)/i.test(cleanLine);
+
+            if (isHeader && cleanLine.length < 150) {
+                // Render as a Title Block
+                const parts = cleanLine.split(':');
+                const title = parts[0];
+                const content = parts.slice(1).join(':').trim();
+
+                return (
+                    <div key={index} className="mb-6">
+                        <h4 className="text-lg font-black text-indigo-700 dark:text-indigo-400 mb-2 uppercase tracking-tight">
+                            {title}
+                        </h4>
+                        {content && (
+                            <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-base">
+                                {content}
+                            </p>
+                        )}
+                    </div>
+                );
+            }
+
+            // Standard Paragraph
+            return (
+                <p key={index} className="mb-4 text-slate-700 dark:text-slate-300 leading-relaxed text-base">
+                    {cleanLine.replace(/^\*|\-/, '') /* Remove bullet points if AI adds them */}
+                </p>
+            );
+        });
+    };
+
+    if (loading) return <div className="p-4 text-slate-400 text-xs font-bold animate-pulse">Loading Report...</div>;
+
+    if (!report) return (
+        <div className="bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-8 text-center">
+            <FileText className="mx-auto text-slate-300 mb-3" size={32} />
+            <h3 className="text-slate-500 dark:text-slate-400 font-bold uppercase">No Report for {year}</h3>
+            <p className="text-xs text-slate-400 mt-1">Generate one in the Admin Panel.</p>
+        </div>
+    );
 
     return (
-        <div className="space-y-6 mb-8 animate-in fade-in slide-in-from-top-4">
-            {/* PRIVATE BRIEF */}
-            {isAuthorized ? (
-                reports.privateText && (
-                    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-900/50 dark:to-slate-900/50 p-6 rounded-2xl border border-indigo-200 dark:border-indigo-800 shadow-lg relative">
-                        <div className="flex items-center gap-3 mb-6 border-b border-indigo-100 pb-4">
-                            <div className="bg-indigo-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-500/30">
-                                <Lock size={20} />
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-black text-indigo-900 dark:text-white uppercase tracking-tighter">{year} Executive Brief</h2>
-                                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Confidential Audit</span>
-                            </div>
-                        </div>
-                        <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300">
-                            <ReactMarkdown components={{
-                                h1: ({node, ...props}) => <h1 className="text-xl font-black text-indigo-900 mb-3 uppercase" {...props} />,
-                                h2: ({node, ...props}) => <h2 className="text-lg font-bold text-indigo-800 mt-6 mb-3 border-l-4 border-indigo-500 pl-3" {...props} />,
-                                strong: ({node, ...props}) => <span className="font-bold text-indigo-700 bg-indigo-50 px-1 rounded" {...props} />,
-                            }}>{reports.privateText}</ReactMarkdown>
-                        </div>
+        <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
+            
+            {/* PRIVATE BRIEF CARD */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="bg-indigo-50 dark:bg-indigo-900/30 p-4 border-b border-indigo-100 dark:border-indigo-800 flex items-center gap-3">
+                    <div className="p-2 bg-indigo-600 rounded-lg text-white shadow-sm">
+                        <Lock size={18} />
                     </div>
-                )
-            ) : (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
-                    <ShieldAlert className="text-red-500" size={20} />
-                    <span className="text-xs text-red-600 font-bold">Restricted Access</span>
+                    <div>
+                        <h3 className="font-black text-indigo-900 dark:text-indigo-200 uppercase tracking-wider text-sm">
+                            {year} Executive Brief
+                        </h3>
+                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Confidential Audit</p>
+                    </div>
                 </div>
-            )}
+                <div className="p-8">
+                    {formatReportContent(report.privateText)}
+                </div>
+            </div>
 
-            {/* PUBLIC PULSE */}
-            {reports.publicText && (
-                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-slate-800 dark:to-slate-800 p-6 rounded-2xl border border-emerald-100 dark:border-slate-700 shadow-sm relative">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="bg-emerald-600 p-2 rounded-lg text-white"><Users size={20} /></div>
-                        <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">{year} Team Pulse</h2>
+            {/* PUBLIC PULSE CARD */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="bg-emerald-50 dark:bg-emerald-900/30 p-4 border-b border-emerald-100 dark:border-emerald-800 flex items-center gap-3">
+                    <div className="p-2 bg-emerald-600 rounded-lg text-white shadow-sm">
+                        <Globe size={18} />
                     </div>
-                    <div className="prose prose-sm max-w-none text-slate-700 dark:text-slate-300">
-                        <ReactMarkdown components={{
-                            strong: ({node, ...props}) => <span className="font-bold text-emerald-700" {...props} />,
-                        }}>{reports.publicText}</ReactMarkdown>
+                    <div>
+                        <h3 className="font-black text-emerald-900 dark:text-emerald-200 uppercase tracking-wider text-sm">
+                            {year} Team Pulse
+                        </h3>
+                        <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Public Celebration</p>
                     </div>
                 </div>
-            )}
+                <div className="p-8">
+                    {formatReportContent(report.publicText)}
+                </div>
+            </div>
+
+            <div className="flex justify-end text-[10px] font-bold text-slate-400 uppercase gap-2 items-center">
+                <Calendar size={12} />
+                Generated: {report.timestamp?.toDate ? report.timestamp.toDate().toLocaleString() : new Date().toLocaleString()}
+            </div>
         </div>
     );
 };
