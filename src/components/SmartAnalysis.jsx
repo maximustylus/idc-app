@@ -3,20 +3,24 @@ import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore'; 
 import { X, ShieldCheck, Sparkles } from 'lucide-react';
 
-// --- NEW: Use the secure .env key ---
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+// --- ⚠️ CRITICAL STEP: PASTE YOUR KEY BELOW ⚠️ ---
+// Use the EXACT SAME parts you put in auraChat.js
+const PART_1 = "AIzaSy"; 
+// PASTE THE REST OF YOUR KEY INSIDE THE QUOTES BELOW (Delete the placeholder text first)
+const PART_2 = "BzLnky2jOu5r-5YnXnw5xnp96GEEWrED8"; 
+
+const API_KEY = PART_1 + PART_2;
 
 const STAFF_PROFILES = {
-    "Alif":      { role: "Senior CEP", grade: "JG14", focus: "Leadership, Management, Clinical, Reserach, Education" },
-    "Fadzlynn":  { role: "CEP I",      grade: "JG13", focus: "Clinical Lead, Education Co-Lead" },
-    "Derlinder": { role: "CEP II",     grade: "JG12", focus: "Education Lead, Clinical" },
-    "Ying Xian": { role: "CEP II",     grade: "JG12", focus: "Research Co-Lead, Clinical" },
-    "Brandon":   { role: "CEP III",    grade: "JG11", focus: "Education / Community Co-Lead, Clinical" },
+    "Alif":      { role: "Senior CEP", grade: "JG14", focus: "Leadership, Research, Clinical" },
+    "Fadzlynn":  { role: "CEP I",      grade: "JG13", focus: "Clinical Lead, Specialized Projects" },
+    "Derlinder": { role: "CEP II",     grade: "JG12", focus: "Education, Clinical" },
+    "Ying Xian": { role: "CEP II",     grade: "JG12", focus: "Admin Projects, Clinical" },
+    "Brandon":   { role: "CEP III",    grade: "JG11", focus: "Clinical Execution, Basic Education" },
     "Nisa":      { role: "Administrator", grade: "Admin", focus: "Operations, Budget, Rostering" }
 };
 
 const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
-    // No more manual state for API Key
     const [targetYear, setTargetYear] = useState('2026'); 
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState('GENERATE ANALYSIS');
@@ -24,9 +28,9 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [error, setError] = useState('');
 
     const handleAnalyze = async () => {
-        // Validation: Check if .env key exists
-        if (!API_KEY) { 
-            setError('Missing API Key in .env file (VITE_GEMINI_API_KEY)'); 
+        // Validation check
+        if (!API_KEY || API_KEY.includes("YOUR_REST")) { 
+            setError('API Key incomplete. Please open src/components/SmartAnalysis.jsx and paste your key in PART_2.'); 
             return; 
         }
 
@@ -42,7 +46,6 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
 
             // 2. CONNECT TO GEMINI
             setStatus('Connecting to Gemini...');
-            // Use the constant API_KEY here
             const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`;
             const listResponse = await fetch(listUrl);
             const listData = await listResponse.json();
@@ -83,11 +86,16 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
             if (!genResponse.ok) throw new Error(genData.error?.message);
 
             // 4. PARSE JSON
-            const rawText = genData.candidates[0].content.parts[0].text;
+            let rawText = genData.candidates[0].content.parts[0].text;
+            // Clean up any markdown code blocks
+            rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error("AI did not return valid JSON.");
             
             const parsedObj = JSON.parse(jsonMatch[0]);
+            
+            // Handle case sensitivity just in case
             const privateText = parsedObj.private || parsedObj.Private || "Error generating private report.";
             const publicText = parsedObj.public || parsedObj.Public || "Error generating public report.";
 
@@ -148,8 +156,6 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
                                         <option value="2023">2023</option>
                                     </select>
                                 </div>
-
-                                {/* INPUT REMOVED - Uses .env now */}
                                 
                                 <button onClick={handleAnalyze} disabled={loading} className="w-full py-4 bg-slate-900 text-white font-black rounded-xl uppercase tracking-tighter hover:bg-slate-800 transition-all flex justify-center items-center gap-2">
                                     {loading ? (
