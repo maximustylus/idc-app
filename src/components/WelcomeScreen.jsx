@@ -106,11 +106,11 @@ const WelcomeScreen = (props) => {
                         </div>
                         
                         <h1 className="text-4xl md:text-6xl font-black text-slate-800 dark:text-white tracking-tighter mb-2 leading-none">
-                            NEXUS <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">IDC</span>
+                            NEXUS
                         </h1>
                         
                         <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-4">
-                            App v1.3 | KK Women's and Children's Hospital
+                            IDC App v1.3
                         </p>
 
                         {/* --- RESTORED DESCRIPTION (Fades out in split view) --- */}
@@ -160,7 +160,7 @@ const WelcomeScreen = (props) => {
                         </div>
                         
                         <p className={`mt-6 text-[10px] text-slate-400 font-medium transition-opacity duration-500 ${isSplitView ? 'opacity-0' : 'opacity-100'}`}>
-                            © 2026 Sport & Exercise Medicine Centre (SSMC).
+                            © 2026 Muhammad Alif.
                         </p>
                     </div>
 
