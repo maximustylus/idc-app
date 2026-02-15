@@ -1,9 +1,35 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { db } from '../firebase';
 import { doc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { X, Send, ChevronUp, BrainCircuit, User, Shield, RefreshCw, Activity, Sparkles } from 'lucide-react';
+import { X, Send, BrainCircuit, User, Shield, Activity, Sparkles } from 'lucide-react';
 import { analyzeWellbeing } from '../utils/auraChat'; 
 import { STAFF_LIST } from '../utils';
+
+// --- SMART IDENTITY MATCHER ---
+// This ensures "Alif here" or "it's alif" maps correctly to "Alif"
+const findClosestMatch = (input, list) => {
+    // 1. Clean the input: Remove "here", "I'm", etc., and lower case it
+    const cleanInput = input
+        .toLowerCase()
+        .replace(/^(my name is|i am|i'm|this is|it's|me|its)\s+/g, '') // Remove intros
+        .replace(/\s+(here|speaking|logging in|signing in)$/g, '') // Remove outros
+        .replace(/[^a-z0-9\s]/g, '') // Remove special chars
+        .trim();
+
+    // 2. Direct Match Check
+    const exactMatch = list.find(name => name.toLowerCase() === cleanInput);
+    if (exactMatch) return exactMatch;
+
+    // 3. Fuzzy Match (Simple "Includes" check for partial names)
+    // e.g., Input "Alif B" matches "Alif"
+    const partialMatch = list.find(name => 
+        cleanInput.includes(name.toLowerCase()) || 
+        name.toLowerCase().includes(cleanInput)
+    );
+    
+    // Return the official name if found, otherwise return the cleaned input formatted nicely
+    return partialMatch || cleanInput.charAt(0).toUpperCase() + cleanInput.slice(1);
+};
 
 const AuraPulseBot = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -14,7 +40,8 @@ const AuraPulseBot = () => {
     const [messages, setMessages] = useState([
         { 
             role: 'bot', 
-text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name or select 'Anonymous') and how can I help?"        }
+            text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name or select 'Anonymous') and how can I help?" 
+        }
     ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -41,17 +68,14 @@ text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name 
     // --- LOGIC HANDLERS ---
 
     const handleIdentity = async (userText) => {
-        const lowerInput = userText.toLowerCase().trim();
         let finalName = userText;
 
         // 1. Check for Anonymous intent
-        if (lowerInput.includes('anon') || lowerInput.includes('private')) {
+        if (userText.toLowerCase().includes('anon') || userText.toLowerCase().includes('private')) {
             finalName = 'Anonymous';
         } else {
-            // 2. Clean up name input (simple regex)
-            const cleanName = userText.replace(/^(my name is|i am|i'm|this is|it's)\s+/i, '').replace(/[.,!]/g, '').trim();
-            // 3. Match against Staff List (optional fuzzy match logic could go here)
-            finalName = STAFF_LIST.find(name => cleanName.toLowerCase() === name.toLowerCase()) || cleanName;
+            // 2. Use Smart Matcher to map "Alif here" -> "Alif"
+            finalName = findClosestMatch(userText, STAFF_LIST);
         }
 
         setIdentifiedUser(finalName);
@@ -62,7 +86,7 @@ text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name 
         setMessages(newHistory);
         setInput('');
         
-        // Trigger AI immediately with the history so it knows the name context
+        // Trigger AI immediately so it knows the name context
         await runAiAnalysis(newHistory);
     };
 
@@ -134,6 +158,7 @@ text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name 
                 await setDoc(anonRef, { last_updated: timestamp }, { merge: true }); 
                 await updateDoc(anonRef, { logs: arrayUnion(logData) });
             } else {
+                // Sanitize ID for Firestore path
                 const staffId = identifiedUser.toLowerCase().replace(/[^a-z0-9]/g, '_'); 
                 const logRef = doc(db, 'wellbeing_history', staffId);
                 
@@ -142,8 +167,8 @@ text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name 
                 // Update Dashboard Pulse (Real-time view for HOD)
                 await setDoc(doc(db, 'system_data', 'daily_pulse'), {
                     [identifiedUser]: { 
-                        energy: parseInt(pendingLog.energy / 10),
-                        focus: parseInt(pendingLog.energy / 10), // Simplified mapping
+                        energy: pendingLog.energy, // FIX: Keep as 0-100% (removed /10 division)
+                        focus: pendingLog.energy,  
                         lastUpdate: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                         status: 'checked-in'
                     }
@@ -211,9 +236,9 @@ text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name 
                             </div>
                             <div>
                                 <h3 className="font-bold text-sm tracking-wide flex items-center gap-2">
-                                    AURA <span className="text-[10px] font-normal bg-white/10 px-1.5 py-0.5 rounded text-indigo-200">v2.0</span>
+                                    NEXUS <span className="text-[10px] font-normal bg-white/10 px-1.5 py-0.5 rounded text-indigo-200">AURA v2.0</span>
                                 </h3>
-                                <p className="text-[10px] text-slate-400">Adaptive Understanding & Real-time Analytics</p>
+                                <p className="text-[10px] text-slate-400">Adaptive Understanding & Analytics</p>
                             </div>
                         </div>
                     </div>
