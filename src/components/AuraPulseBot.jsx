@@ -14,8 +14,7 @@ const AuraPulseBot = () => {
     const [messages, setMessages] = useState([
         { 
             role: 'bot', 
-            text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with today? (Enter your name or select 'Anonymous')" 
-        }
+text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name or select 'Anonymous') and how can I help?"        }
     ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -212,9 +211,9 @@ const AuraPulseBot = () => {
                             </div>
                             <div>
                                 <h3 className="font-bold text-sm tracking-wide flex items-center gap-2">
-                                    NEXUS <span className="text-[10px] font-normal bg-white/10 px-1.5 py-0.5 rounded text-indigo-200">AURA v2.0</span>
+                                    AURA <span className="text-[10px] font-normal bg-white/10 px-1.5 py-0.5 rounded text-indigo-200">v2.0</span>
                                 </h3>
-                                <p className="text-[10px] text-slate-400">Intelligence Engine Online</p>
+                                <p className="text-[10px] text-slate-400">Adaptive Understanding & Real-time Analytics</p>
                             </div>
                         </div>
                     </div>
