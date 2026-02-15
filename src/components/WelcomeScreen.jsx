@@ -1,15 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { auth } from '../firebase'; 
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { Sun, Moon, ArrowRight, Activity, ShieldCheck, Cpu, Database, Lock, AlertCircle, ChevronLeft, Building2, Globe, Layers, Calendar, Shield, Briefcase } from 'lucide-react';
-
-const WelcomeScreen = (props) => {
-    const onAuthSuccess = props.onStart || props.onLogin || props.onEnter;
-
-    // VIEW STATES: 'SPLASH' | 'AUTH' | 'ORG_REGISTER'
-    const [view, setView] = useState('SPLASH'); 
-    const [isDark, setIsDark] = useState(false);
-    const [animate, setAnimate] = useState(false);
+const [animate, setAnimate] = useState(false);
 
     // AUTH STATES
     const [isLoginMode, setIsLoginMode] = useState(true);
@@ -101,6 +90,7 @@ const WelcomeScreen = (props) => {
                             : 'w-full rounded-[2.5rem]'
                         }
                     `}>
+                        
                         {/* --- [CUSTOM LOGO] --- */}
                         <img 
                             src="/nexus.png" 
@@ -113,14 +103,14 @@ const WelcomeScreen = (props) => {
                         </h1>
                         
                         <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-4">
-                           Interactive Dasboard for Clinicians (IDC) App v1.3
+                           Interactive Dashboard for Clinicians (IDC) App v1.3
                         </p>
 
                         {/* --- [SYNERGY: RESTORED CONTEXT] --- */}
                         {/* This section provides the "What is this?" context but hides when user logs in */}
                         <div className={`max-w-xl transition-all duration-500 ${isSplitView ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
                             <p className="text-base text-slate-600 dark:text-slate-300 font-medium mb-8 leading-relaxed">
-Welcome to the NEXUS. The vital link between high-performance and human capacity. Harmonise workload, roster, and wellbeing powered by a smart and intuitive layer. Mastering the clinical grind without the burnout for teams.                            </p>
+                               Welcome to the NEXUS. The vital link between high-performance and human capacity. Harmonise workload, roster, and wellbeing powered by a smart and intuitive layer. Mastering the clinical grind without the burnout for teams.                            </p>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 text-left">
                                 <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-indigo-500/30 transition-colors">
