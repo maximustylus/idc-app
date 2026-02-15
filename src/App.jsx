@@ -383,12 +383,12 @@ function App() {
           <AdminPanel teamData={teamData} staffLoads={staffLoads} />
         </div>
       ) : (
-        <>
+        <div className="md:col-span-2 w-full animate-in fade-in duration-500">
           {currentView === 'dashboard' && <DashboardView />}
           {currentView === 'archive' && <DashboardView isArchive={true} />}
           {currentView === 'roster' && <RosterView />}
           {currentView === 'pulse' && <WellbeingView />}
-        </>
+        </div>
       )}
 
       {/* AURA GLOBAL BOT */}
