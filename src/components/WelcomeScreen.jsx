@@ -1,4 +1,15 @@
-const [animate, setAnimate] = useState(false);
+import React, { useState, useEffect } from 'react';
+import { auth } from '../firebase'; 
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { Sun, Moon, ArrowRight, Activity, ShieldCheck, Cpu, Database, Lock, AlertCircle, ChevronLeft, Building2, Globe, Layers, Calendar, Shield, Briefcase } from 'lucide-react';
+
+const WelcomeScreen = (props) => {
+    const onAuthSuccess = props.onStart || props.onLogin || props.onEnter;
+
+    // VIEW STATES: 'SPLASH' | 'AUTH' | 'ORG_REGISTER'
+    const [view, setView] = useState('SPLASH'); 
+    const [isDark, setIsDark] = useState(false);
+    const [animate, setAnimate] = useState(false);
 
     // AUTH STATES
     const [isLoginMode, setIsLoginMode] = useState(true);
@@ -107,10 +118,10 @@ const [animate, setAnimate] = useState(false);
                         </p>
 
                         {/* --- [SYNERGY: RESTORED CONTEXT] --- */}
-                        {/* This section provides the "What is this?" context but hides when user logs in */}
                         <div className={`max-w-xl transition-all duration-500 ${isSplitView ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
                             <p className="text-base text-slate-600 dark:text-slate-300 font-medium mb-8 leading-relaxed">
-                               Welcome to the NEXUS. The vital link between high-performance and human capacity. Harmonise workload, roster, and wellbeing powered by a smart and intuitive layer. Mastering the clinical grind without the burnout for teams.                            </p>
+                               Welcome to the NEXUS. The vital link between high-performance and human capacity. Harmonise workload, roster, and wellbeing powered by a smart and intuitive layer. Mastering the clinical grind without the burnout for teams.
+                            </p>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 text-left">
                                 <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-indigo-500/30 transition-colors">
@@ -138,7 +149,7 @@ const [animate, setAnimate] = useState(false);
                                 className="group relative px-8 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-sm rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden w-full"
                             >
                                 <span className="relative z-10 flex items-center justify-center gap-2">
-                                    INITIALIZE SYSTEM <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
+                                    INITIALISE APPLICATION <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
                                 </span>
                                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-10 dark:group-hover:opacity-100 dark:group-hover:text-white transition-all duration-300"></div>
                             </button>
@@ -152,7 +163,7 @@ const [animate, setAnimate] = useState(false);
                         </div>
                         
                         <p className={`mt-6 text-[10px] text-slate-400 font-medium transition-opacity duration-500 ${isSplitView ? 'opacity-0' : 'opacity-100'}`}>
-                            © 2026 Muhammad Alif.
+                            © 2026 Muhammad Alif
                         </p>
                     </div>
 
@@ -179,7 +190,7 @@ const [animate, setAnimate] = useState(false);
                                         {isLoginMode ? 'Clinician Login' : 'Staff Registration'}
                                     </h2>
                                     <p className="text-slate-500 text-xs font-medium mt-1">
-                                        {isLoginMode ? 'Secure access to your clinical dashboard' : 'Join the KKH IDC Workspace'}
+                                        {isLoginMode ? 'Secure access to your clinical dashboard' : 'Join the NEXUS IDC Workspace'}
                                     </p>
                                 </div>
 
@@ -284,7 +295,7 @@ const [animate, setAnimate] = useState(false);
             {/* GLOBAL STYLES FOR INPUTS */}
             <style>{`
                 .input-field-modern {
-                    @apply w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm font-bold text-slate-700 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all;
+                    @apply w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all;
                 }
             `}</style>
         </div>
