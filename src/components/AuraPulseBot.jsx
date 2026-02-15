@@ -1,33 +1,33 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { db } from '../firebase';
-import { doc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db, auth } from '../firebase'; 
+import { doc, setDoc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { GoogleGenerativeAI } from "@google/generative-ai"; 
 import { X, Send, BrainCircuit, User, Shield, Activity, Sparkles } from 'lucide-react';
 import { analyzeWellbeing } from '../utils/auraChat'; 
 import { STAFF_LIST } from '../utils';
 
+// --- CONFIGURATION ---
+// FIX: Use the Environment Variable you already set up
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY; 
+const genAI = new GoogleGenerativeAI(API_KEY);
+
 // --- SMART IDENTITY MATCHER ---
-// This ensures "Alif here" or "it's alif" maps correctly to "Alif"
 const findClosestMatch = (input, list) => {
-    // 1. Clean the input: Remove "here", "I'm", etc., and lower case it
     const cleanInput = input
         .toLowerCase()
-        .replace(/^(my name is|i am|i'm|this is|it's|me|its)\s+/g, '') // Remove intros
-        .replace(/\s+(here|speaking|logging in|signing in)$/g, '') // Remove outros
-        .replace(/[^a-z0-9\s]/g, '') // Remove special chars
+        .replace(/^(my name is|i am|i'm|this is|it's|me|its)\s+/g, '')
+        .replace(/\s+(here|speaking|logging in|signing in)$/g, '')
+        .replace(/[^a-z0-9\s]/g, '')
         .trim();
 
-    // 2. Direct Match Check
     const exactMatch = list.find(name => name.toLowerCase() === cleanInput);
     if (exactMatch) return exactMatch;
 
-    // 3. Fuzzy Match (Simple "Includes" check for partial names)
-    // e.g., Input "Alif B" matches "Alif"
     const partialMatch = list.find(name => 
         cleanInput.includes(name.toLowerCase()) || 
         name.toLowerCase().includes(cleanInput)
     );
     
-    // Return the official name if found, otherwise return the cleaned input formatted nicely
     return partialMatch || cleanInput.charAt(0).toUpperCase() + cleanInput.slice(1);
 };
 
@@ -35,33 +35,103 @@ const AuraPulseBot = () => {
     const [isOpen, setIsOpen] = useState(false);
     
     // STATES
-    const [step, setStep] = useState('IDENTITY'); // IDENTITY -> CHAT
+    const [step, setStep] = useState('IDENTITY'); 
     const [identifiedUser, setIdentifiedUser] = useState(null); 
-    const [messages, setMessages] = useState([
-        { 
-            role: 'bot', 
-            text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name or select 'Anonymous') and how can I help?" 
-        }
-    ]);
+    const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [pendingLog, setPendingLog] = useState(null); 
+    
+    // NEW PHASE 3 & 4 STATES
+    const [longTermMemory, setLongTermMemory] = useState(''); 
+    const [hasNudge, setHasNudge] = useState(false); 
+
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
-    // Auto-scroll to bottom
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
+    // --- 1. INITIALIZATION & NUDGE LOGIC ---
     useEffect(() => {
-        scrollToBottom();
+        const initAura = async () => {
+            const user = auth.currentUser;
+            
+            // A. Check for Nudge (Wednesdays +)
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // 0=Sun, 3=Wed
+            const currentHour = today.getHours();
+
+            // Logic: If Wed(3) or later, and past 2 PM (14:00)
+            if (dayOfWeek >= 3 && currentHour >= 14) {
+                const docRef = doc(db, 'system_data', 'daily_pulse');
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists() && user) {
+                    const data = docSnap.data();
+                    const userName = user.displayName || "User";
+                    // Fuzzy check if this user logged data yet
+                    const userLog = Object.keys(data).find(key => key.toLowerCase().includes(userName.toLowerCase()));
+
+                    if (!userLog) {
+                        setHasNudge(true); // Trigger Red Dot
+                    }
+                }
+            }
+
+            // B. Auto-Login & Memory Load
+            if (user) {
+                // Auto-identify based on Auth (skip manual entry)
+                const smartName = findClosestMatch(user.displayName || "Staff", STAFF_LIST);
+                setIdentifiedUser(smartName);
+                setStep('CHAT');
+
+                // Load Memory
+                try {
+                    const memRef = doc(db, 'users', user.uid);
+                    const memSnap = await getDoc(memRef);
+                    if (memSnap.exists() && memSnap.data().aura_memory) {
+                        setLongTermMemory(memSnap.data().aura_memory);
+                        
+                        // Set Initial Greeting with Memory context
+                        if (messages.length === 0) {
+                            setMessages([{ 
+                                role: 'bot', 
+                                text: `Welcome back, ${smartName}. Last time you mentioned: "${memSnap.data().aura_memory}". How is that feeling today?` 
+                            }]);
+                        }
+                    } else if (messages.length === 0) {
+                        // Standard Greeting if no memory
+                        setMessages([{ 
+                            role: 'bot', 
+                            text: `Welcome to the NEXUS, ${smartName}. I'm AURA. How can I help you today?` 
+                        }]);
+                    }
+                } catch (e) {
+                    console.error("Memory Load Error", e);
+                }
+            } else {
+                // Fallback for unauthenticated/manual flow
+                if (messages.length === 0) {
+                    setMessages([{ 
+                        role: 'bot', 
+                        text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name or select 'Anonymous')" 
+                    }]);
+                }
+            }
+        };
+
+        initAura();
+    }, []);
+
+    // Auto-scroll
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, pendingLog, loading, isOpen]);
 
-    // Focus input on open
+    // Focus input
     useEffect(() => {
         if (isOpen && inputRef.current) {
             setTimeout(() => inputRef.current.focus(), 300);
+            // Clear nudge when opened
+            if (hasNudge) setHasNudge(false);
         }
     }, [isOpen]);
 
@@ -69,45 +139,47 @@ const AuraPulseBot = () => {
 
     const handleIdentity = async (userText) => {
         let finalName = userText;
-
-        // 1. Check for Anonymous intent
         if (userText.toLowerCase().includes('anon') || userText.toLowerCase().includes('private')) {
             finalName = 'Anonymous';
         } else {
-            // 2. Use Smart Matcher to map "Alif here" -> "Alif"
             finalName = findClosestMatch(userText, STAFF_LIST);
         }
 
         setIdentifiedUser(finalName);
         setStep('CHAT');
 
-        // Add user message locally
         const newHistory = [...messages, { role: 'user', text: userText }];
         setMessages(newHistory);
         setInput('');
-        
-        // Trigger AI immediately so it knows the name context
         await runAiAnalysis(newHistory);
     };
 
     const runAiAnalysis = async (currentHistory) => {
         setLoading(true);
         try {
-            // CRITICAL: Send FULL history to get OARS/Context
-            const analysis = await analyzeWellbeing(currentHistory);
+            // INJECT MEMORY into the history sent to the analysis engine
+            // We prepend it as a "System Note" so the AI considers it
+            let analysisHistory = [...currentHistory];
+            if (longTermMemory) {
+                analysisHistory = [
+                    { role: 'system', text: `USER CONTEXT FROM PREVIOUS SESSION: ${longTermMemory}. Use this to be empathetic.` },
+                    ...currentHistory
+                ];
+            }
+
+            const analysis = await analyzeWellbeing(analysisHistory);
             
             setMessages(prev => [...prev, { role: 'bot', text: analysis.reply }]);
             
-            // Only show the Log Card if the AI determines it's ready (Phase 2)
             if (analysis.diagnosis_ready) {
                 setPendingLog({
                     phase: analysis.phase,
                     energy: analysis.energy,
                     action: analysis.action,
-                    originalText: currentHistory[currentHistory.length - 1].text // Use last user msg as note
+                    originalText: currentHistory[currentHistory.length - 1].text 
                 });
             } else {
-                setPendingLog(null); // Hide log if AI wants to keep chatting
+                setPendingLog(null); 
             }
 
         } catch (error) {
@@ -121,19 +193,43 @@ const AuraPulseBot = () => {
         if (!input.trim()) return;
         const userText = input.trim();
         
-        // If the user types while a log is pending, assume they want to continue chatting/correcting
-        if (pendingLog) {
-            setPendingLog(null);
-        }
+        if (pendingLog) setPendingLog(null);
 
         if (step === 'IDENTITY') {
             handleIdentity(userText);
         } else {
-            // Standard Chat Flow
             const newHistory = [...messages, { role: 'user', text: userText }];
             setMessages(newHistory);
             setInput('');
             await runAiAnalysis(newHistory);
+        }
+    };
+
+    // --- PHASE 4: MEMORY GENERATOR ---
+    const generateSummary = async () => {
+        if (!auth.currentUser) return;
+        
+        try {
+            // Convert chat to text block
+            const conversation = messages
+                .filter(m => m.role !== 'system')
+                .map(m => `${m.role}: ${m.text}`)
+                .join('\n');
+
+            const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+            const prompt = `Summarize the user's physical/mental state in this conversation. Max 10 words. Ignore greetings. Text: ${conversation}`;
+            
+            const result = await model.generateContent(prompt);
+            const summary = result.response.text();
+
+            // Save to Firestore
+            await setDoc(doc(db, 'users', auth.currentUser.uid), { 
+                aura_memory: summary,
+                last_interaction: new Date()
+            }, { merge: true });
+
+        } catch (e) {
+            console.error("Memory Gen Failed", e);
         }
     };
 
@@ -158,31 +254,28 @@ const AuraPulseBot = () => {
                 await setDoc(anonRef, { last_updated: timestamp }, { merge: true }); 
                 await updateDoc(anonRef, { logs: arrayUnion(logData) });
             } else {
-                // Sanitize ID for Firestore path
                 const staffId = identifiedUser.toLowerCase().replace(/[^a-z0-9]/g, '_'); 
                 const logRef = doc(db, 'wellbeing_history', staffId);
-                
                 await setDoc(logRef, { logs: arrayUnion(logData) }, { merge: true });
 
-                // Update Dashboard Pulse (Real-time view for HOD)
                 await setDoc(doc(db, 'system_data', 'daily_pulse'), {
                     [identifiedUser]: { 
-                        energy: pendingLog.energy, // FIX: Keep as 0-100% (removed /10 division)
+                        energy: pendingLog.energy, 
                         focus: pendingLog.energy,  
                         lastUpdate: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                         status: 'checked-in'
                     }
                 }, { merge: true });
+                
+                // SAVE MEMORY ON CONFIRMATION
+                await generateSummary();
             }
 
-            // Success State
             setMessages(prev => [...prev, { role: 'bot', text: "✅ Logged. Take care of yourself out there." }]);
             setPendingLog(null);
             
-            // Soft Reset after delay
             setTimeout(() => {
                 setIsOpen(false);
-                // We DON'T fully reset state here so they can open it back up and see history if they want
             }, 3000);
 
         } catch (e) {
@@ -210,12 +303,27 @@ const AuraPulseBot = () => {
             <button 
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-                    p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center
+                    relative group p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center
                     ${isOpen ? 'bg-slate-800 rotate-90' : 'bg-gradient-to-r from-indigo-600 to-violet-600'}
                     text-white border-2 border-white/20
                 `}
             >
+                {/* NUDGE BADGE (Phase 3) */}
+                {hasNudge && !isOpen && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
+                    </span>
+                )}
+
                 {isOpen ? <X size={24} /> : <BrainCircuit size={24} className="animate-pulse" />}
+                
+                {/* Tooltip for Nudge */}
+                {!isOpen && hasNudge && (
+                    <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
+                        ⚠️ Weekly Check-in Pending
+                    </span>
+                )}
             </button>
 
             {/* Main Chat Window */}
@@ -236,9 +344,9 @@ const AuraPulseBot = () => {
                             </div>
                             <div>
                                 <h3 className="font-bold text-sm tracking-wide flex items-center gap-2">
-                                    NEXUS <span className="text-[10px] font-normal bg-white/10 px-1.5 py-0.5 rounded text-indigo-200">AURA v2.0</span>
+                                    NEXUS <span className="text-[10px] font-normal bg-white/10 px-1.5 py-0.5 rounded text-indigo-200">AURA v2.1</span>
                                 </h3>
-                                <p className="text-[10px] text-slate-400">Adaptive Understanding & Analytics</p>
+                                <p className="text-[10px] text-slate-400">Episodic Memory Active</p>
                             </div>
                         </div>
                     </div>
@@ -249,8 +357,8 @@ const AuraPulseBot = () => {
                             <div key={i} className={`flex ${m.role === 'bot' ? 'justify-start' : 'justify-end'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                                 <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
                                     m.role === 'bot' 
-                                        ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-slate-700' 
-                                        : 'bg-indigo-600 text-white rounded-tr-none shadow-indigo-200'
+                                    ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-slate-700' 
+                                    : 'bg-indigo-600 text-white rounded-tr-none shadow-indigo-200'
                                 }`}>
                                     {m.text}
                                 </div>
@@ -262,12 +370,12 @@ const AuraPulseBot = () => {
                             <div className="flex justify-start animate-in fade-in">
                                 <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 flex items-center gap-2">
                                     <Sparkles size={14} className="text-indigo-400 animate-pulse" />
-                                    <span className="text-xs text-slate-400 font-medium">Thinking...</span>
+                                    <span className="text-xs text-slate-400 font-medium">Analyzing...</span>
                                 </div>
                             </div>
                         )}
 
-                        {/* Confirmation Card (Only shows when Diagnosis is Ready) */}
+                        {/* Confirmation Card */}
                         {pendingLog && !loading && (
                             <div className="mx-1 mt-4 bg-white dark:bg-slate-800 rounded-xl border-2 border-indigo-100 dark:border-slate-700 p-4 shadow-xl animate-in fade-in zoom-in-95">
                                 <div className="flex justify-between items-center mb-3">
