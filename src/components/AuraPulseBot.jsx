@@ -49,60 +49,80 @@ const AuraPulseBot = () => {
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
 
-    // --- 1. INITIALIZATION & NUDGE LOGIC ---
+   // --- 1. INITIALIZATION & NUDGE LOGIC ---
     useEffect(() => {
         const initAura = async () => {
             const user = auth.currentUser;
             
+            // HELPER: Extract Name from Email if DisplayName is missing
+            const getSmartName = (u) => {
+                if (u.displayName) return u.displayName;
+                
+                // Fallback: Parse 'muhammad.alif@kkh.com.sg' -> 'Alif'
+                if (u.email) {
+                    const emailName = u.email.split('@')[0]; // "muhammad.alif"
+                    // Check if any part of the email matches our STAFF_LIST
+                    const nameParts = emailName.split(/[._-]/); // ["muhammad", "alif"]
+                    
+                    for (const part of nameParts) {
+                        const match = STAFF_LIST.find(s => s.toLowerCase() === part.toLowerCase());
+                        if (match) return match; // Found "Alif" in list
+                    }
+                    // If no match, just capitalize the first part
+                    return nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1);
+                }
+                return "Staff";
+            };
+
             // A. Check for Nudge (Wednesdays +)
             const today = new Date();
             const dayOfWeek = today.getDay(); // 0=Sun, 3=Wed
             const currentHour = today.getHours();
 
-            // Logic: If Wed(3) or later, and past 2 PM (14:00)
-            if (dayOfWeek >= 3 && currentHour >= 14) {
+            if (dayOfWeek >= 3 && currentHour >= 14 && user) {
                 const docRef = doc(db, 'system_data', 'daily_pulse');
                 const docSnap = await getDoc(docRef);
                 
-                if (docSnap.exists() && user) {
+                if (docSnap.exists()) {
                     const data = docSnap.data();
-                    const userName = user.displayName || "User";
+                    const smartName = getSmartName(user);
                     // Fuzzy check if this user logged data yet
-                    const userLog = Object.keys(data).find(key => key.toLowerCase().includes(userName.toLowerCase()));
+                    const userLog = Object.keys(data).find(key => key.toLowerCase().includes(smartName.toLowerCase()));
 
                     if (!userLog) {
-                        setHasNudge(true); // Trigger Red Dot
+                        setHasNudge(true);
                     }
                 }
             }
 
             // B. Auto-Login & Memory Load
             if (user) {
-                // Auto-identify based on Auth (skip manual entry)
-                const smartName = findClosestMatch(user.displayName || "Staff", STAFF_LIST);
-                setIdentifiedUser(smartName);
+                const smartName = getSmartName(user);
+                // Run the matcher one last time to ensure casing is perfect (e.g. "alif" -> "Alif")
+                const finalName = findClosestMatch(smartName, STAFF_LIST);
+                
+                setIdentifiedUser(finalName);
                 setStep('CHAT');
 
                 // Load Memory
                 try {
                     const memRef = doc(db, 'users', user.uid);
                     const memSnap = await getDoc(memRef);
-                    if (memSnap.exists() && memSnap.data().aura_memory) {
-                        setLongTermMemory(memSnap.data().aura_memory);
-                        
-                        // Set Initial Greeting with Memory context
-                        if (messages.length === 0) {
+                    
+                    // Prevent duplicate initial messages if re-rendering
+                    if (messages.length === 0) {
+                        if (memSnap.exists() && memSnap.data().aura_memory) {
+                            setLongTermMemory(memSnap.data().aura_memory);
                             setMessages([{ 
                                 role: 'bot', 
-                                text: `Welcome back, ${smartName}. Last time you mentioned: "${memSnap.data().aura_memory}". How is that feeling today?` 
+                                text: `Welcome back, ${finalName}. Last time you mentioned: "${memSnap.data().aura_memory}". How is that feeling today?` 
+                            }]);
+                        } else {
+                            setMessages([{ 
+                                role: 'bot', 
+                                text: `Welcome back to the NEXUS, ${finalName}. AURA here. How can I help?` 
                             }]);
                         }
-                    } else if (messages.length === 0) {
-                        // Standard Greeting if no memory
-                        setMessages([{ 
-                            role: 'bot', 
-                            text: `Welcome to the NEXUS, ${smartName}. I'm AURA. How can I help you today?` 
-                        }]);
                     }
                 } catch (e) {
                     console.error("Memory Load Error", e);
@@ -112,7 +132,7 @@ const AuraPulseBot = () => {
                 if (messages.length === 0) {
                     setMessages([{ 
                         role: 'bot', 
-                        text: "Welcome to the NEXUS. I'm AURA, your Adaptive Understanding & Real-time Analytics Bot. Who am I chatting with? (Enter your name or select 'Anonymous')"
+                        text: "Welcome to the NEXUS. I'm AURA, your Adaptive Understanding & Real-time Analytics Bot.Who am I chatting with? (Enter your name or select 'Anonymous')" 
                     }]);
                 }
             }
