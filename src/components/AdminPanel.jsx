@@ -7,7 +7,8 @@ import { Sparkles, LayoutList, CalendarClock, FileJson, X, Users, Save, Briefcas
 import SmartAnalysis from './SmartAnalysis';
 import SmartReportView from './SmartReportView';
 import StaffLoadEditor from './StaffLoadEditor';
-import WellbeingTrends from './WellbeingTrends'; // <--- NEW IMPORT
+// --- CHANGED: Importing the new Private Admin Panel ---
+import AdminWellbeingPanel from './AdminWellbeingPanel';
 
 // Utils
 import { STAFF_LIST, STATUS_OPTIONS, DOMAIN_LIST } from '../utils';
@@ -419,7 +420,8 @@ const AdminPanel = ({ teamData, staffLoads }) => {
             {/* TAB 2: WELLBEING               */}
             {/* ========================================= */}
             {activeTab === 'WELLBEING' && (
-                <WellbeingTrends />
+                // --- CHANGED: Using the Admin-Specific Panel here ---
+                <AdminWellbeingPanel />
             )}
 
             {/* --- MODALS (SHARED) --- */}
