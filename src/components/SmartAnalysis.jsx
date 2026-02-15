@@ -3,20 +3,16 @@ import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore'; 
 import { X, ShieldCheck, Sparkles } from 'lucide-react';
 
-// --- ⚠️ CRITICAL STEP: PASTE YOUR KEY BELOW ⚠️ ---
-// Use the EXACT SAME parts you put in auraChat.js
-const PART_1 = "AIzaSy"; 
-// PASTE THE REST OF YOUR KEY INSIDE THE QUOTES BELOW (Delete the placeholder text first)
-const PART_2 = "BzLnky2jOu5r-5YnXnw5xnp96GEEWrED8"; 
-
-const API_KEY = PART_1 + PART_2;
+// --- CONFIGURATION ---
+// FIX: Use the secure environment variable
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const STAFF_PROFILES = {
-    "Alif":      { role: "Senior CEP", grade: "JG14", focus: "Leadership, Research, Clinical" },
-    "Fadzlynn":  { role: "CEP I",      grade: "JG13", focus: "Clinical Lead, Specialized Projects" },
-    "Derlinder": { role: "CEP II",     grade: "JG12", focus: "Education, Clinical" },
-    "Ying Xian": { role: "CEP II",     grade: "JG12", focus: "Admin Projects, Clinical" },
-    "Brandon":   { role: "CEP III",    grade: "JG11", focus: "Clinical Execution, Basic Education" },
+    "Alif":      { role: "Senior CEP", grade: "JG14", focus: "Leadership, Management, Clinical, Education, Research, " },
+    "Fadzlynn":  { role: "CEP I",      grade: "JG13", focus: "Clinical Lead, Co-Lead Management, Education" },
+    "Derlinder": { role: "CEP II",     grade: "JG12", focus: "Education Lead, Clinical" },
+    "Ying Xian": { role: "CEP II",     grade: "JG12", focus: "Research Co-Lead, Clinical" },
+    "Brandon":   { role: "CEP III",    grade: "JG11", focus: "Education Co-Lead, Clinical, Community" },
     "Nisa":      { role: "Administrator", grade: "Admin", focus: "Operations, Budget, Rostering" }
 };
 
@@ -28,12 +24,6 @@ const SmartAnalysis = ({ teamData, staffLoads, onClose }) => {
     const [error, setError] = useState('');
 
     const handleAnalyze = async () => {
-        // Validation check
-        if (!API_KEY || API_KEY.includes("YOUR_REST")) { 
-            setError('API Key incomplete. Please open src/components/SmartAnalysis.jsx and paste your key in PART_2.'); 
-            return; 
-        }
-
         setLoading(true); setError('');
         
         try {
