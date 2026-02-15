@@ -112,7 +112,7 @@ const AuraPulseBot = () => {
                 if (messages.length === 0) {
                     setMessages([{ 
                         role: 'bot', 
-                        text: "Welcome to the NEXUS. I'm AURA. Who am I chatting with? (Enter your name or select 'Anonymous')" 
+                        text: "Welcome to the NEXUS. I'm AURA, your Adaptive Understanding & Real-time Analytics Bot. Who am I chatting with? (Enter your name or select 'Anonymous')"
                     }]);
                 }
             }
