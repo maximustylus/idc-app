@@ -113,15 +113,14 @@ const WelcomeScreen = (props) => {
                         </h1>
                         
                         <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-4">
-                            IDC App v1.3
+                           Interactive Dasboard for Clinicians (IDC) App v1.3
                         </p>
 
                         {/* --- [SYNERGY: RESTORED CONTEXT] --- */}
                         {/* This section provides the "What is this?" context but hides when user logs in */}
                         <div className={`max-w-xl transition-all duration-500 ${isSplitView ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
                             <p className="text-base text-slate-600 dark:text-slate-300 font-medium mb-8 leading-relaxed">
-                                The Interactive Dashboard for Clinicians. Streamlining workload tracking, roster management, and team wellbeing intelligence in one secure, AI-powered platform.
-                            </p>
+Welcome to the NEXUS. The vital link between high-performance and human capacity. Harmonise workload, roster, and wellbeing powered by a smart and intuitive layer. Mastering the clinical grind without the burnout for teams.                            </p>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 text-left">
                                 <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-indigo-500/30 transition-colors">
