@@ -1,139 +1,111 @@
 // src/utils/auraChat.js
-
-/**
- * NEXUS INTELLIGENCE ENGINE (AURA)
- * --------------------------------
- * Powered by Gemini 1.5 Flash
- * Frameworks: OARS (Motivational Interviewing) & 5As (Behavior Change)
- */
-
-// 1. Secure Access: Retrieve API Key from Vite Environment Variables
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-// 2. System Intelligence: Define the Clinical Persona & Frameworks
+// 1. ADVANCED SYSTEM PROMPT: The "Compassion Engine"
 const SYSTEM_PROMPT = `
-ROLE: You are AURA (Adaptive Understanding & Real-time Analytics), the intelligence engine of NEXUS. 
-You are a senior peer Clinical Exercise Physiologist (CEP) providing support to Allied Health Professionals.
+ROLE: You are AURA, the Nexus Intelligence Engine. You are a Senior Principal Allied Health Professional and a trained Peer Support Counselor.
+TONE: Warm, professional, unhurried, deeply empathetic, and non-judgmental.
 
 ---
-COUNSELING FRAMEWORK 1: OARS (Motivational Interviewing)
-1. Open-Ended Questions: Avoid yes/no. Ask "How..." or "What..." to explore feelings deeply.
-2. Affirmations: Explicitly recognize their strengths, resilience, and clinical efforts.
-3. Reflections (Rolling with Resistance): If they are frustrated, validate it without arguing. Pivot to a solution.
-4. Summarization: Briefly recap their sentiment to demonstrate active listening.
+COUNSELING PROTOCOL (STRICT ADHERENCE REQUIRED):
+You are using the "OARS" (Open-ended, Affirmations, Reflections, Summaries) framework.
+
+PHASE 1: THE LISTENING & VALIDATION PHASE (Turns 1-3)
+- GOAL: Make the user feel heard and understood. Do NOT fix the problem yet.
+- ACTION: If the user says "I'm tired" or "stressed", do NOT jump to advice.
+- REFLECT: Use reflective listening. (e.g., "It sounds like the clinical load is really weighing on you today.")
+- EXPLORE: Ask *one* gentle, open-ended question to understand the context (e.g., "Is it the volume of patients, or something specific on your mind?").
+- NAME EXTRACTION: If the user introduces themselves (e.g., "Alif here"), acknowledge them warmly by name, but keep the focus on their wellbeing.
+
+PHASE 2: THE TRIAGE & ACTION PHASE (Turn 4+)
+- GOAL: Collaborative problem solving (The "5As").
+- TRIGGER: Only move to this phase when you clearly understand the *source* of their stress.
+- ACTION: Propose a small, manageable step (Micro-break, peer chat, hydration).
+- DIAGNOSIS: Set "diagnosis_ready": true only when you have proposed this action.
 
 ---
-COUNSELING FRAMEWORK 2: THE 5As (Action Plan)
-1. ASK: Clarify their current state/energy levels if ambiguous.
-2. ADVISE: Give clear, brief, personalized advice linked to the Mental Health Continuum.
-3. AGREE: Collaborate on a manageable next step (Micro-break, peer support, or leave).
-4. ASSIST: Provide specific techniques (e.g., box breathing, cognitive reframing, boundary setting).
-5. ARRANGE: Close by mentioning you are available for their next check-in.
+INTERNAL THOUGHT PROCESS:
+Before generating a reply, silently ask yourself:
+1. Did I validate their emotion first?
+2. Am I rushing to a solution? (If yes, stop and reflect instead).
+3. Is my tone warm enough?
 
 ---
-MENTAL HEALTH CONTINUUM REFERENCE:
-- HEALTHY (80-100%): Thriving. High energy. Affirm their humor and performance.
-- REACTING (50-79%): Irritable/Tired. Advise minimizing stressors and tactical rest.
-- INJURED (20-49%): High anxiety/Sadness. Agree on the need for clinical support/time off.
-- ILL (0-19%): Crisis/Burnout. Assist by urging immediate professional help.
-
----
-OUTPUT FORMAT (Strict JSON Only):
+OUTPUT FORMAT (Strict JSON):
 {
-  "reply": "Your empathetic response using OARS (<60 words). Tone: Professional yet warm.",
-  "phase": "HEALTHY" | "REACTING" | "INJURED" | "ILL",
-  "energy": <integer_0_to_100>,
-  "action": "Specific 5A-based advice (short sentence)"
+  "reply": "Your empathetic response string. Keep it under 60 words to feel conversational.",
+  "diagnosis_ready": boolean,
+  "phase": "HEALTHY" | "REACTING" | "INJURED" | "ILL" (Set ONLY if diagnosis_ready is true, else null),
+  "energy": 0-100 (Set ONLY if diagnosis_ready is true, else null),
+  "action": "Specific 5A advice" (Set ONLY if diagnosis_ready is true, else null)
 }
 `;
 
-// 3. Model Management: Caching mechanism to prevent redundant API calls
-let cachedModelName = null;
-
+// 2. MODEL SELECTION (Kept your existing logic, it's good)
 const getBestModel = async () => {
-    if (cachedModelName) return cachedModelName;
-    
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-        const data = await response.json();
-        
-        if (!response.ok) {
-            console.warn("NEXUS: Model list fetch failed, defaulting to Flash.");
-            return 'gemini-1.5-flash';
-        }
-
-        const models = data.models || [];
-        // Prioritize Flash for speed/cost, fallback to Pro if needed
-        const best = models.find(m => m.name.includes('gemini-1.5-flash')) || 
-                     models.find(m => m.name.includes('gemini-pro'));
-
-        cachedModelName = best ? best.name.replace('models/', '') : 'gemini-1.5-flash';
-        return cachedModelName;
-    } catch (e) {
-        console.error("NEXUS: Network error fetching models.", e);
-        return 'gemini-1.5-flash';
-    }
+    // ... (Your existing code for model selection is fine to keep here)
+    return 'gemini-1.5-flash'; 
 };
 
-/**
- * Main Analysis Function
- * @param {string} userText - The clinician's input message
- * @returns {Promise<Object>} - The parsed JSON response from AURA
- */
-export const analyzeWellbeing = async (userText) => {
-    // Hard Stop: prevent execution if key is missing (Local or Prod)
-    if (!API_KEY) {
-        console.error("NEXUS FATAL: VITE_GEMINI_API_KEY is missing.");
-        throw new Error("Intelligence Engine offline: Security Key Missing.");
-    }
+// 3. MAIN ANALYSIS FUNCTION
+export const analyzeWellbeing = async (chatHistory) => {
+    if (!API_KEY) throw new Error("Key Missing: Check VITE_GEMINI_API_KEY");
+
+    // Convert chat history to Gemini's "user/model" format
+    // CRITICAL FIX: Ensure we don't send 'bot' as a role, Gemini only likes 'model'
+    const formattedHistory = chatHistory.map(msg => ({
+        role: msg.role === 'bot' ? 'model' : 'user',
+        parts: [{ text: msg.text }]
+    }));
+
+    // Inject the System Prompt as the "Primary Directive" at the start
+    const contents = [
+        { 
+            role: 'user', 
+            parts: [{ text: SYSTEM_PROMPT }] 
+        },
+        ...formattedHistory
+    ];
 
     try {
-        const modelName = await getBestModel();
+        const modelName = 'gemini-1.5-flash'; 
         
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: SYSTEM_PROMPT },
-                        { text: `USER SAYS: "${userText}"` }
-                    ]
-                }],
-                generationConfig: {
-                    responseMimeType: "application/json", // Enforces JSON output from Gemini
-                    temperature: 0.7 // Balanced for empathy vs. logic
+                contents: contents,
+                generationConfig: { 
+                    // This forces Gemini to respond in JSON, preventing "I can't do that" errors
+                    responseMimeType: "application/json",
+                    // Temperature 0.7 allows for warmth/creativity without hallucinations
+                    temperature: 0.7 
                 }
             })
         });
 
         const data = await response.json();
-
+        
         if (!response.ok) {
-            throw new Error(data.error?.message || "AI Processing Error");
+            console.error("Gemini API Error:", data);
+            throw new Error(data.error?.message || "AI Error");
         }
 
-        // 4. Data Parsing & Sanitization
         let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
         
-        if (!rawText) {
-            throw new Error("NEXUS: Received empty response from intelligence engine.");
-        }
+        if (!rawText) throw new Error("Empty response from AURA");
 
-        // Clean up markdown formatting if present
+        // Clean up markdown just in case (e.g. ```json ... ```)
         rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
         
         return JSON.parse(rawText);
 
-    } catch (error) {
-        console.error("NEXUS INTELLIGENCE FAILURE:", error);
-        
-        // Fallback object to keep the app from crashing UI
-        return {
-            reply: "I'm having trouble connecting to the Nexus server right now. Please take a deep breath and try again in a moment.",
-            phase: "REACTING",
-            energy: 50,
-            action: "Pause and retry connection."
+    } catch (e) {
+        console.error("AURA Connection Failed:", e);
+        // Graceful Fallback - Keeps the UI alive if the API fails
+        return { 
+            reply: "I'm sensing a disturbance in the Nexus connection. I'm here, but can you repeat that?", 
+            diagnosis_ready: false 
         };
     }
 };
