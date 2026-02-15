@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase'; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { Sun, Moon, ArrowRight, Activity, ShieldCheck, Cpu, Database, Lock, AlertCircle, ChevronLeft, Building2, Globe, Layers } from 'lucide-react';
+import { Sun, Moon, ArrowRight, Activity, ShieldCheck, Cpu, Database, Lock, AlertCircle, ChevronLeft, Building2, Globe, Layers, Calendar, Shield, Briefcase } from 'lucide-react';
 
 const WelcomeScreen = (props) => {
     const onAuthSuccess = props.onStart || props.onLogin || props.onEnter;
 
-    // VIEW STATES: 'SPLASH' (Centered) | 'AUTH' (Split) | 'ORG_REGISTER' (Split)
+    // VIEW STATES: 'SPLASH' | 'AUTH' | 'ORG_REGISTER'
     const [view, setView] = useState('SPLASH'); 
     const [isDark, setIsDark] = useState(false);
     const [animate, setAnimate] = useState(false);
@@ -69,7 +69,7 @@ const WelcomeScreen = (props) => {
         }
     };
 
-    // --- DYNAMIC STYLES FOR ANIMATION ---
+    // --- DYNAMIC STYLES ---
     const isSplitView = view === 'AUTH' || view === 'ORG_REGISTER';
 
     return (
@@ -87,9 +87,9 @@ const WelcomeScreen = (props) => {
             </div>
 
             {/* MAIN CARD CONTAINER */}
-            <div className={`relative z-10 w-full max-w-6xl mx-auto shadow-2xl transition-all duration-1000 transform ${animate ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-20 opacity-0 scale-95'}`}>
+            <div className={`relative z-10 w-full max-w-7xl mx-auto shadow-2xl transition-all duration-1000 transform ${animate ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-20 opacity-0 scale-95'}`}>
                 
-                <div className="flex flex-col md:flex-row min-h-[650px] bg-transparent">
+                <div className="flex flex-col md:flex-row min-h-[700px] bg-transparent">
                     
                     {/* LEFT PANEL: BRANDING (Morphs from Center to Left) */}
                     <div className={`
@@ -97,51 +97,70 @@ const WelcomeScreen = (props) => {
                         bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/40 dark:border-slate-700/50
                         transition-all duration-700 ease-in-out
                         ${isSplitView 
-                            ? 'w-full md:w-1/2 rounded-t-[2.5rem] md:rounded-l-[2.5rem] md:rounded-tr-none' // Split State
-                            : 'w-full rounded-[2.5rem]' // Centered State
+                            ? 'w-full md:w-1/2 rounded-t-[2.5rem] md:rounded-l-[2.5rem] md:rounded-tr-none' 
+                            : 'w-full rounded-[2.5rem]'
                         }
                     `}>
-                        <div className="w-20 h-20 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/40 mb-6">
-                            <Activity className="text-white w-10 h-10" strokeWidth={1.5} />
+                        <div className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30 mb-4">
+                            <Activity className="text-white w-8 h-8" strokeWidth={1.5} />
                         </div>
-                        <h1 className="text-5xl md:text-6xl font-black text-slate-800 dark:text-white tracking-tighter mb-2 leading-none">
+                        
+                        <h1 className="text-4xl md:text-6xl font-black text-slate-800 dark:text-white tracking-tighter mb-2 leading-none">
                             NEXUS <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">IDC</span>
                         </h1>
-                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-8">
-                            Interactive Dashboard for Clinicians v1.3
+                        
+                        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-4">
+                            App v1.3 | KK Women's and Children's Hospital
                         </p>
 
-                        <div className="flex flex-wrap justify-center gap-2 mb-8">
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800/80 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm text-[10px] font-bold text-slate-600 dark:text-slate-300">
-                                <ShieldCheck size={12} className="text-emerald-500"/> SECURE
-                            </div>
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800/80 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm text-[10px] font-bold text-slate-600 dark:text-slate-300">
-                                <Cpu size={12} className="text-indigo-500"/> GEMINI AI
+                        {/* --- RESTORED DESCRIPTION (Fades out in split view) --- */}
+                        <div className={`max-w-xl transition-all duration-500 ${isSplitView ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
+                            <p className="text-base text-slate-600 dark:text-slate-300 font-medium mb-8 leading-relaxed">
+                                The Interactive Dashboard for Clinicians. Streamlining workload tracking, roster management, and team wellbeing intelligence in one secure, AI-powered platform.
+                            </p>
+
+                            {/* --- RESTORED FEATURE GRID (Modernized) --- */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 text-left">
+                                <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-indigo-500/30 transition-colors">
+                                    <div className="bg-blue-500/10 p-2 rounded-lg w-fit mb-2"><Activity size={18} className="text-blue-500"/></div>
+                                    <h3 className="font-bold text-xs text-slate-800 dark:text-white">Smart Workload</h3>
+                                    <p className="text-[10px] text-slate-500 mt-1">Real-time tracking of clinical & research loads.</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-emerald-500/30 transition-colors">
+                                    <div className="bg-emerald-500/10 p-2 rounded-lg w-fit mb-2"><ShieldCheck size={18} className="text-emerald-500"/></div>
+                                    <h3 className="font-bold text-xs text-slate-800 dark:text-white">AURA Intelligence</h3>
+                                    <p className="text-[10px] text-slate-500 mt-1">AI-powered burnout risk monitoring.</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-purple-500/30 transition-colors">
+                                    <div className="bg-purple-500/10 p-2 rounded-lg w-fit mb-2"><Calendar size={18} className="text-purple-500"/></div>
+                                    <h3 className="font-bold text-xs text-slate-800 dark:text-white">Auto Rostering</h3>
+                                    <p className="text-[10px] text-slate-500 mt-1">Conflict-free scheduling & balancing.</p>
+                                </div>
                             </div>
                         </div>
 
-                        {/* BUTTONS: Only show if NOT in split view, OR transition them out smoothly */}
-                        <div className={`w-full max-w-xs space-y-4 transition-all duration-500 ${isSplitView ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
+                        {/* BUTTONS */}
+                        <div className={`w-full max-w-xs space-y-3 transition-all duration-500 ${isSplitView ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
                             <button 
                                 onClick={() => setView('AUTH')}
-                                className="group relative px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-sm rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden w-full"
+                                className="group relative px-8 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-sm rounded-xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden w-full"
                             >
-                                <span className="relative z-10 flex items-center justify-center gap-3">
-                                    INITIALIZE SYSTEM <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform"/>
+                                <span className="relative z-10 flex items-center justify-center gap-2">
+                                    INITIALIZE SYSTEM <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
                                 </span>
                                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-10 dark:group-hover:opacity-100 dark:group-hover:text-white transition-all duration-300"></div>
                             </button>
 
                             <button 
                                 onClick={() => setView('ORG_REGISTER')}
-                                className="w-full py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white/50 dark:hover:bg-slate-800/50 rounded-lg transition-all flex items-center justify-center gap-2"
+                                className="w-full py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg transition-all flex items-center justify-center gap-2"
                             >
                                 <Building2 size={14}/> Want to deploy NEXUS for your team?
                             </button>
                         </div>
                         
-                        <p className={`mt-8 text-[10px] text-slate-400 font-medium transition-opacity duration-500 ${isSplitView ? 'opacity-0' : 'opacity-100'}`}>
-                            © 2026 SSMC @ KKH.
+                        <p className={`mt-6 text-[10px] text-slate-400 font-medium transition-opacity duration-500 ${isSplitView ? 'opacity-0' : 'opacity-100'}`}>
+                            © 2026 Sport & Exercise Medicine Centre (SSMC).
                         </p>
                     </div>
 
