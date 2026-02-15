@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase'; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { Sun, Moon, ArrowRight, Activity, ShieldCheck, Cpu, Database, Lock, AlertCircle, ChevronLeft, Building2, Globe, Calendar } from 'lucide-react';
+import { Sun, Moon, ArrowRight, Activity, ShieldCheck, Cpu, Database, Lock, AlertCircle, ChevronLeft, Building2, Globe, Layers, Calendar, Shield, Briefcase } from 'lucide-react';
 
 const WelcomeScreen = (props) => {
     const onAuthSuccess = props.onStart || props.onLogin || props.onEnter;
@@ -89,7 +89,7 @@ const WelcomeScreen = (props) => {
             {/* MAIN CARD CONTAINER */}
             <div className={`relative z-10 w-full max-w-7xl mx-auto shadow-2xl transition-all duration-1000 transform ${animate ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-20 opacity-0 scale-95'}`}>
                 
-                <div className="flex flex-col md:flex-row min-h-[750px] bg-transparent">
+                <div className="flex flex-col md:flex-row min-h-[700px] bg-transparent">
                     
                     {/* LEFT PANEL: BRANDING (Morphs from Center to Left) */}
                     <div className={`
@@ -110,6 +110,7 @@ const WelcomeScreen = (props) => {
                         
                         <h1 className="text-4xl md:text-6xl font-black text-slate-800 dark:text-white tracking-tighter mb-2 leading-none">
                             NEXUS
+                        </h1>
                         
                         <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-4">
                             IDC App v1.3
