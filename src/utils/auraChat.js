@@ -27,7 +27,7 @@ PHASE 2: THE TRIAGE & ACTION PHASE (Turn 4+)
 INTERNAL THOUGHT PROCESS:
 Before generating a reply, silently ask yourself:
 1. Did I validate their emotion first?
-2. Am I rushing to a solution? (If yes, stop and reflect instead).
+2. Am I rushing to a solution?
 
 ---
 OUTPUT FORMAT (Strict JSON):
@@ -40,16 +40,50 @@ OUTPUT FORMAT (Strict JSON):
 }
 `;
 
+// --- SELF-HEALING MODEL SELECTOR ---
+let cachedModel = null;
+
+const getBestModel = async () => {
+    if (cachedModel) return cachedModel;
+
+    try {
+        // 1. Ask Google: "What models does this API key have access to?"
+        const listReq = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+        const listData = await listReq.json();
+        
+        if (!listReq.ok) throw new Error("Model List Failed");
+
+        const models = listData.models || [];
+
+        // 2. Intelligent Selection Logic
+        // Priority 1: Gemini 1.5 Flash (Fastest/Newest)
+        // Priority 2: Gemini Pro (Reliable Fallback)
+        const best = models.find(m => m.name.includes('gemini-1.5-flash')) || 
+                     models.find(m => m.name.includes('gemini-pro'));
+
+        if (best) {
+            // Remove 'models/' prefix if present (e.g., "models/gemini-1.5-flash" -> "gemini-1.5-flash")
+            cachedModel = best.name.replace('models/', '');
+            console.log(`[NEXUS] Selected Model: ${cachedModel}`);
+            return cachedModel;
+        } else {
+            throw new Error("No compatible models found.");
+        }
+    } catch (e) {
+        console.warn("[NEXUS] Auto-selection failed. Falling back to hardcoded default.");
+        return 'gemini-1.5-flash'; // Last resort fallback
+    }
+};
+
 export const analyzeWellbeing = async (chatHistory) => {
-    // 1. DEBUG CHECK: Immediate feedback if key is missing locally
     if (!API_KEY) {
-        console.error("API Key is missing. If running locally, check .env");
         return { 
-            reply: "⚠️ SYSTEM ALERT: Nexus Intelligence Offline. (Reason: Missing API Key in local environment). Please create an .env file.", 
+            reply: "⚠️ SYSTEM ALERT: Nexus Intelligence Offline. (Reason: Missing API Key).", 
             diagnosis_ready: false 
         };
     }
 
+    // 1. Convert History
     const formattedHistory = chatHistory.map(msg => ({
         role: msg.role === 'bot' ? 'model' : 'user',
         parts: [{ text: msg.text }]
@@ -61,7 +95,11 @@ export const analyzeWellbeing = async (chatHistory) => {
     ];
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+        // 2. Dynamically get the correct model name
+        const modelName = await getBestModel();
+
+        // 3. Generate Content
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -76,13 +114,14 @@ export const analyzeWellbeing = async (chatHistory) => {
         const data = await response.json();
         
         if (!response.ok) {
+            // Detailed error for debugging
             throw new Error(data.error?.message || `API Error: ${response.status}`);
         }
 
         let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!rawText) throw new Error("Empty response from AURA");
 
-        // 2. ROBUST PARSING: Find the JSON object even if there is extra text
+        // 4. Clean & Parse JSON
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             return JSON.parse(jsonMatch[0]);
@@ -92,9 +131,8 @@ export const analyzeWellbeing = async (chatHistory) => {
 
     } catch (e) {
         console.error("AURA Logic Failure:", e);
-        // 3. DEBUG FEEDBACK: Show the actual error in the chat
         return { 
-            reply: `⚠️ Nexus Connection Error: ${e.message}. (Try refreshing or checking your network).`, 
+            reply: `⚠️ Nexus Connection Error: ${e.message}. (Try refreshing).`, 
             diagnosis_ready: false 
         };
     }
