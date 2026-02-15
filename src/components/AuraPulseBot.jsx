@@ -14,7 +14,7 @@ const AuraPulseBot = () => {
     const [messages, setMessages] = useState([
         { 
             role: 'bot', 
-            text: "Hi! AURA here, your Adaptive Understanding & Real-time Analytics Bot. Who am I chatting with? (Enter your name or select 'Anonymous')" 
+            text: "Welcome to the NEXUS, I'm AURA, your Adaptive Understanding & Real-time Analytics Bot. Who am I chatting with? (Enter your name or select 'Anonymous') and how can i help?" 
         }
     ]);
     const [input, setInput] = useState('');
