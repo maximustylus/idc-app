@@ -64,9 +64,9 @@ const WelcomeScreen = () => {
 
                 <div className="relative z-10">
                     <img src="/logo.png" alt="SSMC Logo" className="h-16 mb-8 w-auto object-contain" />
-                    <h1 className="text-5xl font-black tracking-tight mb-4">IDC APP v1.3</h1>
+                    <h1 className="text-5xl font-black tracking-tight mb-4">NEXUS</h1>
                     <p className="text-xl text-blue-200 font-medium max-w-md leading-relaxed">
-                        The Interactive Dashboard for Clinicians. 
+                        The Interactive Dashboard for Clinicians IDC App v1.3. 
                         Streamlining workload, roster management, and team wellbeing in one secure platform.
                     </p>
                 </div>
