@@ -1,4 +1,4 @@
-name: Deploy to Firebase Hosting on merge
+name: Build and Deploy to Firebase
 on:
   push:
     branches:
@@ -8,10 +8,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: npm install && npm run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Production Bundle
+        # This line injects the secret into the Vite build process
+        run: npm run build
+        env:
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+
+      - name: Deploy to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_IDC_APP_E0C59 }}
           channelId: live
           projectId: idc-app-e0c59
