@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase'; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { Sun, Moon, ArrowRight, Activity, ShieldCheck, Cpu, Database, Lock, AlertCircle, ChevronLeft, Building2, Globe, Layers, Calendar, Shield, Briefcase } from 'lucide-react';
+import { Sun, Moon, ArrowRight, Activity, ShieldCheck, Cpu, Database, Lock, AlertCircle, ChevronLeft, Building2, Globe, Calendar } from 'lucide-react';
 
 const WelcomeScreen = (props) => {
     const onAuthSuccess = props.onStart || props.onLogin || props.onEnter;
@@ -89,7 +89,7 @@ const WelcomeScreen = (props) => {
             {/* MAIN CARD CONTAINER */}
             <div className={`relative z-10 w-full max-w-7xl mx-auto shadow-2xl transition-all duration-1000 transform ${animate ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-20 opacity-0 scale-95'}`}>
                 
-                <div className="flex flex-col md:flex-row min-h-[700px] bg-transparent">
+                <div className="flex flex-col md:flex-row min-h-[750px] bg-transparent">
                     
                     {/* LEFT PANEL: BRANDING (Morphs from Center to Left) */}
                     <div className={`
@@ -101,9 +101,12 @@ const WelcomeScreen = (props) => {
                             : 'w-full rounded-[2.5rem]'
                         }
                     `}>
-                        <div className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30 mb-4">
-                            <Activity className="text-white w-8 h-8" strokeWidth={1.5} />
-                        </div>
+                        {/* --- [CUSTOM LOGO] --- */}
+                        <img 
+                            src="/nexus.png" 
+                            alt="NEXUS Logo" 
+                            className="w-24 h-24 mb-6 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+                        />
                         
                         <h1 className="text-4xl md:text-6xl font-black text-slate-800 dark:text-white tracking-tighter mb-2 leading-none">
                             NEXUS <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">IDC</span>
@@ -113,13 +116,13 @@ const WelcomeScreen = (props) => {
                             App v1.3 | KK Women's and Children's Hospital
                         </p>
 
-                        {/* --- RESTORED DESCRIPTION (Fades out in split view) --- */}
+                        {/* --- [SYNERGY: RESTORED CONTEXT] --- */}
+                        {/* This section provides the "What is this?" context but hides when user logs in */}
                         <div className={`max-w-xl transition-all duration-500 ${isSplitView ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
                             <p className="text-base text-slate-600 dark:text-slate-300 font-medium mb-8 leading-relaxed">
                                 The Interactive Dashboard for Clinicians. Streamlining workload tracking, roster management, and team wellbeing intelligence in one secure, AI-powered platform.
                             </p>
 
-                            {/* --- RESTORED FEATURE GRID (Modernized) --- */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 text-left">
                                 <div className="p-4 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-indigo-500/30 transition-colors">
                                     <div className="bg-blue-500/10 p-2 rounded-lg w-fit mb-2"><Activity size={18} className="text-blue-500"/></div>
@@ -160,7 +163,7 @@ const WelcomeScreen = (props) => {
                         </div>
                         
                         <p className={`mt-6 text-[10px] text-slate-400 font-medium transition-opacity duration-500 ${isSplitView ? 'opacity-0' : 'opacity-100'}`}>
-                            © 2026 Sport & Exercise Medicine Centre (SSMC).
+                            © 2026 Muhammad Alif.
                         </p>
                     </div>
 
