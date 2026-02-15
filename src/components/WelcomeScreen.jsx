@@ -109,11 +109,11 @@ const WelcomeScreen = (props) => {
                         />
                         
                         <h1 className="text-4xl md:text-6xl font-black text-slate-800 dark:text-white tracking-tighter mb-2 leading-none">
-                            NEXUS
+                            NEXUS <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500">IDC</span>
                         </h1>
                         
                         <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.25em] mb-4">
-                            IDC App v1.3
+                            App v1.3 | KK Women's and Children's Hospital
                         </p>
 
                         {/* --- [SYNERGY: RESTORED CONTEXT] --- */}
@@ -158,12 +158,12 @@ const WelcomeScreen = (props) => {
                                 onClick={() => setView('ORG_REGISTER')}
                                 className="w-full py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-lg transition-all flex items-center justify-center gap-2"
                             >
-                                <Building2 size={14}/> Want to deploy NEXUS for your team, service, department?
+                                <Building2 size={14}/> Want to deploy NEXUS for your team?
                             </button>
                         </div>
                         
                         <p className={`mt-6 text-[10px] text-slate-400 font-medium transition-opacity duration-500 ${isSplitView ? 'opacity-0' : 'opacity-100'}`}>
-                            © 2026 Muhammad Alif
+                            © 2026 Muhammad Alif.
                         </p>
                     </div>
 
@@ -190,7 +190,7 @@ const WelcomeScreen = (props) => {
                                         {isLoginMode ? 'Clinician Login' : 'Staff Registration'}
                                     </h2>
                                     <p className="text-slate-500 text-xs font-medium mt-1">
-                                        {isLoginMode ? 'Secure access to your clinical dashboard' : 'Join the NEXUS IDC Workspace'}
+                                        {isLoginMode ? 'Secure access to your clinical dashboard' : 'Join the KKH IDC Workspace'}
                                     </p>
                                 </div>
 
@@ -210,11 +210,30 @@ const WelcomeScreen = (props) => {
                                     )}
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Email</label>
-                                        <input type="email" className="w-full input-field-modern" placeholder="name@kkh.com.sg" value={email} onChange={(e) => setEmail(e.target.value)}/>
+                                        <input 
+                                            type="email" 
+                                            name="email"           // REQUIRED for Safari
+                                            id="email"             // REQUIRED for Accessibility/Safari
+                                            autoComplete="username" // TELLS SAFARI: "This is the username to save"
+                                            className="w-full input-field-modern" 
+                                            placeholder="name@kkh.com.sg" 
+                                            value={email} 
+                                            onChange={(e) => setEmail(e.target.value)}
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Password</label>
-                                        <input type="password" className="w-full input-field-modern" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}/>
+                                        <input 
+                                            type="password" 
+                                            name="password" 
+                                            id="password"
+                                            // TELLS SAFARI: If logging in, fetch password. If registering, save new password.
+                                            autoComplete={isLoginMode ? "current-password" : "new-password"}
+                                            className="w-full input-field-modern" 
+                                            placeholder="••••••••" 
+                                            value={password} 
+                                            onChange={(e) => setPassword(e.target.value)}
+                                        />
                                     </div>
                                     <button type="submit" disabled={loading} className="w-full py-3.5 bg-indigo-600 text-white font-black rounded-xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95 flex justify-center items-center gap-2 mt-4">
                                         {loading ? 'Verifying...' : (isLoginMode ? 'ACCESS DASHBOARD' : 'CREATE ACCOUNT')}
@@ -243,7 +262,7 @@ const WelcomeScreen = (props) => {
                                 
                                 <h2 className="text-3xl font-black mb-2 text-slate-800 dark:text-white">Scale NEXUS.</h2>
                                 <p className="text-slate-500 text-sm mb-8 leading-relaxed">
-                                    We are actively building multi-tenant support. Soon you can deploy a private NEXUS instance for your team, service, department.
+                                    We are actively building multi-tenant support. Soon you can deploy a private NEXUS instance for your department.
                                 </p>
 
                                 <div className="space-y-3 mb-8 text-left">
