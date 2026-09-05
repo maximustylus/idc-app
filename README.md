@@ -1,6 +1,6 @@
-# NEXUS: Smart Operations Dashboard v2.12.1
+# NEXUS: Smart Operations Dashboard v2.12.2
 
-![Version](https://img.shields.io/badge/Version-v2.12.1-blue) ![Status](https://img.shields.io/badge/Status-In%20production-emerald) ![Teams](https://img.shields.io/badge/Multi--Team-28%20AHP%20professions-indigo) ![Roster](https://img.shields.io/badge/Roster%20engine-deterministic-0f766e) ![Assistant](https://img.shields.io/badge/AURA%20assistant-Gemini-purple) ![PWA](https://img.shields.io/badge/PWA-Native%20Push%20Enabled-blue) ![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2ea44f)
+![Version](https://img.shields.io/badge/Version-v2.12.2-blue) ![Status](https://img.shields.io/badge/Status-In%20production-emerald) ![Teams](https://img.shields.io/badge/Multi--Team-28%20AHP%20professions-indigo) ![Roster](https://img.shields.io/badge/Roster%20engine-deterministic-0f766e) ![Assistant](https://img.shields.io/badge/AURA%20assistant-Gemini-purple) ![PWA](https://img.shields.io/badge/PWA-Native%20Push%20Enabled-blue) ![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2ea44f)
 
 **NEXUS** (formerly IDC App) is a clinician-led platform for workload management, skill-mix routing and staff wellbeing, built inside an allied health department and now serving departments beyond the one it was written for.
 
@@ -445,7 +445,15 @@ Use Demo Mode to verify system integrity before a demonstration or after a deplo
 > also lists the **known issues that are documented but not yet fixed**. The summaries
 > below are narrative highlights; where the two disagree, `CHANGELOG.md` is correct.
 
-### NEXUS v2.12.1 [Current] — Out of beta, and the paper trail cut to what is live
+### NEXUS v2.12.2 [Current] — The info card catches up with what the live read changed
+
+The IMDA chatbot info card served at `/aura-info` (card v1.3) now describes v2.11–v2.12:
+the rewritten model list and probe-before-trust resolution, the two code controls the
+twenty-turn read forced (a workload card needs a figure in the current message; a
+shortened rework is announced), the read's own results, and three new declared gaps —
+including that prompt rules are demonstrably requests, not controls. No other change.
+
+### NEXUS v2.12.1 — Out of beta, and the paper trail cut to what is live
 
 The app has served more than one department since v2.0.0 and its guardrails have now been
 read against real model turns; nothing about it was a beta any more except the label. The

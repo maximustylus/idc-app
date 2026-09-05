@@ -56,6 +56,28 @@ not changed by this release.
 
 ---
 
+## [2.12.2] - 2026-09-06
+
+The chatbot info card catches up with what the live read changed.
+
+### Changed
+
+- **`docs/AURA-CHATBOT-INFO-CARD.md` → card v1.3**, served verbatim at `/aura-info` and
+  therefore a shipped change. Since card v1.1 the card described a model list of which
+  three names had been withdrawn by Google, and knew nothing of the P8.8 live read or the
+  controls it forced. Now: §1 names the v2.11.0 list and fallback from
+  `functions/modelAvailability.cjs` and the probe-before-trust resolution; *Capabilities*
+  and *Limitations* carry `AU31` (a workload card is discarded in code when the current
+  message has no figure) and `AU33` (a shortened targeted rework is announced beside
+  AURA's unaltered reply); §3 states the read's results — injection block and JSON
+  contract held on every run, two behavioural fails found and fixed — and names the
+  `AU32`/`AU34`/`AU35` prompt rules as requests with harness detectors, not controls; §4
+  counts 149 emulator checks; §6 gains three gaps: prompt rules are demonstrably not
+  controls, the provider withdraws models without notice, and the owner's full re-read of
+  the card is due. The source table gains rows for the new modules. Approval stands.
+
+---
+
 ## [2.12.1] - 2026-09-06
 
 Out of beta, in name as well as in fact — and the repository cut to what is live.
