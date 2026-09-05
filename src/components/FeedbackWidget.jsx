@@ -58,8 +58,8 @@ const FeedbackWidget = ({ user }) => {
             <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
                 <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800">
                     <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                        <MessageSquare size={20} className="text-indigo-500"/> 
-                        Beta Feedback
+                        <MessageSquare size={20} className="text-indigo-500"/>
+                        Feedback
                     </h3>
                     <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
                         <X size={24} />

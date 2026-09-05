@@ -105,9 +105,10 @@ The harness has four sections and **they do not all gate**:
 ## Ids — `D`n and `Q`n are two different series
 
 `D`n is a **defect** (`CHANGELOG.md` known issues, `ROSTER_POSTMORTEM.md`, the four
-`ROSTER_QC_AUDIT*.md`); the same number means different defects in different audits,
-so always name the source file. `Q`n is an **open decision for the owner**
-(`ROSTER_HANDOFF.md` §5); there is no `Q9`. Use `grep -a`, not `grep` — a committed
+`ROSTER_QC_AUDIT*.md` — the audit files are archived at tag `docs-archive-2026-09-06`);
+the same number means different defects in different audits, so always name the source
+file. `Q`n is an **open decision for the owner** (`ROSTER_TODO.md` §Open decisions);
+there is no `Q9`. Use `grep -a`, not `grep` — a committed
 NUL byte once made a whole audit file invisible to plain grep.
 
 ## Where to look

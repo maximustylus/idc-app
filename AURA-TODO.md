@@ -1,8 +1,10 @@
 # AURA — remediation ledger
 
-Companion to [`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md), which carries the evidence for
-every row below. **This file is the plan; the post-mortem is the finding.**
-[`AURA-HANDOFF.md`](AURA-HANDOFF.md) is what to read first.
+**This file is the plan and the live status.** The finding text behind each id was
+`AURA-POSTMORTEM.md`, a frozen 2026-08-23 snapshot, and `AURA-HANDOFF.md` was the entry
+point; both were removed on 2026-09-06 and are readable at tag `docs-archive-2026-09-06`
+(`git show docs-archive-2026-09-06:AURA-POSTMORTEM.md`). Read this file first; the
+README's *What NEXUS actually is* section is the two-minute version.
 
 **Scope: the four AI surfaces and the intelligence layer.** The roster engine has its own
 ledger in [`ROSTER_TODO.md`](ROSTER_TODO.md) and the community portal in

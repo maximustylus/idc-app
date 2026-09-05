@@ -1,7 +1,12 @@
 # AURA Roster — Remediation Ledger (rev 2)
 
-Companion to [ROSTER_POSTMORTEM.md](ROSTER_POSTMORTEM.md) and the independent
-[ROSTER_QC_AUDIT.md](ROSTER_QC_AUDIT.md).
+**This file is the plan and the live status.** The findings it remediates were
+`ROSTER_POSTMORTEM.md` (2026-08-05) and the independent `ROSTER_QC_AUDIT.md`, with three
+later package audits and the operator handoff `ROSTER_HANDOFF.md`; all were frozen snapshots
+of trees that no longer exist and were removed on 2026-09-06. They are readable, with their
+final status banners, at tag `docs-archive-2026-09-06`
+(`git show docs-archive-2026-09-06:ROSTER_POSTMORTEM.md`). The owner's open `Q`n decisions
+moved from the handoff into §Open decisions at the foot of this file.
 
 **Rev 2 re-plans rev 1 substantially.** The audit found that rev 1's central ordering argument
 was built on a claim that was too generous to C2, that rev 1's date fix (old P1.1) **would have
@@ -31,8 +36,8 @@ files were byte-identical to `HEAD`. Those `DONE` markers were false and are rem
 > | Question | Answer lives in |
 > |---|---|
 > | What is still broken | [CHANGELOG.md](CHANGELOG.md), read top-down: 2.x releases record what they leave open per entry under `### Known limitations`; the newest `### Known issues` table is under `[1.17.0]` *(this row said `[1.13.0]`, which is two tables older, and "the only one", which it never was)* |
-> | What is live, and what to click | [ROSTER_HANDOFF.md](ROSTER_HANDOFF.md) §1 |
-> | What the owner still has to decide | [ROSTER_HANDOFF.md](ROSTER_HANDOFF.md) §5, ids `Q1`–`Q8` and `Q10`–`Q12` — **there is no `Q9`** |
+> | What is live, and what to click | [README.md](README.md) Pillar D and the release history *(was `ROSTER_HANDOFF.md` §1, archived)* |
+> | What the owner still has to decide | **§Open decisions** at the foot of this file, ids `Q1`–`Q8` and `Q10`–`Q13` — **there is no `Q9`** *(was `ROSTER_HANDOFF.md` §5)* |
 > | What to build next | **§Current queue** at the foot of this file |
 >
 > **[IDS.md](IDS.md) is the legend for every prefix in the document set** — `P`, `Q`,
@@ -196,7 +201,7 @@ outside UTC+8 — measured: `TZ=America/New_York` → `2026-01-31, 2026-02-01, �
 
 ## P6 — Schema split-brain · Block A · **Fable-supervised** · ~~**BLOCKED**~~ **SHIPPED v1.6.1**
 
-~~Awaiting decisions **Q1–Q3**~~ *(written `D1–D3`)* in [ROSTER_HANDOFF.md](ROSTER_HANDOFF.md).
+~~Awaiting decisions **Q1–Q3**~~ *(written `D1–D3`)* — see §Open decisions.
 **SHIPPED in v1.6.1** — this section's own evidence row records it, so the `BLOCKED` in the
 heading contradicted the ledger below. Plan shape unchanged
 from rev 1 (shared `shiftSchema` module; add `swapRole` to the swap contract; rewrite the
@@ -212,7 +217,7 @@ Awaiting **Q4–Q6** *(written `D4–D6`)*. Per-year document partitioning; staf
 `README.md:159` already documents.
 
 **Partly moved, 2026-08-15.** `firestore.rules` now EXISTS and is tracked — derived call-site by
-call-site rather than from a template, with a runbook at `firestore.rules.README.md`. ~~It is still
+call-site rather than from a template, with a runbook at `firestore.rules.README.md` (single-team; archived at tag `docs-archive-2026-09-06`). ~~It is still
 **inert**: `firebase.json` declares only `hosting` and `functions`, so nothing deploys it.~~
 **Closed:** deployed 2026-08-19 and on every merge to `main` since (`deploy.yml` →
 `functions,firestore:rules,firestore:indexes`); `TEAM_DIRECTORY` is gone (v2.0.0, `AN14`) and
@@ -546,7 +551,7 @@ unaddressed and still needs the sheet in front of us.)*
 rules and task sets, membership-as-data in the rules, and a configurable domain allowlist
 (`config/domains`, `scripts/bootstrap-config.cjs`) in place of the hardcoded `@kkh.com.sg` gate.
 The argument below — that the engine was never the obstacle, and that partitioning before rules
-deployed would be false assurance — held, and the cutover ran in that order (`RELEASE-v2.0.0.md`).
+deployed would be false assurance — held, and the cutover ran in that order (`RELEASE-v2.0.0.md`, archived at tag `docs-archive-2026-09-06`).
 *(Original text:)* One shared `roster_2026` document and a login gate hardcoded to `@kkh.com.sg`
 were what stopped a second institution using this — not the engine, which contains no site concept
 at all. What multi-institution needed: a roster document per institution/team, per-institution
@@ -556,3 +561,27 @@ grade scales and rules, and a login gate that is not one hardcoded domain. All t
 *senior principal* cardiac physiologist. If that is a rank **above** principal, the four-band
 scale is one short — and `defineGradeScale({ regions })` is the seam that must absorb it, not a
 rename. Better to find that out now than mid-demo.
+
+---
+
+## Open decisions — the `Q` series *(moved here from `ROSTER_HANDOFF.md` §5 on 2026-09-06)*
+
+`Q`n is a question only the owner can answer. The series was `D`n until 2026-08-14 and kept
+its numbers when renamed; **there is no `Q9`**. The reasoning behind each — several pages
+for `Q6`, `Q12` and `Q13` — is at `git show docs-archive-2026-09-06:ROSTER_HANDOFF.md` §5;
+this table is the status.
+
+| Id | The question | Status (2026-09-06) |
+|---|---|---|
+| `Q1` | On accepting a coverage request, substitute the colleague mechanically into the exact role the requester held? | **Answered** — yes; shipped v1.6.1 |
+| `Q2` | Notify somebody when a request is accepted? | **Answered** — notify the *owner* of the shift; the requester half became `Q3` |
+| `Q3` | Should the **requester** be told when their request is accepted or declined? | **OPEN.** Nobody tells them; the on-screen copy says so. Needs a second listener or a Cloud Function (the open half of `M4`) |
+| `Q4` | Partition the roster per team and year; the multi-institution question | **Answered by v2.0.0** — `teams/{teamId}/rosters/{year}`, a configurable domain allowlist |
+| `Q5` | Which directory roles are rosterable? | **Moot since v2.0.0** — the directory is gone; a member is rostered unless the lead sets `rostered: false` |
+| `Q6` | Deploy `firestore.rules` | **Answered 2026-08-18, deployed 2026-08-19**, and on every merge since |
+| `Q7` | The case-volume / skill-mix claim in the README and `AppGuide.jsx` is untrue | **OPEN.** A legitimate route exists (NHPPD × Average Daily Census → required hours → FTE → slot counts); nothing is built, and the claim should not be repeated until it is |
+| `Q8` | Was the 6 May 2026 schema change a major version? | **Answered in effect** — `version-steward` shipped 1.6.0 as a minor with the argument noted; v2.0.0 has since been the major |
+| `Q10` | Is *non-exempt* the right word for AH7–AH10? | **Answered** — yes |
+| `Q11` | May a technologist hold a junior grade? | **Answered** — yes |
+| `Q12` | Registration as a **third eligibility axis** — a boolean (registered / not) or an ordered list (registered / provisionally registered / assistant / student)? | **OPEN**, and it blocks queue item 5(a). `requiresSkill` is a single string, so registration and competency compete for one slot; do not claim registration gating until this is built. Raise it with the two professions that asked |
+| `Q13` | AM/PM half-day sessions on a task and on an availability | **Answered 2026-08-17** — opt-in (`session` absent means either half); both dated half-days and a standing weekly pattern; the `.ics` stays all-day; built **after** single-cell shift editing. **Not yet built** — queue item 4 |

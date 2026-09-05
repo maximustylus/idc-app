@@ -16,8 +16,9 @@ documentation-and-hardening within `v2.3` and the heading below is renamed. Not 
 
 > ### ⚠️ How to read this file
 >
-> This changelog was created on **2026-08-23**, alongside
-> [`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md). The repository had no AURA-specific changelog
+> This changelog was created on **2026-08-23**, alongside `AURA-POSTMORTEM.md` (removed
+> 2026-09-06; readable at tag `docs-archive-2026-09-06`, as is `ROSTER_POSTMORTEM.md`,
+> cited below). The repository had no AURA-specific changelog
 > before, so **everything below `v2.3` is reconstructed** — from `CHANGELOG.md`'s own
 > reconstructed entries (`[1.0.0]`–`[1.4.0]`, themselves rebuilt from the README) and from
 > the surviving code. Reconstructed entries are marked as such and should be read as *"the

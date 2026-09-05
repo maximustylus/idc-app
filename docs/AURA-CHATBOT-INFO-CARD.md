@@ -7,8 +7,8 @@ data is handled, and how to raise a concern.**
 |---|---|
 | **Card status** | ✅ **In effect.** Approved 2026-08-28 by **Muhammad Alif (owner)** — the named sign-off `AURA-GUARDRAILS.md` Rule 12 requires. The owner read draft v0.3 in full and approved it as written; the same session's `AU29` fix and 9.5 decision are folded into this version, recorded in the changelog below. |
 | **Card version** | 1.2 |
-| **Last updated** | 2026-09-03 |
-| **Describes** | NEXUS **v2.12.0** (app) · AURA engine tier **v2.3** · guardrails **v1.0** |
+| **Last updated** | 2026-09-06 |
+| **Describes** | NEXUS **v2.12.1** (app) · AURA engine tier **v2.3** · guardrails **v1.0** |
 | **Framework** | Structured after the **IMDA Transparency Guidelines for Generative AI Chatbots** (Infocomm Media Development Authority, Singapore, published 20 July 2026), Annex B sample format. The guidelines are voluntary; NEXUS adopts them as its transparency baseline. |
 
 > **This is a consolidated card for a family of AURA surfaces** (the guidelines allow one
@@ -393,7 +393,7 @@ single authoritative app version.
 
 | Card version | Date | Change |
 |---|---|---|
-| 1.2 | 2026-09-06 | Header: app version 2.1.3 → 2.12.0. §5 item 2: "when the branch carrying it deploys" → deployed with v2.1.x. §5 item 3: the P8.8 read has now run (three live runs, 2026-09-05) and the card says so, still without claiming the safeguards are followed until the owner signs the read. v2.11.0–v2.12.0 added controls the read found necessary (`AU31` a proposal needs a figure in the current message; `AU33` a shortened rework is announced) — behaviour that narrows what AURA does, none that widens it. Approval stands; the owner should re-read §1–§3 against those releases. |
+| 1.2 | 2026-09-06 | Header: app version 2.1.3 → 2.12.1. §5 item 2: "when the branch carrying it deploys" → deployed with v2.1.x. §5 item 3: the P8.8 read has now run (three live runs, 2026-09-05) and the card says so, still without claiming the safeguards are followed until the owner signs the read. v2.11.0–v2.12.0 added controls the read found necessary (`AU31` a proposal needs a figure in the current message; `AU33` a shortened rework is announced) — behaviour that narrows what AURA does, none that widens it. Approval stands; the owner should re-read §1–§3 against those releases. |
 | 1.1 | 2026-08-28 | §1 updated after a live failure the same day (`AU30`): model selection is now quota-aware — a model the key can see but not use is set aside and the call retried once on the next in the list — and API failures reach the browser as a clean sentence, never the upstream quota/billing text. No other content change; approval stands. |
 | **1.0** | 2026-08-28 | **Signed off by the owner (Muhammad Alif) and in effect** — approval given against draft v0.3, read in full. Folded into this version, from the same session: `AU29` fixed (sign-out and identity change now clear the AURA session; 4 tests), §3/§4 rewritten to the fixed behaviour, and the 9.5 decision recorded (a dedicated non-personal support address will be published here once created; in-app reporter until then). |
 | 0.3 (draft) | 2026-08-27 | Steward audit corrections before sign-off: the false panel-close history claim replaced with the true clearing behaviour and the `AU29` shared-terminal caveat; "91 emulator checks" corrected to the current 140; `AN13` corrected from "accepted gap" to its shipped NRIC/FIN fence; "by design" hedged to "by construction"; gap items 10–12 added. 21 other load-bearing claims steward-CONFIRMED against source. |

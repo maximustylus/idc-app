@@ -40,16 +40,54 @@ not changed by this release.
 >
 > `D`n in this file is a **defect**, from `ROSTER_QC_AUDIT*.md` or the post-mortem — and the same
 > number can mean *different* defects in different audits, so a cell names its source where it
-> can. `Q`n is an **open decision for the owner**, listed in `ROSTER_HANDOFF.md` §5. Those were
-> `D`n until 2026-08-14 and kept their numbers when renamed, so anything said in conversation
-> still maps; there is no `Q9`. Released entries below were written before the rename and are
-> corrected in place rather than rewritten.
+> can. `Q`n is an **open decision for the owner**, listed in `ROSTER_TODO.md` §Open decisions
+> (formerly `ROSTER_HANDOFF.md` §5). Those were `D`n until 2026-08-14 and kept their numbers
+> when renamed, so anything said in conversation still maps; there is no `Q9`. Released entries
+> below were written before the rename and are corrected in place rather than rewritten.
+>
+> **Files named in older entries that are no longer in the tree** — the post-mortems, the QC
+> audits, the handoffs, the go-live gate, the v2.0.0 cutover runbook and the rules runbook —
+> were removed on 2026-09-06 and are readable at the tag `docs-archive-2026-09-06`
+> (`git show docs-archive-2026-09-06:<file>`). Every id cited below resolves there.
 
 ---
 
 ## [Unreleased]
 
-### Documentation — housekeeping pass, 2026-09-03 (no code change, no version bump)
+---
+
+## [2.12.1] - 2026-09-06
+
+Out of beta, in name as well as in fact — and the repository cut to what is live.
+
+### Fixed
+
+- **The feedback dialog's title said *Beta Feedback*.** NEXUS has served more than one
+  department since v2.0.0 and its guardrails have been read against real turns; nothing
+  about it is a beta except that label. It now reads *Feedback*. The only application
+  change in this release, and the reason it is a patch rather than documentation only.
+
+### Documentation
+
+- **The README, `SECURITY.md` and the agent definitions no longer describe a beta.** The
+  title and status badge, the *Supported Versions* tables (now current at 2.12.x, with
+  2.11.x and 2.10.x superseded), the demo-mode section and the release history all say
+  what the app is: in production, multi-team, with Live Mode restricted to team members.
+- **Thirteen dated documents were removed** — `AURA-POSTMORTEM.md`, `AURA-HANDOFF.md`,
+  `AURA-GOLIVE-GATE.md`, `ROSTER_POSTMORTEM.md`, the four `ROSTER_QC_AUDIT*.md`,
+  `ROSTER_HANDOFF.md`, `POSTMORTEM-COMMUNITY.md`, `RELEASE-v2.0.0.md`,
+  `firestore.rules.README.md` and `REVIEW-RHS-SOCIAL-PRESCRIBING.md`. Each was a frozen
+  snapshot whose findings were never edited once fixed, and by v2.12 each described a
+  repository that no longer existed (single-team paths, an unmerged branch, a rules file
+  that "nothing deploys", a demo on 2026-08-24). They are preserved with their final
+  status banners at the tag **`docs-archive-2026-09-06`**; the README's *paper trail*
+  says how to read one, and every cross-reference in the surviving files points there.
+  Nothing live was lost: the owner's open roster decisions (`Q3`, `Q7`, `Q12`, `Q13`
+  unbuilt) moved from the handoff into `ROSTER_TODO.md`, the RHS review's three decisions
+  were already `CD14`–`CD16`, and the iCloud note moved into the README.
+- **`package-lock.json` said 2.10.0** against a 2.12.0 `package.json`; aligned.
+
+### Documentation — housekeeping pass, 2026-09-03 (folded into this release)
 
 Every markdown file was audited against the v2.10.0 tree and corrected in place, in the
 set's own style — struck through and dated, never silently rewritten. What was wrong, in

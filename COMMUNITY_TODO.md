@@ -1,9 +1,9 @@
 # NEXUS Community Portal — Remediation Ledger
 
-Companion to [POSTMORTEM-COMMUNITY.md](POSTMORTEM-COMMUNITY.md), which carries the
-evidence for every row below. AURA — the AI behind the chat pathway — has its own
-post-mortem in [AURA-POSTMORTEM.md](AURA-POSTMORTEM.md) (`AU`n / `AC`n / `AN`n), with
-its plan in [AURA-TODO.md](AURA-TODO.md). Three things there bear directly on this
+**This file is the plan and the live status.** The finding text behind each `CP` row was
+`POSTMORTEM-COMMUNITY.md`, a frozen 2026-08-21 snapshot, removed on 2026-09-06 and
+readable at tag `docs-archive-2026-09-06`. AURA — the AI behind the chat pathway — has its
+own ledger in [AURA-TODO.md](AURA-TODO.md) (`AU`n / `AC`n / `AN`n). Three things there bear directly on this
 ledger: `AU13` corrects `CP12`'s `Math.random` evidence string, which was false as
 written (row 4.6 now says what the grep returns; the code half of `AU13` is still open);
 `AC1`/`AC2` are the PAVS parser defects `P4.3` had `OPEN` for weeks — **closed 2026-08-23
@@ -270,7 +270,7 @@ future deploy.
 ## P3d — From the Regional Health System review · `CP19` `CP20` · risk: **high**
 
 An RHS lead weighted toward social prescribing reviewed the portal — see
-[REVIEW-RHS-SOCIAL-PRESCRIBING.md](REVIEW-RHS-SOCIAL-PRESCRIBING.md). Two findings
+`REVIEW-RHS-SOCIAL-PRESCRIBING.md` at tag `docs-archive-2026-09-06`. Two findings
 are defects rather than opinions and are verified.
 
 | # | Item | Detail | Tier | Status | Evidence |
@@ -503,11 +503,11 @@ CD14  CD15  CD16                             ─ owner's, from the RHS review (P
 
 ## P8 — Decisions promoted from the RHS review · `CD14` `CD15` `CD16` · owner's
 
-[`REVIEW-RHS-SOCIAL-PRESCRIBING.md`](REVIEW-RHS-SOCIAL-PRESCRIBING.md) (2026-08-22, an
-external-perspective read of the portal) ended with five things a Regional Health System
-would need before piloting. Two were code and became `CP` rows. Three are decisions and
-were tracked nowhere until 2026-09-03; they are recorded here so the review can be
-archived without losing them.
+`REVIEW-RHS-SOCIAL-PRESCRIBING.md` (2026-08-22, an external-perspective read of the
+portal; archived at tag `docs-archive-2026-09-06`) ended with five things a Regional
+Health System would need before piloting. Two were code and became `CP` rows. Three are
+decisions and were tracked nowhere until 2026-09-03; they are recorded here, which is what
+let the review be archived without losing them.
 
 | # | Id | Decision | Owner | Status |
 |---|---|---|---|---|

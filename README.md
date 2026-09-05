@@ -1,6 +1,6 @@
-# NEXUS: Smart Operations Dashboard v2.12.0 [BETA]
+# NEXUS: Smart Operations Dashboard v2.12.1
 
-![Version](https://img.shields.io/badge/Version-v2.12.0-blue) ![Status](https://img.shields.io/badge/Status-Beta%20Phase-emerald) ![Teams](https://img.shields.io/badge/Multi--Team-28%20AHP%20professions-indigo) ![Roster](https://img.shields.io/badge/Roster%20engine-deterministic-0f766e) ![Assistant](https://img.shields.io/badge/AURA%20assistant-Gemini-purple) ![PWA](https://img.shields.io/badge/PWA-Native%20Push%20Enabled-blue) ![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2ea44f)
+![Version](https://img.shields.io/badge/Version-v2.12.1-blue) ![Status](https://img.shields.io/badge/Status-In%20production-emerald) ![Teams](https://img.shields.io/badge/Multi--Team-28%20AHP%20professions-indigo) ![Roster](https://img.shields.io/badge/Roster%20engine-deterministic-0f766e) ![Assistant](https://img.shields.io/badge/AURA%20assistant-Gemini-purple) ![PWA](https://img.shields.io/badge/PWA-Native%20Push%20Enabled-blue) ![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2ea44f)
 
 **NEXUS** (formerly IDC App) is a clinician-led platform for workload management, skill-mix routing and staff wellbeing, built inside an allied health department and now serving departments beyond the one it was written for.
 
@@ -17,7 +17,7 @@
 > **The roster engine is not AI at all.** And **"autonomous … executes database mutations"**
 > is contradicted by this file's own *Known Limitations*, which says a database write
 > *"requires a human-in-the-loop physical click"*. The second sentence is the accurate one;
-> the first is the one people quoted. Tracked as `AU1` in [`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md).
+> the first is the one people quoted. Tracked as `AU1` in [`AURA-TODO.md`](AURA-TODO.md) (decided and closed).
 
 NEXUS contains **two independent systems** that share the AURA name. Telling them apart is not
 pedantry: they need different assurance, and describing the first as the second invites a review
@@ -43,11 +43,11 @@ health screening on the public `/individuals` pathway. It is genuinely a languag
 should be assessed as one.
 
 ⚠️ **Known and documented, rather than implied:** AURA's surfaces carry open findings — see
-[`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md) (65 findings, 52 closed as of 2026-09-06), the plan in
-[`AURA-TODO.md`](AURA-TODO.md), and start at [`AURA-HANDOFF.md`](AURA-HANDOFF.md).
+[`AURA-TODO.md`](AURA-TODO.md) (65 findings, 52 closed with evidence as of 2026-09-06; the
+rest are the owner's decisions and three small engineering rows).
 
 > **Master the Grind * Protect the Pulse * Build the Future**
-> *Note: This application is currently in active Beta and is being evaluated by the Senior Clinical team for internal efficiency, burnout prevention, and resource allocation.*
+> *NEXUS is in production. It began as one department's tool and now serves allied health departments as a team per department per institution; Live Mode is restricted to registered members of a team, and the Demo Sandbox is open to anyone.*
 
 ***
 
@@ -108,6 +108,15 @@ NEXUS is built on a dual-environment architecture, designed to switch seamlessly
 * **Charts:** `recharts`
 * **Backend / Auth:** Firebase (Firestore, Authentication, Cloud Functions)
 * **Document Generation:** `docx`
+
+### Working on the repository
+
+Two gates run on every push to `main` and must pass before the deploy stages run:
+`npm test` (Vitest — `src/`, `functions/` and `scripts/`) and `npm run lint`
+(`--max-warnings 0`), then `npm run build`. ⚠️ If the clone lives under `~/Documents`
+with iCloud's *Optimise Mac Storage* on, `node_modules` gets evicted and the jsdom half of
+the suite never finishes — keep a copy outside iCloud (`/private/tmp` is not synced) and run
+the gates there. Merging to `main` **is** the deploy: hosting, functions, rules and indexes.
 
 ### Repository Structure
 ```text
@@ -286,7 +295,9 @@ This application is an operational and workload management tool. It is not a cli
 ### Supported Versions
 | Version | Status |
 | ------- | ------ |
-| 2.10.x  | **Active Beta** (multi-team) |
+| 2.12.x  | **Current** — in production, multi-team |
+| 2.11.x  | Superseded — upgrade to 2.12.x |
+| 2.10.x  | Superseded — upgrade to 2.11.x |
 | 2.9.x   | Superseded — upgrade to 2.10.x |
 | 2.8.x   | Superseded — upgrade to 2.9.x |
 | 2.7.x   | Superseded — upgrade to 2.8.x |
@@ -376,64 +387,44 @@ Two things, stated per this file's own rules:
 
 ## The paper trail
 
-The audit-and-remediation record lives beside the code. [`IDS.md`](IDS.md) is the legend for
-every id series (`P`, `Q`, `D`, `CP`, `CD`, `AU`, `AC`, `AN`, …) used across these files.
-Three of the sets share one convention: a **post-mortem is frozen** once written and gains a
-dated status banner rather than edits; the **TODO ledger** is the live status; the
+The live record lives beside the code. [`IDS.md`](IDS.md) is the legend for every id series
+(`P`, `Q`, `D`, `CP`, `CD`, `AU`, `AC`, `AN`, …) used across these files. The convention: a
+**TODO ledger** is the live status and a row is `DONE` only with pasted evidence; the
 **changelog** is the record of what shipped.
-
-**Release, policy and reference**
 
 | Document | What it is |
 |---|---|
 | [`CHANGELOG.md`](CHANGELOG.md) | The authoritative release record, Keep-a-Changelog format, newest first |
 | [`SECURITY.md`](SECURITY.md) | Supported versions, how to report a vulnerability, the IMDA transparency pointer |
-| [`RELEASE-v2.0.0.md`](RELEASE-v2.0.0.md) | The multi-team cutover runbook — executed 2026-08-23, kept as the record |
-| [`firestore.rules.README.md`](firestore.rules.README.md) | The pre-multi-team rules runbook — superseded; §4's console reconciliation is the part still worth reading |
 | [`IDS.md`](IDS.md) | Which prefix means what, and the rule that a new series adds a row |
-
-**The roster engine**
-
-| Document | What it is |
-|---|---|
-| [`ROSTER_HANDOFF.md`](ROSTER_HANDOFF.md) | Read-first operator brief: what is live, what to click, the `Q`n decisions waiting on the owner |
-| [`ROSTER_TODO.md`](ROSTER_TODO.md) | The P0–P11 remediation ledger and the current queue |
-| [`ROSTER_POSTMORTEM.md`](ROSTER_POSTMORTEM.md) | The 2026-08-05 forensic analysis of the schema split-brain — frozen |
-| [`ROSTER_QC_AUDIT.md`](ROSTER_QC_AUDIT.md) | The independent audit *of that post-mortem* (2026-08-05) — frozen |
-| [`ROSTER_QC_AUDIT_FOUNDATIONS.md`](ROSTER_QC_AUDIT_FOUNDATIONS.md) · [`…_PRIMITIVES.md`](ROSTER_QC_AUDIT_PRIMITIVES.md) · [`…_SURFACES.md`](ROSTER_QC_AUDIT_SURFACES.md) | Dated audits of three engine packages (2026-08-11/12), against v1.8–v1.10 trees — frozen, largely superseded |
-
-**AURA, the assistant**
-
-| Document | What it is |
-|---|---|
-| [`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md) · [`AURA-TODO.md`](AURA-TODO.md) · [`AURA-CHANGELOG.md`](AURA-CHANGELOG.md) · [`AURA-HANDOFF.md`](AURA-HANDOFF.md) | The AURA audit ledger — 65 findings, 52 closed with evidence, 13 open (3 engineering, 10 owner decisions); `AURA-TODO.md`'s status table is the authoritative count |
+| [`ROSTER_TODO.md`](ROSTER_TODO.md) | The roster engine: the remediation ledger, the current queue, the expressiveness ledger, and the owner's open `Q`n decisions |
+| [`AURA-TODO.md`](AURA-TODO.md) · [`AURA-CHANGELOG.md`](AURA-CHANGELOG.md) | AURA, the assistant: the ledger — 65 findings, 52 closed with evidence, 13 open (3 engineering, 10 owner decisions) — and the engine-tier history |
 | [`AURA-GUARDRAILS.md`](AURA-GUARDRAILS.md) | The owner's sixteen working rules, verbatim, with the honest conformance table — what is CODE, what is only asked of a model |
-| [`AURA-GOLIVE-GATE.md`](AURA-GOLIVE-GATE.md) | The five go-live gates: failed 2026-08-23, all passing on re-run 2026-08-24; merged to `main` in v2.1.x |
-| [`AURA-VERIFICATION-TURNS.md`](AURA-VERIFICATION-TURNS.md) | The 20 real turns that gate any claim that AURA *follows* the guardrails — run three times live on 2026-09-05; the drafted read is `docs/P8.8-owner-read-2026-09-05.md`, owner verdicts pending |
-| [`docs/AURA-CHATBOT-INFO-CARD.md`](docs/AURA-CHATBOT-INFO-CARD.md) | The IMDA-aligned chatbot info card for AURA's generative surfaces — v1.1, in effect (owner-approved 2026-08-28), served in-app at `/aura-info` |
-
-**The public community portal (`/individuals`)**
-
-| Document | What it is |
-|---|---|
-| [`COMMUNITY_TODO.md`](COMMUNITY_TODO.md) · [`COMMUNITY_CHANGELOG.md`](COMMUNITY_CHANGELOG.md) | The `CP`n defect / `CD`n decision ledger and the surface's changelog |
-| [`POSTMORTEM-COMMUNITY.md`](POSTMORTEM-COMMUNITY.md) | The 2026-08-21 audit of the screening instrument — frozen |
+| [`AURA-VERIFICATION-TURNS.md`](AURA-VERIFICATION-TURNS.md) · `docs/P8.8-owner-read-2026-09-05.md` | The 20 real turns that gate any claim that AURA *follows* the guardrails, and the drafted read from three live runs on 2026-09-05 — owner verdicts pending |
+| [`docs/AURA-CHATBOT-INFO-CARD.md`](docs/AURA-CHATBOT-INFO-CARD.md) | The IMDA-aligned chatbot info card for AURA's generative surfaces — owner-approved, served in-app at `/aura-info` |
+| [`COMMUNITY_TODO.md`](COMMUNITY_TODO.md) · [`COMMUNITY_CHANGELOG.md`](COMMUNITY_CHANGELOG.md) | The public portal (`/individuals`): the `CP`n defect / `CD`n decision ledger and the surface's changelog |
 | [`TRANSLATION-BRIEF.md`](TRANSLATION-BRIEF.md) | The `CD10` brief: what needs translating into ms/zh/ta, and why machine-translating clinical advice is dangerous |
-| [`REVIEW-RHS-SOCIAL-PRESCRIBING.md`](REVIEW-RHS-SOCIAL-PRESCRIBING.md) | A one-off external-perspective review (2026-08-22) — its open owner decisions are promoted into `COMMUNITY_TODO.md` |
-
-**Demo and design material**
-
-| Document | What it is |
-|---|---|
-| `docs/NEXUS-roster-walkthrough.pptx` | The AHP walkthrough deck — real screenshots, desktop and mobile (v2.1.0 screens; the roster toolbar has since changed) |
-| `docs/CLAUDE-DESIGN-PROMPTS.md` | The prompt pack for restyling the walkthrough in Claude Design |
+| `docs/NEXUS-roster-walkthrough.pptx` · `docs/CLAUDE-DESIGN-PROMPTS.md` | The AHP walkthrough deck (v2.1.0 screens; the roster toolbar has since changed) and the prompt pack for restyling it |
 | `docs/CD13-translation-review.xlsx` | The native-speaker review workbook for the 19 machine-translated strings |
+
+**The audit history is in git, not in the tree.** The post-mortems, the QC audits, the two
+handoffs, the go-live gate and the two executed runbooks were dated snapshots whose findings
+were never edited once fixed; by v2.12 every one of them described a repository that no
+longer existed, and they were removed on 2026-09-06. They are one command away, with their
+last status banners, at the tag **`docs-archive-2026-09-06`** — for example:
+
+```bash
+git show docs-archive-2026-09-06:ROSTER_POSTMORTEM.md
+```
+
+Every finding id cited in `CHANGELOG.md` or in a source comment (`A`–`E`, `A-RC`, `M`, `D`,
+`AU`/`AC`/`AN`) resolves there.
 
 ## Interactive Demo Mode and Smoke Testing
 
 To facilitate safe stakeholder demonstrations without exposing sensitive hospital data, NEXUS features a fully functional Demo Sandbox populated by a "Marvel Superhero" Healthcare Team.
 
-Beta testers should utilise Demo Mode to verify system integrity:
+Use Demo Mode to verify system integrity before a demonstration or after a deploy:
 1. **The Roster Test** ⚠️ *needs **two signed-in live users** — it cannot be shown solo or in
    Demo Mode. Arrange the second account before the session, not during it.* in the Roster view, click one of *your own* shifts and request cover from a colleague. **On that colleague's screen** the shift carries a badge and an inline coverage card with Accept / Decline. *(Corrected 2026-08-15: this said AURA slides open with an amber `ROSTER_ALERT`. It cannot — the chat surface went in v1.10.0, and in Demo Mode `RosterView.jsx:1069` opens no `shift_swaps` channel at all, so this test needs two signed-in live users.)*
 2. **The Data Entry Test:** Tell AURA, *"I saw 145 patients in June."* It should read the figure
@@ -454,7 +445,35 @@ Beta testers should utilise Demo Mode to verify system integrity:
 > also lists the **known issues that are documented but not yet fixed**. The summaries
 > below are narrative highlights; where the two disagree, `CHANGELOG.md` is correct.
 
-### NEXUS v2.10.0 [Current Beta] — Four icons in one row
+### NEXUS v2.12.1 [Current] — Out of beta, and the paper trail cut to what is live
+
+The app has served more than one department since v2.0.0 and its guardrails have now been
+read against real model turns; nothing about it was a beta any more except the label. The
+one in-app string that still said so — the feedback dialog's title — now reads *Feedback*.
+The repository's thirteen dated audit documents were removed to the `docs-archive-2026-09-06`
+tag, and the README, SECURITY policy and agent definitions describe a system in production.
+
+### NEXUS v2.12.0 — AURA can be told it shortened a document
+
+**`AU33`.** Asked to turn an SOP into a memo and *"change only what that requires"*, AURA
+condensed the body and reported it had kept everything — on four live runs out of four,
+through two prompt wordings written for exactly this. So the application says it instead:
+when a targeted edit comes back under 70% of the previous length, one sentence is appended
+under AURA's reply, word for word unchanged — *this version is 48% the length of the
+previous one; check that nothing you needed was dropped.* A measurement, not an accusation.
+
+### NEXUS v2.11.0 — The guardrails, read against real turns
+
+**The P8.8 runner.** Eighteen of the twenty scripted turns in `AURA-VERIFICATION-TURNS.md`,
+sent to the live model with the real system prompt, preamble and personas, judged by the
+checks a regex can make, with an `OWNER VERDICT` line under every turn. Three live runs on
+2026-09-05: the injection block and the JSON contract held on every turn; five behaviours
+were found and fixed the same day (`AU31`–`AU35`). **And the other half of `AU30`:** three
+of the four model names AURA could reach had been withdrawn by Google and the fourth was
+refused to a new key — production survived only because its key is grandfathered.
+`resolveModel()` now probes a candidate with a real generation before trusting it.
+
+### NEXUS v2.10.0 — Four icons in one row
 
 **The roster toolbar is four icons over 10px labels, drawn straight onto the card** —
 Configure · Export · Department · My week — the same pattern as the app's own bottom
@@ -592,7 +611,7 @@ NEXUS was built for one ten-person department, with every collection at the root
 
 Onboarding a clinician is a lead adding a member document — **zero code edits, zero deploys, zero rules changes**. `firestore.rules` asks the database whether a membership exists rather than consulting a list it carries itself, and the emulator suite asserts that a member of one team gets nothing from another — 91 checks at this release, 149 as of 2026-09-03 (`scripts/firestore-rules-verify.mjs`; count it with `grep -c 'await check('` rather than trusting any document, this one included).
 
-⚠️ **This is a breaking data change with a cutover order** — the migration runs BEFORE the merge, not after. See [`RELEASE-v2.0.0.md`](RELEASE-v2.0.0.md) for the full procedure, the rollback, and who loses access.
+⚠️ **This is a breaking data change with a cutover order** — the migration runs BEFORE the merge, not after. The cutover runbook — the full procedure, the rollback, and who lost access — was executed 2026-08-23 and is archived at `docs-archive-2026-09-06:RELEASE-v2.0.0.md`.
 
 ### NEXUS v1.18.0 [Legacy]
 * **A task can state a minimum job grade.** *"Minimum AH12 covers NICU"* is now sayable — and it holds for **everyone** on the duty, not just the person leading it. That distinction is the whole feature: the band chips gate the *lead* and let any grade assist, which is right for a supervision shape and wrong for a floor. Since `junior` spans AH11–AH12, a department whose floor is AH12 could not express it with bands at all without also admitting AH11. Set it in the task table; the engine refuses at configure time if nobody in your pool meets it.

@@ -32,8 +32,8 @@ pathways, and the Cloud Function behind the chat.
 ## Shipped in [2.1.2] / [2.1.3] — was *[Unreleased] — on `claude/nexus-community-portal`*
 
 Ids in **bold** are from [COMMUNITY_TODO.md](COMMUNITY_TODO.md); `§` references are
-sections of [POSTMORTEM-COMMUNITY.md](POSTMORTEM-COMMUNITY.md), which carries the
-evidence.
+sections of `POSTMORTEM-COMMUNITY.md`, which carried the evidence (archived 2026-09-06 at
+tag `docs-archive-2026-09-06`).
 
 ### Fixed
 
@@ -141,7 +141,7 @@ evidence.
 
 ### Documentation
 
-- [POSTMORTEM-COMMUNITY.md](POSTMORTEM-COMMUNITY.md) — architecture, stated purpose
+- `POSTMORTEM-COMMUNITY.md` (archived at tag `docs-archive-2026-09-06`) — architecture, stated purpose
   against delivered behaviour, twelve findings with `file:line`, and the plan for the
   next version. `31fafde`, corrected and extended `53f9bd7`.
 - [COMMUNITY_TODO.md](COMMUNITY_TODO.md) — this work as a ledger, with the same
