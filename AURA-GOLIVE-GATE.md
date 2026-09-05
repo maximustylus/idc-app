@@ -1,7 +1,8 @@
 # AURA — go-live gate, run 2026-08-23
 
 **Against:** `claude/nexus-aura-rostering-session-duo1q5` @ `6deb171` · **Audience:**
-Vincent Chua and the AHP leaders · **Every `AURA-TODO.md` row is `OPEN`.**
+Vincent Chua and the AHP leaders · **Every `AURA-TODO.md` row is `OPEN`** *(on 2026-08-23,
+the date of this first run — see the re-run and the 2026-09-03 note below).*
 
 Run by hand because `aura-steward` was added this session and the agent registry loads at
 session start — it is callable from the next session onward. Same five gates, same
@@ -47,9 +48,18 @@ G5 suite / lint / build green                    ✅ PASS
   *Re-verified 2026-08-28 after folding in the info-card branch and `main`'s
   v2.1.1–v2.1.3 releases: **3,250 tests / 91 files**, lint 0, build clean.*
 
-⚠️ **The gates pass on the `aura` BRANCH. The live site still runs `main`** until
+~~⚠️ **The gates pass on the `aura` BRANCH. The live site still runs `main`** until
 the post-demo merge; the deploy order is rules → functions → hosting, and the
-merge waits on the owner's 20-turn read (`AURA-VERIFICATION-TURNS.md`).
+merge waits on the owner's 20-turn read (`AURA-VERIFICATION-TURNS.md`).~~
+
+> **2026-09-03:** the demo ran on 2026-08-24 and the `aura` branch **merged to `main`
+> 2026-08-28/29 (PRs #2–#4)**, shipping in app v2.1.x; `main` has since moved on to
+> v2.10.0 through roster-only releases. The merge did **not** wait on the 20-turn read —
+> that sheet was first run on 2026-09-05 (three live runs, `AU31`–`AU35` opened and closed,
+> owner verdicts pending in `docs/P8.8-owner-read-2026-09-05.md`), so G1–G5 were the last recorded verification of these
+> surfaces and `AURA-VERIFICATION-TURNS.md` now gates any claim of guardrail compliance
+> rather than a deploy. The emulator suite has grown to 149 checks; the test suite to
+> ~3,400 across ~100 files (`CHANGELOG.md` [2.8.0]).
 
 ---
 

@@ -49,6 +49,43 @@ not changed by this release.
 
 ## [Unreleased]
 
+### Documentation — housekeeping pass, 2026-09-03 (no code change, no version bump)
+
+Every markdown file was audited against the v2.10.0 tree and corrected in place, in the
+set's own style — struck through and dated, never silently rewritten. What was wrong, in
+the order it could have misled somebody:
+
+- **Three documents still said the `aura` branch was unmerged and nothing was deployed**
+  (`AURA-GOLIVE-GATE.md`, `AURA-HANDOFF.md`, `AURA-CHANGELOG.md`), and two said a broken
+  clinical risk score was **live on the public portal** (`COMMUNITY_TODO.md`,
+  `COMMUNITY_CHANGELOG.md`). Both branches merged in v2.1.x; `integration-v2` and `aura`
+  are now 0 and 2 commits ahead of `main` respectively, and the 2 are ported here.
+- **The README's Known Limitations said "No on-call or standby"** 250 lines after its own
+  release notes described v2.8.0's named standby. Pillar D now describes the roster the
+  engine actually generates; the repository tree was re-verified path by path (the
+  `functions/` block was listed twice and twelve v2.2–v2.10 modules were missing); the
+  release history gained v2.10.0 and the v2.2–v2.5 and v2.7.x entries it had skipped.
+- **No two documents agreed on the AURA finding count** (55, 56, 57, 58). Enumerated from
+  the ledger: **60 findings, 47 closed with evidence, 3 engineering rows open, 10 owner
+  decisions** (65 and 52 once v2.11.0–v2.12.0's `AU31`–`AU35` are counted). `AURA-TODO.md`'s status table said the engineering queue was empty while
+  three of its own rows were open and mine; `AU28` was counted as done and open at once.
+- **Four documents cited four different emulator-check counts** (91, 95, 119, 140);
+  `scripts/firestore-rules-verify.mjs` has **149**. All now say so, and say to count the
+  script rather than trust a document.
+- The Supported Versions tables in `README.md` and `SECURITY.md` disagreed with each other
+  and both skipped 2.5.x/2.6.x; `package-lock.json` still said `2.6.0`.
+- `firestore.rules.README.md` told an operator **not** to deploy rules from CI, which CI
+  has done since v1.17.0; `RELEASE-v2.0.0.md` told them to check out two branches that no
+  longer exist. Both carry banners now. The three roster package audits and the RHS review
+  are marked superseded; the review's three open owner decisions became `CD14`–`CD16`.
+- The IMDA info card (`docs/AURA-CHATBOT-INFO-CARD.md`, served at `/aura-info`) described
+  app v2.1.3; now v2.10.0, card v1.2, no content change.
+
+Left for the owner, recorded where each belongs: whether the AURA engine tier is v2.3 or
+v2.3.1 (`AURA-CHANGELOG.md`), the 20-turn read and the native-speaker reviews that the
+merge was meant to wait for, archiving the superseded audits, and the real names and
+addresses still enumerated in `firestore.rules.README.md` §2/§9.
+
 ---
 
 ## [2.12.0] - 2026-09-05

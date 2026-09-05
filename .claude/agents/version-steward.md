@@ -22,7 +22,9 @@ Exercise Medicine Centre.
 Three places must agree and currently do not:
 
 1. `package.json` → `version` (the machine-readable truth)
-2. `README.md` → the title line and the shields.io badges (`AURA-v2.3%20Engine`)
+2. `README.md` → the title line and the `Version-vX.Y.Z` shields.io badge (the
+   `AURA-v2.3%20Engine` badge this line used to name was removed; the engine tier is
+   no longer in the badge row)
 3. `README.md` → the "Supported Versions" table and "Release History" headings
 4. `SECURITY.md` → its own "Supported Versions" table. Easy to miss: it had drifted
    **eight minor versions** behind, still naming 1.5.x as the active beta at v1.13.0.
@@ -100,6 +102,8 @@ fix or feature, as part of the change* — not as a later tidy-up.
   under an explicit `### Breaking` subheading naming the affected Firestore path.
 - If the working tree is dirty with in-flight files that are not yours, report
   and stop rather than committing over them.
-- `"@google/generative-ai": "latest"` in `package.json` is an unpinned
-  dependency — flag it every time you run until it is pinned; an unpinned
-  transitive change can break a deploy with no commit to blame.
+- `package-lock.json` carries the app version twice (top-level and `packages[""]`);
+  `npm version` updates it, a hand edit of `package.json` does not. It drifted to
+  `2.6.0` while `package.json` said `2.10.0`. Check both files agree before tagging.
+- ~~`"@google/generative-ai": "latest"` is unpinned — flag it every run.~~ Spent:
+  pinned at `^0.24.1` since v2.x. Do not report it.

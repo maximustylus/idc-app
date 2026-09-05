@@ -9,6 +9,24 @@ layer — and the deterministic roster engine that shares the name.
 **The plan is [`AURA-TODO.md`](AURA-TODO.md). Read [`AURA-HANDOFF.md`](AURA-HANDOFF.md)
 first if you are new. Version history is [`AURA-CHANGELOG.md`](AURA-CHANGELOG.md).**
 
+> ### ⚠️ STATUS 2026-09-03 — this is a frozen finding list; the status lives in `AURA-TODO.md`
+>
+> The findings below are **not edited once written** (the same rule the roster
+> post-mortems follow), so several sentences are true of 2026-08-23 and false today:
+>
+> - *"Nothing here is fixed"* (§Read this first) — **52 of 65 findings are closed with
+>   evidence**; 13 are open, ten of them owner decisions and three small engineering rows.
+> - *"Four findings are live and reachable today — `AN1` and `AN4` by anybody on the
+>   internet; `AC1` and `AC2` …; `AU2` …"* — **all five are closed** (2026-08-23/24), and
+>   `an14.bundle.test.js` greps the built bundle so the disclosure cannot return unnoticed.
+> - *"57 findings — 28 AU · 15 AC · 14 AN"* — **60**: `AU29`, `AU30` and `AC16` were
+>   opened after this document was written (30 · 16 · 14). The surface table's id ranges
+>   stop at `AU24` / `AC14` / `AN13` for the same reason.
+> - *"App v2.1.0"* — the app is v2.10.0; the branch named above merged to `main` in
+>   v2.1.x (PRs #2–#4, 2026-08-28/29) and is deployed.
+>
+> `AURA-TODO.md`'s status table is the authoritative count.
+
 ---
 
 ## How this document came to be

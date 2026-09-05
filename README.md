@@ -43,7 +43,7 @@ health screening on the public `/individuals` pathway. It is genuinely a languag
 should be assessed as one.
 
 ⚠️ **Known and documented, rather than implied:** AURA's surfaces carry open findings — see
-[`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md) (55 findings), the plan in
+[`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md) (65 findings, 52 closed as of 2026-09-06), the plan in
 [`AURA-TODO.md`](AURA-TODO.md), and start at [`AURA-HANDOFF.md`](AURA-HANDOFF.md).
 
 > **Master the Grind * Protect the Pulse * Build the Future**
@@ -88,9 +88,12 @@ AURA changes persona with what the person asks for:
 * **Public Team Pulses:** Morale-boosting summaries designed for the wider team to align strategic focus and celebrate wins.
 * **Time Travel Archive:** Instantly access historical workload data to track team progression across fiscal years.
 
-### Pillar D: Auto Rostering
-* **Zero-Conflict Architecture:** Eliminates manual scheduling friction by generating rosters from **declared** demand and specific skill-mix requirements.
-* **Unified Interface:** A high-fidelity calendar view allowing staff to view coverage and trigger integrated shift-swaps instantly.
+### Pillar D: Auto Rostering — the deterministic engine
+* **Declared demand, not guesswork.** A lead describes the service once in *Configure* — duties, days, grade bands and floors, skills, FTE, hours ceilings, consecutive-day limits, quotas, forbidden pairs — and the engine (`src/utils/rosterEngineV2.js`) produces the same roster for the same inputs every time. No model, no network call. The configuration persists at `teams/{id}/settings/roster`, so it is entered once.
+* **The shapes a department actually has.** A duty can be somebody's for the week and then pass on (`rotateWeekly`, v2.7); a shift's second person can be a named **standby** who is not billed hours for a session they do not attend (v2.8); a lead can carry *some* duties and be shown as an acronym (v2.6); a colleague who has not registered yet can be rostered as a placeholder (v2.5); grades can be written `NN8` as well as `AH8`, and the roles MOH does not name — administrators, assistants, associates — can be on the roster (v2.4).
+* **Off the screen.** One *Export* control: a PDF wall calendar, an Excel workbook with a tab per month and a staff-by-week sheet, CSV, and ICS for a calendar app (v2.9).
+* **Coverage requests, person to person.** Staff request cover from a colleague on their own shift; the colleague accepts or declines inline, and the roster rewrite runs in *their* browser. The requester is not told the outcome (`Q3`).
+* **Department and My week** views, on a toolbar that is four icons in one row (v2.10).
 
 ***
 
@@ -110,62 +113,118 @@ NEXUS is built on a dual-environment architecture, designed to switch seamlessly
 ```text
 nexus/
 |-- .github/workflows/
-|   |-- deploy.yml                 # CI/CD pipelines (GitHub Actions)
-|-- functions/                     # Firebase Cloud Functions (Node.js backend)
-|   |-- index.js                   # Serverless logic (Gemini API, HTTPS calls)
-|   |-- package.json               # Backend dependencies
+|   |-- deploy.yml                 # CI: test, lint, build; deploys functions, rules, indexes, hosting
+|   |-- tag-release.yml            # Cuts the vX.Y.Z tag (also on workflow_dispatch)
+|-- docs/                          # Info card, walkthrough deck, design prompts, translation workbook
+|-- scripts/                       # Admin-SDK runbooks and the rules emulator suite (see below)
+|   |-- firestore-rules-verify.mjs # Emulator checks against firestore.rules (149 as of 2026-09-03)
+|   |-- migrate-to-teams.cjs       # The one-time v2.0.0 cutover — executed 2026-08-23
+|   |-- bootstrap-config.cjs       # Seeds config/domains and config/superAdmins
+|   |-- add-pending-member.cjs     # Roster a colleague who has not registered yet
+|   |-- roster-stress.mjs          # Engine stress probes (with roster-scaling.mjs)
+|-- functions/                     # Cloud Functions (Gemini calls, membership, rollups)
+|   |-- index.js                   # All callables and scheduled jobs
+|   |-- teamMembership.js          # inviteMember and the domain gate
+|   |-- teamApproval.js            # Lead requests and super-admin approval
+|   |-- communityAck.js            # The public screening's acknowledgement call
+|   |-- rateLimit.js               # Ceilings on the public AI endpoint
+|   |-- modelQuota.cjs             # Quota-aware model demotion (AU30)
+|   |-- guardrails.cjs             # The prompt-carried guardrail preamble
+|   |-- personas.cjs               # Persona texts, verbatim
+|   |-- attachmentRules.cjs        # What the attachment path accepts, and the audit log
+|   |-- insights.cjs               # Community rollup
+|   |-- retention.cjs              # Retention windows
+|   |-- package.json               # Backend dependencies (versioned separately)
 |-- public/                        # Static assets and PWA manifest
 |   |-- firebase-messaging-sw.js   # Service worker for push notifications
 |   |-- manifest.json              # Progressive Web App configuration
 |   |-- logo.png                   # Live department branding
 |   |-- nexus.png                  # Sandbox branding
+|   |-- logos/                     # Institution logos
 |-- src/                           # React Frontend Source
+|   |-- version.js                 # THE ONE PLACE the app learns its version (from package.json)
 |   |-- components/                # Reusable React UI components
+|   |   |-- AccessGate.jsx         # Sign-in and membership gate
 |   |   |-- AdminPanel.jsx         # Executive overview and audit logs
+|   |   |-- AdminWellbeingPanel.jsx
 |   |   |-- AppGuide.jsx           # Application manual and onboarding
 |   |   |-- AuraGreeting.jsx       # Contextual floating smart quote widget
-|   |   |-- AuraPulseBot.jsx       # AURA AI Agent chat interface
+|   |   |-- AuraInfoCard.jsx       # Renders docs/AURA-CHATBOT-INFO-CARD.md at /aura-info
+|   |   |-- AuraPulseBot.jsx       # AURA staff assistant chat interface
+|   |   |-- Aura.hooks.js          # Chat hooks
+|   |   |-- CommunityInsightsPanel.jsx
 |   |   |-- ConfirmationModal.jsx  # Secure action validation dialogs
+|   |   |-- CoverageWatcher.jsx    # Listens for coverage requests addressed to you
 |   |   |-- FeedbackWidget.jsx     # Ghost event-driven bug reporter
 |   |   |-- FeedsView.jsx          # Digital watercooler and posts
+|   |   |-- LeadRequestsPanel.jsx  # Super-admin approval of lead requests
 |   |   |-- PostLightbox.jsx       # Immersive post expansion UI
 |   |   |-- ProfileView.jsx        # User management and authentication
 |   |   |-- ResponsiveLayout.jsx   # Core responsive shell (Mobile/Desktop)
-|   |   |-- RosterView.jsx         # Auto-rostering and shift management
+|   |   |-- RosterView.jsx         # The roster: calendar, Department / My week, coverage
+|   |   |-- RosterDemoWizardTables.jsx # Configure — the staff and task tables
+|   |   |-- RosterExportMenu.jsx   # One Export control: PDF, Excel, CSV, ICS
+|   |   |-- WizardStep.jsx         # Configure step shell
+|   |   |-- StaffLoadEditor.jsx
 |   |   |-- SmartAnalysis.jsx      # Year-end wellbeing analysis (lead only)
 |   |   |-- SmartReportView.jsx    # Renders an archived analysis
 |   |   |-- TeamMembersPanel.jsx   # A lead invites, removes, sets profession and grade
+|   |   |-- TeamSwitcher.jsx       # Which team, for a member of more than one
+|   |   |-- WelcomeScreen.jsx      # Sign-in
 |   |   |-- WellbeingView.jsx      # Pulse and social battery tracking
-|   |   |-- AuraChat.jsx           # PUBLIC health screening, /individuals (conversational)
+|   |   |-- PathwaySelection.jsx   # PUBLIC /individuals — chat or form
+|   |   |-- LanguageGate.jsx       # PUBLIC language choice (en, ms, zh, ta)
+|   |   |-- AuraChat.jsx           # PUBLIC health screening (conversational)
 |   |   |-- ConventionalForm.jsx   # PUBLIC health screening (form pathway)
 |   |   |-- ResultPage.jsx         # PUBLIC result, CTA tiers and the printable slip
+|   |   |-- HandoverSlip.jsx       # PUBLIC printable slip
 |   |-- config/
 |   |   |-- personas.js            # AURA behaviour models
 |   |-- context/
 |   |   |-- NexusContext.jsx       # Theme, demo mode, auth state
 |   |   |-- TeamContext.jsx        # WHICH TEAM — membership, isLead, the switcher
+|   |   |-- TeamGate.jsx           # Nothing team-scoped renders without a team
 |   |-- data/
-|   |   |-- mockData.js            # Marvel superhero simulation dataset
+|   |   |-- mockData.js            # Marvel superhero simulation dataset and the demo shapes
+|   |   |-- mohAlliedHealth.js     # MOH's 28 professions, plus the roles MOH does not name
+|   |   |-- screeningChips.js      # PUBLIC screening answer chips
+|   |   |-- slipFlagLines.js       # PUBLIC slip flag copy
 |   |-- hooks/
 |   |   |-- useTeamGrades.js       # Pay grades, lead only, one read per member
+|   |   |-- useMemberGrade.js      # Your own grade
+|   |   |-- useDomainAllowlist.js  # config/domains, with a `configured` flag
 |   |-- utils/
 |   |   |-- rosterEngineV2.js      # THE ROSTER ENGINE — deterministic, no AI
+|   |   |-- rosterWizard.js        # Configure ⇄ engine mapping and validation
+|   |   |-- rosterSettings.js      # teams/{id}/settings/roster — survives a reload
+|   |   |-- rosterGrid.js          # Calendar grid model
+|   |   |-- rosterPersonView.js    # My week
+|   |   |-- rosterCoverage.js      # Coverage requests
+|   |   |-- rosterCategories.js    # Task categories and colours
+|   |   |-- rosterPdf.js           # PDF wall calendar export
+|   |   |-- rosterXlsx.js          # Excel workbook export (with zipWriter.js)
+|   |   |-- memberProfile.js       # onlyTasks, shortName, grade parsing
 |   |   |-- auraEngine.js          # Roster primitives, ICS/CSV export, swap planning
 |   |   |-- dataEntryGuard.js      # What the model is allowed to write (pure)
 |   |   |-- clinicalFlags.js       # Shared clinical parsers for both public pathways
+|   |   |-- clinicalParse.js       # PUBLIC free-text parsing (AC5)
+|   |   |-- scoring.js             # PUBLIC risk scoring
+|   |   |-- language.js            # PUBLIC translations (en, ms, zh, ta)
+|   |   |-- accessPolicy.js        # Domain allowlist defaults
+|   |   |-- legacyBridge.js        # Salted digests in place of the deleted directory (AN14)
 |   |   |-- teamPaths.js           # Every Firestore path, derived from teamId
-|   |   |-- index.js               # Shared utilities and the legacy directory
+|   |   |-- contrast.js            # WCAG contrast, pinned by contrast.test.js
+|   |   |-- index.js               # Shared utilities
 |   |-- App.jsx                    # Main application router and shell
 |   |-- firebase.js                # Firebase client initialisation
 |   |-- main.jsx                   # React DOM entry point
 |   |-- index.css                  # Global styles
 |   |-- style.css                  # Component-specific overrides
-|-- functions/                     # Cloud Functions (Gemini calls, membership, rollups)
-|   |-- index.js                   # All callables and scheduled jobs
-|   |-- rateLimit.js               # Ceilings on the public AI endpoint
 |-- firestore.rules                # THE authorization boundary — read before changing
-|-- firebase.json                  # Firebase hosting and functions configuration
-|-- package.json                   # Frontend Node modules and build scripts
+|-- firestore.indexes.json         # Deployed with the rules
+|-- firebase.json                  # Hosting (with cache headers), functions, firestore
+|-- package.json                   # THE app version, dependencies, scripts
+|-- vitest.config.js               # The suite includes src/, functions/ and scripts/
 |-- tailwind.config.js             # Tailwind CSS styling configuration
 |-- cors.json                      # Cross-Origin Resource Sharing rules
 ```
@@ -176,6 +235,11 @@ nexus/
 > anything, which is `AU1` embedded in a directory listing. It also omitted the entire
 > public community portal, `TeamContext`, `firestore.rules` and `functions/`. Verified
 > path by path against the repository rather than edited by eye.*
+>
+> *Re-verified 2026-09-03 against the v2.10.0 tree: the `functions/` block was listed
+> twice, and everything v2.2–v2.10 added — the export modules, `rosterSettings.js`,
+> `RosterExportMenu.jsx`, `TeamGate`, `src/version.js`, `scripts/` and `docs/` — was
+> missing. Every path above exists; test files are omitted (there are ~100).*
 
 ### AURA System Diagram (v2.3)
 ```text
@@ -225,7 +289,9 @@ This application is an operational and workload management tool. It is not a cli
 | 2.10.x  | **Active Beta** (multi-team) |
 | 2.9.x   | Superseded — upgrade to 2.10.x |
 | 2.8.x   | Superseded — upgrade to 2.9.x |
-| 2.7.x   | Superseded — upgrade to 2.9.x |
+| 2.7.x   | Superseded — upgrade to 2.8.x |
+| 2.6.x   | Superseded — upgrade to 2.7.x |
+| 2.5.x   | Superseded — upgrade to 2.6.x |
 | 2.4.x   | Superseded — upgrade to 2.5.x |
 | 2.3.x   | Superseded — upgrade to 2.4.x |
 | 2.2.x   | Superseded — upgrade to 2.3.x |
@@ -277,13 +343,13 @@ them over.
 
 Two things, stated per this file's own rules:
 
-1. **The card is signed off (v1.0, in effect, approved 2026-08-28) and surfaced.** The
+1. **The card is signed off (approved 2026-08-28 as v1.0, now v1.1, in effect) and surfaced.** The
    app serves the document verbatim at **`/aura-info`** (one source — the route renders
    the markdown file, so the page cannot drift from it), shows a first-use safety
    statement with a link on the staff assistant and before the public pathways, and keeps
    a persistent info icon in both chat headers (`AURA-TODO.md` 9.2/9.3, closed with test
-   evidence). The guidelines' encouraged minimum is met in the codebase; it reaches users
-   when the branch deploys. Still open in [`AURA-TODO.md`](AURA-TODO.md) §P9: the
+   evidence). The guidelines' encouraged minimum is met and live — the `aura` branch merged
+   to `main` in v2.1.x. Still open in [`AURA-TODO.md`](AURA-TODO.md) §P9: the
    dedicated public support address (9.5 — direction decided, mailbox pending).
 2. **The roster engine is outside the card's scope on purpose.** The guidelines cover
    generative AI chatbots; the roster engine contains no model. Putting it on the card
@@ -304,22 +370,62 @@ Two things, stated per this file's own rules:
 * ~~**Authorization is unversioned.**~~ **Closed in v2.0.0** (`Q6`). This said `firestore.rules` existed in the repository but nothing deployed it — `firebase.json` declared only `hosting` and `functions` — so who could write `system_data/roster_2026` was defined in the Firebase console by hand, with no history and no review. `firebase.json` now declares `firestore` with both `rules` and `indexes`, and `.github/workflows/deploy.yml` deploys `functions,firestore:rules,firestore:indexes` on every merge to `main`. Declaring the rules file was **not** enough on its own: `--only functions` excludes rules, so the pipeline would have gone green with the authorization boundary unchanged. *Kept struck through rather than deleted, because it was the item that blocked the multi-team rebuild and a limitations list that quietly loses its worst entry is not a limitations list.* The **roster rewrite still runs in the accepting colleague's browser**, and a time-gated roster release still cannot honestly be built as a UI feature — the roster document is read client-side, so hiding it in the interface would not withhold it.
 * **The requester is never told the outcome** of a coverage request. The copy says so on screen rather than implying otherwise, but there is no notification mechanism (decision `Q3`).
 * **A task can require only one thing of a person.** `requiresSkill` is a single string, so a competency and a registration status compete for the same slot — "a registered clinician who is also CPET-competent" cannot be expressed. Registration gating is **not** available (decision `Q12`).
-* **No on-call or standby.** The engine has no concept of a standby period, call-in, or post-call rest. A category *named* `ON CALL` groups tasks for quotas and colours the calendar; it carries no on-call semantics.
+* **No on-call semantics.** The engine has no concept of call-in or post-call rest. A category *named* `ON CALL` groups tasks for quotas and colours the calendar; it carries no on-call semantics. *(Corrected 2026-09-03: this said "No on-call **or standby**". Since v2.8.0 a shift's second person can be a named **standby** — `secondPerson: 'standby'` — who is not billed a duty or hours for a session they do not attend. What is still absent is everything after "standby": being called in, and the rest that follows.)*
 
 ***
 
-## The paper trail (2026-08-24)
+## The paper trail
 
-The audit-and-remediation record and the go-live material live beside the code:
+The audit-and-remediation record lives beside the code. [`IDS.md`](IDS.md) is the legend for
+every id series (`P`, `Q`, `D`, `CP`, `CD`, `AU`, `AC`, `AN`, …) used across these files.
+Three of the sets share one convention: a **post-mortem is frozen** once written and gains a
+dated status banner rather than edits; the **TODO ledger** is the live status; the
+**changelog** is the record of what shipped.
+
+**Release, policy and reference**
 
 | Document | What it is |
 |---|---|
-| [`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md) · [`AURA-TODO.md`](AURA-TODO.md) · [`AURA-CHANGELOG.md`](AURA-CHANGELOG.md) · [`AURA-HANDOFF.md`](AURA-HANDOFF.md) | The AURA audit: 58 findings, 45 closed with evidence; the engineering queue is empty and the remainder is the owner's column |
+| [`CHANGELOG.md`](CHANGELOG.md) | The authoritative release record, Keep-a-Changelog format, newest first |
+| [`SECURITY.md`](SECURITY.md) | Supported versions, how to report a vulnerability, the IMDA transparency pointer |
+| [`RELEASE-v2.0.0.md`](RELEASE-v2.0.0.md) | The multi-team cutover runbook — executed 2026-08-23, kept as the record |
+| [`firestore.rules.README.md`](firestore.rules.README.md) | The pre-multi-team rules runbook — superseded; §4's console reconciliation is the part still worth reading |
+| [`IDS.md`](IDS.md) | Which prefix means what, and the rule that a new series adds a row |
+
+**The roster engine**
+
+| Document | What it is |
+|---|---|
+| [`ROSTER_HANDOFF.md`](ROSTER_HANDOFF.md) | Read-first operator brief: what is live, what to click, the `Q`n decisions waiting on the owner |
+| [`ROSTER_TODO.md`](ROSTER_TODO.md) | The P0–P11 remediation ledger and the current queue |
+| [`ROSTER_POSTMORTEM.md`](ROSTER_POSTMORTEM.md) | The 2026-08-05 forensic analysis of the schema split-brain — frozen |
+| [`ROSTER_QC_AUDIT.md`](ROSTER_QC_AUDIT.md) | The independent audit *of that post-mortem* (2026-08-05) — frozen |
+| [`ROSTER_QC_AUDIT_FOUNDATIONS.md`](ROSTER_QC_AUDIT_FOUNDATIONS.md) · [`…_PRIMITIVES.md`](ROSTER_QC_AUDIT_PRIMITIVES.md) · [`…_SURFACES.md`](ROSTER_QC_AUDIT_SURFACES.md) | Dated audits of three engine packages (2026-08-11/12), against v1.8–v1.10 trees — frozen, largely superseded |
+
+**AURA, the assistant**
+
+| Document | What it is |
+|---|---|
+| [`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md) · [`AURA-TODO.md`](AURA-TODO.md) · [`AURA-CHANGELOG.md`](AURA-CHANGELOG.md) · [`AURA-HANDOFF.md`](AURA-HANDOFF.md) | The AURA audit ledger — 65 findings, 52 closed with evidence, 13 open (3 engineering, 10 owner decisions); `AURA-TODO.md`'s status table is the authoritative count |
 | [`AURA-GUARDRAILS.md`](AURA-GUARDRAILS.md) | The owner's sixteen working rules, verbatim, with the honest conformance table — what is CODE, what is only asked of a model |
-| [`AURA-GOLIVE-GATE.md`](AURA-GOLIVE-GATE.md) | The five go-live gates: failed 2026-08-23, all passing on re-run 2026-08-24 |
-| [`AURA-VERIFICATION-TURNS.md`](AURA-VERIFICATION-TURNS.md) | The 20 real turns the owner reads before the guardrail prompts ship |
-| [`docs/AURA-CHATBOT-INFO-CARD.md`](docs/AURA-CHATBOT-INFO-CARD.md) | The IMDA-aligned chatbot info card for AURA's generative surfaces — draft, pending owner sign-off |
-| `docs/NEXUS-roster-walkthrough.pptx` | The AHP walkthrough deck — real screenshots, desktop and mobile |
+| [`AURA-GOLIVE-GATE.md`](AURA-GOLIVE-GATE.md) | The five go-live gates: failed 2026-08-23, all passing on re-run 2026-08-24; merged to `main` in v2.1.x |
+| [`AURA-VERIFICATION-TURNS.md`](AURA-VERIFICATION-TURNS.md) | The 20 real turns that gate any claim that AURA *follows* the guardrails — run three times live on 2026-09-05; the drafted read is `docs/P8.8-owner-read-2026-09-05.md`, owner verdicts pending |
+| [`docs/AURA-CHATBOT-INFO-CARD.md`](docs/AURA-CHATBOT-INFO-CARD.md) | The IMDA-aligned chatbot info card for AURA's generative surfaces — v1.1, in effect (owner-approved 2026-08-28), served in-app at `/aura-info` |
+
+**The public community portal (`/individuals`)**
+
+| Document | What it is |
+|---|---|
+| [`COMMUNITY_TODO.md`](COMMUNITY_TODO.md) · [`COMMUNITY_CHANGELOG.md`](COMMUNITY_CHANGELOG.md) | The `CP`n defect / `CD`n decision ledger and the surface's changelog |
+| [`POSTMORTEM-COMMUNITY.md`](POSTMORTEM-COMMUNITY.md) | The 2026-08-21 audit of the screening instrument — frozen |
+| [`TRANSLATION-BRIEF.md`](TRANSLATION-BRIEF.md) | The `CD10` brief: what needs translating into ms/zh/ta, and why machine-translating clinical advice is dangerous |
+| [`REVIEW-RHS-SOCIAL-PRESCRIBING.md`](REVIEW-RHS-SOCIAL-PRESCRIBING.md) | A one-off external-perspective review (2026-08-22) — its open owner decisions are promoted into `COMMUNITY_TODO.md` |
+
+**Demo and design material**
+
+| Document | What it is |
+|---|---|
+| `docs/NEXUS-roster-walkthrough.pptx` | The AHP walkthrough deck — real screenshots, desktop and mobile (v2.1.0 screens; the roster toolbar has since changed) |
 | `docs/CLAUDE-DESIGN-PROMPTS.md` | The prompt pack for restyling the walkthrough in Claude Design |
 | `docs/CD13-translation-review.xlsx` | The native-speaker review workbook for the 19 machine-translated strings |
 
@@ -344,7 +450,24 @@ Beta testers should utilise Demo Mode to verify system integrity:
 
 ## Release History
 
-### NEXUS v2.9.0 [Current Beta] — Take the roster off the screen
+> The authoritative, machine-readable record is **[`CHANGELOG.md`](CHANGELOG.md)**, which
+> also lists the **known issues that are documented but not yet fixed**. The summaries
+> below are narrative highlights; where the two disagree, `CHANGELOG.md` is correct.
+
+### NEXUS v2.10.0 [Current Beta] — Four icons in one row
+
+**The roster toolbar is four icons over 10px labels, drawn straight onto the card** —
+Configure · Export · Department · My week — the same pattern as the app's own bottom
+navigation. Two rows of bordered buttons became one row, 55px instead of 104px, and the
+whole class of bug the previous two patches chased (a fill the same colour as the card, a
+ring to keep visible in two themes, a second row to align) no longer has anywhere to live.
+The selected view carries an underline and a heavier stroke, so it survives greyscale.
+
+**v2.9.1 and v2.9.2**, the two patches on the way here: the toolbar was a 2×2 grid on a
+phone rather than a ragged pair of rows, and the selected half of the view switcher
+became a soft indigo tint instead of a dark fill that read as a different control.
+
+### NEXUS v2.9.0 — Take the roster off the screen
 
 **Two new exports.** A **PDF** wall calendar — one page per month, duties in the day
 squares in the department's own colours — and an **Excel workbook** with a calendar tab
@@ -380,10 +503,6 @@ its pop-up opened dark, because `color-scheme` followed the operating system whi
 app's theme is a class. And step 2 of Configure had no gap beneath it in live mode —
 the one seam where two steps come from different files.
 
-> The authoritative, machine-readable record is **[`CHANGELOG.md`](CHANGELOG.md)**, which
-> also lists the **known issues that are documented but not yet fixed**. The summaries
-> below are narrative highlights; where the two disagree, `CHANGELOG.md` is correct.
-
 ### NEXUS v2.6.0 — Some of the duties, and a name that fits a phone
 
 A minor release: two new lead-set membership fields, plus the dead controls that
@@ -407,6 +526,50 @@ reached a chip or a file — now covered end to end.
 bundle who presses Generate writes a roster putting the restricted person on every duty
 and reports success. Additive in shape, not in behaviour — see `CHANGELOG.md`.
 
+### NEXUS v2.7.1 – v2.7.4 — the patches behind weekly rotation
+
+⚠️ **v2.7.3 fixed a data-loss defect**: naming one pair of colleagues who must not work
+together destroyed the department's *entire* saved configuration, because `forbidPairs`
+was stored as a nested array, which Firestore refuses — the write threw and nothing was
+saved, while the roster itself saved fine, so the failure looked cosmetic. Pairs are now
+`{ a, b }` maps and a test fails on any nested array in the written object. Also in the
+run: a twice-weekly duty stayed with one person for four weeks (v2.7.1 — rotation now
+covers every duty, with incumbency counted in days), a duty limit silently defeated a
+weekly rotation and now warns per person (v2.7.2), the weekly-rotation checkbox rendered
+as a bar (v2.7.4), and an acronym is honoured in the CSV too.
+
+### NEXUS v2.5.0 — Roster a colleague who has not registered yet
+
+A membership is keyed by uid, so a lead could not build next month's roster until every
+colleague had registered. `scripts/add-pending-member.cjs` writes a placeholder member —
+a name and a grade in the staff pool that is **rosterable and cannot be signed in as** —
+and `inviteMember` replaces the placeholder, in the same batch, when the real account is
+added. Without that second half a department would have two of one colleague.
+
+### NEXUS v2.4.0 / v2.4.1 — The roles MOH does not name, and the other spelling of a grade
+
+A verified lead may always add a colleague on **their own** email domain, with no
+allowlist. `NN7`–`NN10` — the Non-Nursing spelling of the support grades — parse exactly
+as `AH7`–`AH10` do. Administrators, assistants, associates, technologists and service
+managers can be named on a roster, in their own group after MOH's 28 and labelled as
+such. v2.4.1 fixed the validators the new dropdowns had left behind: `Administrator` and
+`NN8` were offered and then refused on save.
+
+### NEXUS v2.3.0 / v2.3.1 — A lead could not add a colleague, and the refusal blamed their hospital
+
+The refusal now distinguishes *nothing configured yet* from *configured, but not that
+institution*, and the panel says so before the lead presses Add. Underneath it,
+`scripts/bootstrap-config.cjs` seeds `config/domains` and `config/superAdmins`, which no
+client can write — a freshly deployed NEXUS could not be initialised from NEXUS.
+
+### NEXUS v2.2.0 / v2.2.1 — The duty names, spelled out
+
+`EFT`, `IPT+SKG`, `NC` and `FSG+WI` meant nothing outside the service that invented them;
+four acronyms became nine named duties (*Exercise Test*, *Inpatient Exercise*, *Paediatrics
+Group Session*, …). v2.2.1 made the banner say the department's setup was saved — and only
+when a write actually happened — and corrected v2.2.0's own claim to have realigned the
+version surfaces, which it had not.
+
 ### NEXUS v2.1.3
 
 A patch release: the public answering surfaces now speak lay language, no new features and no data change. People filling in the chat and the form were shown **instrument acronyms mid-question** — `ACSM PAVS`, `SPAG`, `SDOH`, `PHQ-2`, `LSNS-6`, `BPS-RS II` — vocabulary that means nothing outside a health system, at the moment they are trying to answer. Badges, step titles and footnotes now read as plain words (*Physical Activity*, *Strength Training*, *Health & Safety Check*, *Mood & Wellbeing*), and a footnote describes its question rather than citing it. The full instrument citations are **not** lost: they remain, expanded on first use, on the PDF report's governance page, where an auditor looks for them. Separately, the word **"clinical" is gone from every public-facing string** in all four languages — including the Malay *klinikal* and Chinese *临床* — because this portal must not present itself as a clinical service; staff-side copy is untouched, since *Clinical Exercise Physiologist* is a real job title. The chat's internal `clinical` group key became `safety`, which is a **presentation key that never leaves the browser** — the persisted `key` fields are unchanged, so a cached client reads stored responses exactly as before. Release tags can now also be cut from a `workflow_dispatch` (`.github/workflows/tag-release.yml`), build tooling only.
@@ -427,7 +590,7 @@ The live roster had never used the AURA v2 engine — grade bands, skill matchin
 
 NEXUS was built for one ten-person department, with every collection at the root of the database and the team itself hardcoded in **six** separate places — including one array that had quietly gone stale and stopped describing the department it named. It now serves a team per department per institution: Respiratory Therapy at KKH and Respiratory Therapy at SGH are different teams, rostering differently, and structurally unable to see each other.
 
-Onboarding a clinician is a lead adding a member document — **zero code edits, zero deploys, zero rules changes**. `firestore.rules` asks the database whether a membership exists rather than consulting a list it carries itself, and the emulator suite asserts that a member of one team gets nothing from another — 91 checks at this release, 140 as of 2026-08-24 (`scripts/firestore-rules-verify.mjs`; `firestore.rules.README.md` tracks the current count).
+Onboarding a clinician is a lead adding a member document — **zero code edits, zero deploys, zero rules changes**. `firestore.rules` asks the database whether a membership exists rather than consulting a list it carries itself, and the emulator suite asserts that a member of one team gets nothing from another — 91 checks at this release, 149 as of 2026-09-03 (`scripts/firestore-rules-verify.mjs`; count it with `grep -c 'await check('` rather than trusting any document, this one included).
 
 ⚠️ **This is a breaking data change with a cutover order** — the migration runs BEFORE the merge, not after. See [`RELEASE-v2.0.0.md`](RELEASE-v2.0.0.md) for the full procedure, the rollback, and who loses access.
 

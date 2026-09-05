@@ -46,20 +46,25 @@ original post-mortems into one. `AU2` means today exactly what it meant when it 
 
 | | Count | Ids |
 |---|---|---|
-| `DONE`, evidenced | **47** | `AU1` `AU2` `AU3` `AU4` `AU6` `AU7` `AU9` `AU10` `AU12` `AU14`–`AU16` `AU19` `AU20` `AU22`–`AU30` `AC1` `AC2` `AC5`–`AC10` `AC12`–`AC16` `AN1`* `AN2`–`AN4` `AN6` `AN8` `AN10` `AN13` `AN14` + `AN12` (code half) — `AU3` now both halves, emulator-verified; `AU29` and `AU30` closed 2026-08-28 |
-| `OPEN`, mine | **0** — `AU31`–`AU35` from the first live read all closed 2026-09-05. `AU33` took three attempts: two prompt wordings, both ignored four runs out of four, then a code control; the next live run is what re-opens any of them | The engineering queue is genuinely empty as of 2026-08-24: `AU3`'s rules backstop and `AC16`'s latch — the two residuals the previous version of this row disclosed — are closed above, both with evidence. What remains is the owner's column and the standing verification work (`P8.8`, `CD13`). |
+| `DONE`, evidenced | **52** | `AU1`–`AU4` `AU6` `AU7` `AU9` `AU10` `AU12` `AU14`–`AU16` `AU19`–`AU27` `AU29`–`AU35` · `AC1`–`AC3` `AC5`–`AC10` `AC12`–`AC16` · `AN1`* `AN2`–`AN6` `AN8` `AN10` `AN13` `AN14` + `AN12` (code half) — `AU3` now both halves, emulator-verified; `AU29` and `AU30` closed 2026-08-28. *(Recounted 2026-09-03: this cell said 47 and listed 45 — `AC3` and `AN5` were closed in the body and missing here, `AU21` was closed by `AU30` (row 6.6) and missing here, and `AU28` was swept in by a range while row 7.2 has it `OPEN`. It is 47 again, honestly this time: 22 `AU` · 14 `AC` · 11 `AN`.)* **52 as of 2026-09-06:** `AU31`–`AU35`, all opened by the first live P8.8 read on 2026-09-05 and all closed the same day (rows above; `AU33` took two ignored prompt wordings and then a code control, `reworkNote.js`) — 27 `AU` · 14 `AC` · 11 `AN`. The next live run is what re-opens any of them. |
+| `OPEN`, mine | **3** | `AU13` (key the anonymous wellbeing logs deterministically; rewrite `CP12`'s evidence string — `AuraPulseBot.jsx` still does `` `Anon_${Math.random…}` ``) · `AU18` (the client copy of the response parser survives in `AuraPulseBot.jsx`; the server's three call sites share one) · `AC4` (the `scoring.js` cap docstring). *(This row said **0** — "the engineering queue is genuinely empty" — while rows 6.4, 6.5 and 6.6 below were `OPEN` and mine. All three are small and none was ever in the go-live gate.)* |
+| `OPEN`, **owner's decision** | **10** | `AU5` `AU8` `AU11` `AU17`† `AU28` `AC11` `AN7` `AN9` `AN11` `AN12` — `AU29` was here for one day; closed 2026-08-28 with evidence, on the owner's instruction. `AU28` (row 7.2, the personas' `System Override:` text) was open all along and missing from this cell. |
+| **`LIVE` right now** | **0 grades · 0 names · 0 emails** | \* `AN1` and `AN14` both closed and verified against `dist/`; `an14.bundle.test.js` keeps it that way |
 
 ⚠️ **Six rows in this file said `OPEN` for findings closed days earlier** (`AU6` `AU7` `AU19`
 `AN5` `AU22` `AU23`) — the P-section tracked them separately from the P7 batch that closed
 them, and only one place was updated. Each now cites the commit that closed it. A ledger row
 is a claim like any other; these were false in the safe direction, which is still false.
-| `OPEN`, **owner's decision** | 9 | `AU5` `AU8` `AU11` `AU17`† `AC11` `AN7` `AN9` `AN11` `AN12` — `AU29` was here for one day; closed 2026-08-28 with evidence, on the owner's instruction |
-| **`LIVE` right now** | **0 grades · 0 names · 0 emails** | \* `AN1` and `AN14` both closed and verified against `dist/`; `an14.bundle.test.js` keeps it that way |
+*(And on 2026-09-03 the status table itself was found to disagree with its own rows in
+both directions — see the recount notes above. 52 + 3 + 10 = 65.)*
 
-**55 findings**, not the 51 this file was created with: `AU25` (the go-live gate) and
-`AC15` (fixing `AC1`) were opened on the same day; `AU29` (chat history survives
-sign-out) was opened 2026-08-27 by the steward audit of P9; `AU30` (model selected by
-visibility, not usability) was found live on 2026-08-28. None of it renumbers anything.
+**65 findings** — 35 `AU` · 16 `AC` · 14 `AN` — not the 51 this file was created with:
+`AU25` (the go-live gate) and `AC15` (fixing `AC1`) were opened on the same day; `AU26`,
+`AU27` and `AN14` by reviews of the fixes; `AC16` by the closing sweep; `AU29` (chat
+history survives sign-out) was opened 2026-08-27 by the steward audit of P9; `AU30` (model
+selected by visibility, not usability) was found live on 2026-08-28; `AU31`–`AU35` by the
+first live twenty-turn read on 2026-09-05 — the instrument doing what it was built for.
+None of it renumbers anything.
 
 † `AU17`'s **code half** (the audit log of what passes through the attachment path) shipped
 with `AU15`; what stays with the owner is the policy half — what the actual PDPA control on
@@ -169,7 +174,7 @@ Closes four findings at once, and it is the number the whole instrument reports.
 
 | # | Id | Item | Owner | Status | Evidence |
 |---|---|---|---|---|---|
-| 0.1 | `AN1` | Delete `STAFF_PROFILES`; verify against `dist/` | me | `DONE` (grades) · `OPEN` (`AN14`) | `c2b45d9`. **No real colleague is within 120 chars of a grade string in the bundle** — verified by script against `dist/`. Remaining `JG` hits are the Marvel fixture and the job framework. ⚠️ `STAFF_PROFILES` was only one of two copies: `TEAM_DIRECTORY.title` also carried `(JG14)`, `(JG13)`, `(JG12)`, `(JG11)`. Names and emails still ship — `AN14`. |
+| 0.1 | `AN1` | Delete `STAFF_PROFILES`; verify against `dist/` | me | `DONE` (grades) · `DONE` (`AN14`, 2026-08-24) | `c2b45d9`. **No real colleague is within 120 chars of a grade string in the bundle** — verified by script against `dist/`. Remaining `JG` hits are the Marvel fixture and the job framework. ⚠️ `STAFF_PROFILES` was only one of two copies: `TEAM_DIRECTORY.title` also carried `(JG14)`, `(JG13)`, `(JG12)`, `(JG11)`. ~~Names and emails still ship — `AN14`.~~ `AN14` closed 2026-08-24: the directory is deleted and `an14.bundle.test.js` greps the built bundle (see the `AN14` row above). *This cell said `OPEN (AN14)` for ten days after that.* |
 | 0.2 | `AN2` | Source profiles from `members`, grades from `useTeamGrades` | me | `DONE` | `c2b45d9` · the payload carries the **band**, never the grade, because it goes to Gemini |
 | 0.3 | `AN4` | Auth + team-membership check on `generateSmartAnalysis` | me | `DONE` | `e3b6bb9` |
 | 0.4 | `AU2` | `Number.isFinite` + range on `target_value` | me | `DONE` | `e3b6bb9` · 58 tests |
@@ -231,7 +236,7 @@ Closes four findings at once, and it is the number the whole instrument reports.
 | 5.7 | `AN9` | **Decide** whether cluster-wide `isSignedIn()` read of the rollup is acceptable with suppression as the only control | **OWNER** | `OPEN` | — |
 | 5.8 | `AN11` | **Decide** whether the nudge should be per-team | **OWNER** | `OPEN` | — |
 
-## P7 — The prompts themselves · **not started**
+## P7 — The prompts themselves · **done, bar the owner's `AU28`** *(the heading said "not started" above a table of `DONE` rows)*
 
 > ⚠️ **Cite this as `AURA-TODO.md` P7, never a bare `P7`.** `ROSTER_TODO.md` P7 is *persistence
 > and security rules*; `COMMUNITY_TODO.md` P7 is *the pre-merge stress findings*. `P` numbers
@@ -298,7 +303,7 @@ declared gap**.
 | 8.3 | — | P1 — a declared assumptions block on the wellbeing report | me | `DONE` | Required by the schema, rendered on screen in its own panel, archived with the report. When the model omits it the report carries `NO_ASSUMPTIONS_DECLARED` — **not** a fabricated "None declared". |
 | 8.4 | — | Rule 15 — content is data, never instruction | me | `DONE` | In both variants. `processFeedPost` had **no** such line and is the endpoint that classifies staff-authored text and then acts on its own verdict. |
 | 8.5 | — | Ordering: guardrails first, persona last | me | `DONE` | Five of the six live personas open with the literal words `System Override:` and one says *"Disregard standard persona rules"* (`AU28` left them word for word). Position is what states the precedence. |
-| 8.6 | `AU15` `AU17` | **P6 — classify before you paste** | **OWNER** | `OPEN` | ❌ **Not enforced, and AURA must not be described as a control for it.** The attachment path still accepts five files of any size and any declared type with no scan and no log. |
+| 8.6 | `AU15` `AU17` | **P6 — classify before you paste** | **OWNER** | `OPEN` (policy) | ❌ **Not enforced, and AURA must not be described as a control for it.** ~~The attachment path still accepts five files of any size and any declared type with no scan and no log.~~ *Stale since `AU15` shipped (row 1.2): `functions/attachmentRules.cjs` now bounds what the path accepts and every pass is logged.* What remains unenforced is **classification** — nothing stops a staff member pasting patient text, and no code here can decide what the PDPA control on that is. That decision is the open half (`AU17`†). |
 | 8.7 | — | **Rule 16 — route model by task risk** | **OWNER** | `OPEN` | `resolveModel()` picks **one** model for every call, from a fixed priority list. Temperature is routed by persona (`AU20`); the model tier is not routed at all. Rule 16's own fallback — *"the record of which model handled evidence-bearing work still exists"* — is what `8.2` satisfies. |
 | 8.8 | — | **Verify the instructed rules against real turns** | **OWNER** | `RUN ×3, 2026-09-05` — verdicts pending | ⚠️ **Ten of the sixteen are asserted to be *present in the prompt*, never *followed by the model*.** No test in this repository can close that gap. **The instrument now exists**: [`AURA-VERIFICATION-TURNS.md`](AURA-VERIFICATION-TURNS.md) — twenty scripted turns with per-turn pass criteria, ~45 minutes, run against the deployed functions in Live mode. A FAIL in its Block C (the MODE 3 JSON contract) or Block E (injection) blocks the merge; the sheet says what to do with everything else. **Run seven times on 2026-09-05** — five from a terminal, two from `.github/workflows/verify-aura.yml` (a `workflow_dispatch` that fetches the key from Secret Manager and renders the transcript in the run summary, so the read needs no terminal) — against `models/gemini-3.1-pro-preview` (the model production will use after `AU30`), 18 scripted turns each, ~3.5 min a run, via `scripts/verify-guardrail-turns.mjs`. **Block E (injection) passed all three runs, all four turns; Block C's JSON contract held on every turn.** So the two merge-blocking conditions are not met. The mechanical layer found two things, both now on the ledger: `AU31` (stable, 3/3) and `AU32` (intermittent). It also found **four defects in its own checks**, each fixed with the offending transcript line as the fixture — the runs audited the harness harder than the harness audited AURA, which is the honest headline. What remains is the owner's: the 18 `OWNER VERDICT` lines in `results.md`, and turns 7 and 19 in the running app. |
 
@@ -320,11 +325,12 @@ the alternative is pretending the first version was the version that shipped.
 | Four §B rows overstated the code: P3 described a `verified` label the prompt forbids, Rule 15 claimed a code control over attachments and history, Rule 12 claimed one audit row, P7 said *"every"* export. | high | Corrected in place, and item 10 of that document's assumptions block records that they were wrong. |
 | `WELL_WELL_PROMPT` (5) and `HUGE_GRANT_PROMPT` (2) **use em dashes directly beneath a preamble banning them**, and `HUGE_GRANT_PROMPT` bans them itself. | low | Punctuation fixed in both. The persona edit is the single recorded exception to *"the persona text is unchanged, word for word"* and is documented at the top of `functions/personas.cjs`. |
 
-⚠️ **`AN14` is still open and is not mine tonight.** Six colleagues' full names and real
+~~⚠️ **`AN14` is still open and is not mine tonight.** Six colleagues' full names and real
 `@kkh.com.sg` addresses ship in the public bundle from `src/utils/index.js`. The grade half of
 `AN1` holds — a proximity scan of `dist/` finds no real name near a grade token — but the
 ledger's headline *"**LIVE** right now: 0 grades"* reads as more reassuring than the emails
-warrant.
+warrant.~~ *True on 2026-08-23; `AN14` closed the next day (the row near the top of this
+file). Struck 2026-09-03 rather than deleted — it contradicted the status table for ten days.*
 
 ⚠️ **A behaviour change was made on demo day, and it is recorded rather than smoothed over.**
 The preamble adds roughly 4,500 characters to the two long-form prompts and 600 to the two
@@ -346,9 +352,9 @@ MODE 3 is **unverified** — see item 7 of that document's own assumptions block
 | 6.1 | `AU24` | Tests for `executeDataEntry` and `clampEnergy` — **do this with `AU2` and `AU9`, not after** | me | `DONE` | As instructed, with them: `executeDataEntry`'s refusal logic lives in `dataEntryGuard` (**77 tests** incl. the `AU4` period suite) and `clampEnergy`'s replacement in `wellbeingLog.js` (**29 tests**, incl. band-tiling: the four bands cover 0–100 with no gap and no overlap). `clampEnergy` itself is deleted — the untestable inline version is not kept alongside the tested one. |
 | 6.2 | `AU23` | Correct the README: `auraChat.js`, `personas.js`, the autonomy contradiction, the uncorrected changelog line | me | `DONE` | ⚠️ Closed at `2e88cb3` (with `AU1`); stale row — it is even listed in this file's own *"Closed on 2026-08-23, with evidence"* table. |
 | 6.3 | `AU22` | Make the sandbox emit the live `db_workload` shape, or correct the README test and the comment | me | `DONE` | ⚠️ Closed at `e3b6bb9`; stale row, also already in the closed-with-evidence table above. |
-| 6.4 | `AU18` `AC10` | One shared response parser instead of three copies | me | `OPEN` | — |
-| 6.5 | `AU13` | Rewrite `CP12`'s evidence string to what the grep actually shows; key anon logs deterministically | me | `OPEN` | — |
-| 6.6 | `AU20` `AU21` `AC4` | Project names out of the function; ~~stop forwarding upstream error text~~; scope the `scoring.js` cap docstring | me | `OPEN` | The middle element closed 2026-08-28 via `AU30`: all four callables route API failures through `geminiGenerate`, which logs the upstream detail server-side and throws `modelQuota.clientMessage()` to the client — asserted by `modelQuota.test.js` (the old `throw new Error((data.error…` pattern greps to zero). The other two elements remain open. |
+| 6.4 | `AU18` | One shared response parser instead of three copies | me | `OPEN` | The **server** is consolidated — `parseJsonResponse` in `functions/index.js`, three call sites — but a client copy survives in `AuraPulseBot.jsx` (`JSON.parse(stripped.substring(start, end))`). Open until that one goes. *(`AC10` was listed here as `OPEN` after row 4.6 had closed it — the third fence-strip copy is deleted. Removed from this row 2026-09-03.)* |
+| 6.5 | `AU13` | Rewrite `CP12`'s evidence string to what the grep actually shows; key anon logs deterministically | me | `OPEN` | The evidence string half is done 2026-09-03 (`COMMUNITY_TODO.md` 4.6 now says what the grep returns). The code half is not: `AuraPulseBot.jsx` still mints `` `Anon_${Math.floor(Math.random() * 9999)}` ``. |
+| 6.6 | `AC4` | ~~Project names out of the function~~; ~~stop forwarding upstream error text~~; scope the `scoring.js` cap docstring | me | `OPEN` | `AU20` (project names) closed at row 7.4 — the dead `'Project HUGE'` branch is gone, asserted by `promptContract.test.js`; this row still said it was open. `AU21` closed 2026-08-28 via `AU30`: all four callables route API failures through `geminiGenerate`, which logs the upstream detail server-side and throws `modelQuota.clientMessage()` to the client — asserted by `modelQuota.test.js` (the old `throw new Error((data.error…` pattern greps to zero). What remains is `AC4`: `src/utils/scoring.js` still says *"Capped at 65 by `MINS_MIDPOINT`"* unscoped. |
 | 6.7 | `AU1` | How AURA is described | **OWNER** → done | `DONE` | `README.md` — a *What NEXUS actually is* section separating the deterministic roster engine from the Gemini assistant, with the old claim quoted and struck through rather than deleted. Badges split: `Roster engine — deterministic` and `AURA assistant — Gemini`. |
 | 6.9 | `AU23` | README describes a codebase that has moved | me | `DONE` | Every path in the tree verified against the repo — `auraChat.js` and `useWindowSize.js` were listed and **deleted**; `auraEngine.js` was captioned *"Core LLM prompt structures"* and is roster code; the community portal, `TeamContext`, `firestore.rules` and `functions/` were all missing. The uncorrected autonomy claim in Release History now carries the same correction its Pillar A twin got on 2026-08-15. |
 | 6.8 | `AU17` | **Decide** what the PDPA control actually is, given `AU15` | **OWNER** | `OPEN` | The README no longer *claims* a control it does not have — it now says plainly that the attachment path accepts five files of any size and type with no scan and no log, and that "we tell staff not to" is the current control. The **decision** is still yours. |
@@ -420,11 +426,14 @@ adjustment for that one address), and close this row with the card diff as evide
 
 ## The owner's ten, in one place
 
-These are not blocked on engineering time and several are not code at all.
+These are not blocked on engineering time and several are not code at all. *(Still ten:
+`AU1` was decided and closed at row 6.7, and `AU28` — row 7.2, open since 2026-08-23 — was
+never in this table. Swapped 2026-09-03.)*
 
 | Id | The question |
 |---|---|
-| `AU1` | Is NEXUS described as an AI roster generator, or as a deterministic engine with an AI assistant beside it? **This one has a deadline** — the cluster ICT survey. |
+| ~~`AU1`~~ | ~~Is NEXUS described as an AI roster generator, or as a deterministic engine with an AI assistant beside it?~~ **Decided — `DONE` (6.7).** The README separates the two; the ICT survey reply is `AURA-HANDOFF.md` §5. |
+| `AU28` | The six personas reach the model as `System Override:` text in the **user** turn, and the caller's `prompt` is accepted up to 8,000 chars. Server-side persona allowlist, or stop labelling user content `CONTEXT/OVERRIDE`? (7.2) |
 | `AU5` | Should `teams/{id}/workload` have a reader, or should MODE 3 stop writing to it? |
 | `AU8` | Should a wellbeing assessment be gated on content rather than turn count — and should the field be called `diagnosis_ready`? |
 | `AU11` | Should the model's own summary persist as memory and re-enter the next prompt? |
@@ -439,8 +448,10 @@ These are not blocked on engineering time and several are not code at all.
 
 ## Current queue
 
-**Empty, as of 2026-08-24.** Every engineering row above is `DONE` with evidence — the
-W-queue below is kept as the record of how it was worked, each line now closed:
+**Empty, as of 2026-08-24** — *corrected 2026-09-03: three small rows are mine and open
+(6.4 `AU18`, 6.5 `AU13`, 6.6 `AC4`; see the status table). None gates anything.* Every
+other engineering row above is `DONE` with evidence — the W-queue below is kept as the
+record of how it was worked, each line now closed:
 
 ```
 W1   AN1 + AN2 + AN3        ─ DONE  c2b45d9; AN14 followed on 2026-08-24, an14.bundle.test.js
@@ -454,9 +465,14 @@ W4   AC1 + AC2              ─ DONE  a99ffa6  (+ AC15)
      AN10                   ─ DONE  chunked at 500, result read
 ```
 
-What runs next is the OWNER'S queue: the nine decisions below, `P8.7`/`P8.8`, the
-20-turn read (`AURA-VERIFICATION-TURNS.md`), the three native-speaker reviews
-(`docs/CD13-translation-review.xlsx`), and the merge (rules → functions → hosting).
+What runs next is the OWNER'S queue: the ten decisions above, `P8.7`/`P8.8`, the
+20-turn read (`AURA-VERIFICATION-TURNS.md`), and the three native-speaker reviews
+(`docs/CD13-translation-review.xlsx`). ~~And the merge (rules → functions → hosting).~~
+*The `aura` branch merged to `main` 2026-08-28/29 (PRs #2–#4) and shipped in v2.1.x —
+before the 20-turn read and the reviews ran. The read has since run — three live runs on
+2026-09-05 through `.github/workflows/verify-aura.yml`, five findings opened and closed
+(`AU31`–`AU35`), and the drafted read at `docs/P8.8-owner-read-2026-09-05.md` awaits the
+owner's verdicts. The native-speaker reviews (`CD13`) are still owed.*
 
 ## Three things only the logs can answer
 

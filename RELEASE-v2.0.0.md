@@ -1,5 +1,15 @@
 # v2.0.0 — the multi-team cutover
 
+> # ⚠️ EXECUTED 2026-08-23 — this runbook is history, kept as the record
+>
+> The cutover it describes ran once and cannot run again: the data now lives under
+> `teams/{teamId}/…`, `main` carries `scripts/migrate-to-teams.cjs`, and the two branches
+> Step 3 tells you to check out (`claude/nexus-aura-rostering-session-duo1q5`,
+> `claude/nexus-community-portal`) no longer exist. Read it to understand *why* the
+> data model is shaped as it is and what the rollback target was; do not run its
+> commands. The current supported-version and rollback position is in `README.md`
+> and `SECURITY.md`.
+
 **Read this in order. The order is the point.**
 
 This is the only release in NEXUS's history where a deploy alone breaks the app. Every
@@ -145,6 +155,9 @@ Re-running is now safe in the way this file always claimed it was.
 
 ## Step 3 — the merge
 
+> *Historical. Both branches named below were merged and deleted; `main` has carried
+> the fixed migration script (`grep -c force-overwrite` → 3) since the cutover.*
+
 ⚠️ **THERE ARE TWO BRANCHES IN v2.0, AND THEY SHOULD LAND AS ONE DEPLOY.** This
 section originally described the roster branch alone, because the community portal
 rebuild did not exist when it was written. Merging them separately means two
@@ -269,8 +282,8 @@ walk that path once before the email goes out:
 4. Sign in as that person. They see **their own department's roster and nothing of
    team #1's** — no roster, no wellbeing, no feed, no members.
 
-Step 4 is the assertion that matters, and it is the one `firestore.rules`' 95
-emulator checks already make. Doing it by hand once is what confirms the deployed
+Step 4 is the assertion that matters, and it is the one `firestore.rules`' emulator
+checks already make (95 at this release; 149 as of 2026-09-03). Doing it by hand once is what confirms the deployed
 bundle and the deployed rules are the ones those checks describe.
 
 ---
@@ -336,8 +349,8 @@ Stated here so it is not discovered on the day:
   problem is unchanged.) Per-team partitioning keeps most departments at 20–40 people
   where it is comfortable — it does not make that number smaller, and a large
   department rostering a year ahead will still freeze the tab.
-- **Removing a member** cannot be done from the app yet. It needs a Cloud Function,
-  because the membership document and `users.teamIds` must change together.
+- ~~**Removing a member** cannot be done from the app yet.~~ *Closed after this
+  release: a lead removes a member from the TEAM tab (`src/components/TeamMembersPanel.jsx`).*
 - **The roster still stores display names** in its day arrays. Team scoping removed the
   collision that mattered; two identical names inside *one* department would still
   collide, which a lead fixes by editing one of them.

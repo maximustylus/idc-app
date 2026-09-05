@@ -1,9 +1,15 @@
 # Translation brief — NEXUS Community (`CD10`)
 
+**Written 2026-08-23** · the status table below is a snapshot of that date. **The live
+status is `COMMUNITY_TODO.md`** (its status table row for `CP10`/`CD10`, and §7.7 for
+group 1's provenance); when a group ships, update that file and then this one, not the
+other way round. `CD13` — the native-speaker review of what has been machine-translated —
+has its instrument at `docs/CD13-translation-review.xlsx` and has not been run.
+
 The portal serves four languages, so each item needs **three** translations:
 **Bahasa Melayu (`ms`)**, **中文 (`zh`)**, **தமிழ் (`ta`)**.
 
-## Status
+## Status (as of 2026-08-23)
 
 | Group | What it is | State |
 |---|---|---|

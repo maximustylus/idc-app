@@ -16,16 +16,20 @@ pathways, and the Cloud Function behind the chat.
 > separate version series for one surface is how a project ends up with two numbers that
 > disagree, and this repository already documents that failure once.
 >
-> ### ⚠️ Nothing in this file is deployed
+> ### ~~⚠️ Nothing in this file is deployed~~ Shipped — 2026-08-25
 >
-> Every entry below is on a branch. The portal members of the public can reach **today**
+> ~~Every entry below is on a branch. The portal members of the public can reach **today**
 > still contains the defects listed under *Fixed* — including `CP1`, the risk score that
 > never measured activity. This file records what is ready, not what is live. It will
-> say otherwise on the day it is true and not before.
+> say otherwise on the day it is true and not before.~~
+>
+> **It is true now.** The community branch merged to `main` on 2026-08-25 (`2ba1c15`) and
+> the entries below shipped in app **v2.1.2 / v2.1.3**; the v2.1.3 lay-language pass over
+> the same surfaces is recorded in `CHANGELOG.md`. Nothing on the live portal carries `CP1`.
 
 ---
 
-## [Unreleased] — on `claude/nexus-community-portal`
+## Shipped in [2.1.2] / [2.1.3] — was *[Unreleased] — on `claude/nexus-community-portal`*
 
 Ids in **bold** are from [COMMUNITY_TODO.md](COMMUNITY_TODO.md); `§` references are
 sections of [POSTMORTEM-COMMUNITY.md](POSTMORTEM-COMMUNITY.md), which carries the

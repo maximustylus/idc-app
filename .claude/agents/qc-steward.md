@@ -41,14 +41,15 @@ Every rule below was paid for by a defect that reached `main`:
 - **`.map()` with no match is a legal no-op.** The failing mutation throws
   nothing, logs nothing, and returns a valid object. → *Absence of an error is
   not evidence of success. Read the value back, or assert on it.*
-- **The decoy test suite.** `Aura.utils.test.js` and `Aura.hooks.test.js` are
-  **byte-for-byte identical** (12,323 bytes each), both import `./aura.hooks`
-  (wrong case), and at the time neither `vitest` nor `@testing-library/react` was in
-  `package.json`. There is no `test` script. 608 lines of test code have never
-  executed, and `Aura.utils.js` — which holds `sanitizeInput`,
-  `extractJsonFromResponse`, `withRetry` and `buildSystemPrompt` — has no tests
-  at all despite a file named for it. → *A test file existing is not evidence
-  tests run. Run them and paste the output.*
+- **The decoy test suite** *(historical — `Aura.utils.js` and `Aura.utils.test.js`
+  no longer exist; only `Aura.hooks.js` and its test survive).* `Aura.utils.test.js`
+  and `Aura.hooks.test.js` were **byte-for-byte identical** (12,323 bytes each), both
+  imported `./aura.hooks` (wrong case), and at the time neither `vitest` nor
+  `@testing-library/react` was in `package.json`. There was no `test` script. 608
+  lines of test code had never executed, and `Aura.utils.js` — which held
+  `sanitizeInput`, `extractJsonFromResponse`, `withRetry` and `buildSystemPrompt` —
+  had no tests at all despite a file named for it. → *A test file existing is not
+  evidence tests run. Run them and paste the output.*
 - **Timezone luck.** All roster date keys come from
   `toISOString().split('T')[0]`, which is UTC. It produces correct dates only
   because the author is in `Asia/Singapore` (UTC+8). → *Green on the author's
@@ -95,8 +96,9 @@ Given a proposed fix, answer these and refuse to hand-wave:
    **What is still true:** the master-roster rewrite executes in the *accepting user's
    browser*, and a source read alone cannot confirm what the DEPLOYED rules say. The
    check that can is `scripts/firestore-rules-verify.mjs` against the emulator —
-   119 assertions, and it compiles the real file, so it also catches rules that would
-   fail the deploy.
+   149 `check(` calls as of 2026-09-03 (count them with `grep -c 'await check('`
+   rather than trusting this number), and it compiles the real file, so it also
+   catches rules that would fail the deploy.
 6. **Can it be verified before deploy?** Name the check. If the behaviour is
    Firestore-live-only (onSnapshot delivery, security rules, push notifications,
    multi-user swap round-trips), say so and mark it **LIVE-VERIFY PENDING** — do

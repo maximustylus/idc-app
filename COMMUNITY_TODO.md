@@ -4,9 +4,12 @@ Companion to [POSTMORTEM-COMMUNITY.md](POSTMORTEM-COMMUNITY.md), which carries t
 evidence for every row below. AURA — the AI behind the chat pathway — has its own
 post-mortem in [AURA-POSTMORTEM.md](AURA-POSTMORTEM.md) (`AU`n / `AC`n / `AN`n), with
 its plan in [AURA-TODO.md](AURA-TODO.md). Three things there bear directly on this
-ledger: `AU13` corrects `CP12`'s `Math.random` evidence string, which is now false as
-written; `AC1`/`AC2` are the PAVS parser defects `P4.3` has had `OPEN` for weeks; and
-`AN13` finds that feed **comments** bypass the PDPA guard that posts are fenced by. This file is the plan; the post-mortem is the finding.
+ledger: `AU13` corrects `CP12`'s `Math.random` evidence string, which was false as
+written (row 4.6 now says what the grep returns; the code half of `AU13` is still open);
+`AC1`/`AC2` are the PAVS parser defects `P4.3` had `OPEN` for weeks — **closed 2026-08-23
+(`a99ffa6`, 70 tests)**, with `parseClinicalData` extracted to `src/utils/clinicalParse.js`
+under `AC5`; and `AN13` found that feed **comments** bypassed the PDPA guard that posts
+are fenced by — closed 2026-08-24. This file is the plan; the post-mortem is the finding.
 
 **Scope: the `/individuals/*` surface and nothing else.** Five routes, the two
 pathways that feed them, and the Cloud Function behind the chat. The roster side has
@@ -44,9 +47,12 @@ to never reuse a number.
 a member of the public is told about their own health. I have deliberately not
 implemented them. They are marked `OWNER` and they are not blocked on engineering time.
 
-**2. Nothing here is deployed.** Every `DONE` row below is on a branch. The community
+~~**2. Nothing here is deployed.** Every `DONE` row below is on a branch. The community
 portal that members of the public can reach today still has `CP1` — the risk score that
-never measured activity — live in it.
+never measured activity — live in it.~~ **Deployed.** The community branch merged to
+`main` on 2026-08-25 (`2ba1c15`) and shipped in app v2.1.2/v2.1.3; the v2.1.3 lay-language
+pass is in `CHANGELOG.md`. `CP1` is fixed on the live portal. *(Struck 2026-09-03 — this
+sentence told a reader for nine days that a broken clinical score was live to the public.)*
 
 ---
 
@@ -58,7 +64,7 @@ never measured activity — live in it.
 | `OPEN`, mine | 2 | `CP8` `CP16` |
 | **`OWNER`, console only** | 1 | `CP7`'s last two steps — see *Turning App Check on*, below. The code is shipped and inert. |
 | `OPEN`, translation | 1 | `CP10`/`CD10` groups 2, 3 and the rest of 4 — group 1 and the slip's flag lines are shipped, see `7.7` |
-| `OPEN`, **owner's decision** | 5 | `CD4` `CD10` `CD11` `CD12` (design) `CD13` (translation review) |
+| `OPEN`, **owner's decision** | 8 | `CD4` `CD10` `CD11` `CD12` (design) `CD13` (translation review) · `CD14` `CD15` `CD16` (consent, referral partner, retention — promoted from the RHS review, P8) |
 
 **`CD13` opened 2026-08-23** — a native-speaker review of the 19 strings already
 shipped in ms/zh/ta. Everything translated so far is machine output (group 1 by
@@ -90,7 +96,7 @@ AGENT` heading.
 | 0.2 | `request.auth` on `chatWithAura` | **DONE**, and the demo is now a real sandbox rather than a claimed one. Demo Mode called this function unconditionally — `isDemo` only chose the prompt text — so a visitor with no account, arriving from the *signed-out* landing page, sent their typing to Gemini on the project's billed key. `src/utils/demoAura.js` answers demo turns locally, deterministically and in the same object shape the component parses, so the mode badge, the document-export card and the wellbeing-log prompt all still work. With nothing unauthenticated left calling it, `chatWithAura` now refuses a caller with no `request.auth`. | Fable-supervised | `DONE` | 26 tests · the only remaining call site is the authenticated branch of `AuraPulseBot` |
 | 0.3 | App Check + rate limit on the public callable | `CP7`. **The rate limit is live.** Two ceilings per hour: 300 calls per caller (600 once attested) and 6,000 across the whole endpoint as a circuit breaker, warning in the log at half. Counters live in `rate_limits`, keyed by a **hashed** caller key with the window in the document id — so a window self-resets whether or not any job runs, and the nightly sweep only removes the residue. **App Check is shipped but inert**: the client initialises it only when `VITE_APPCHECK_SITE_KEY` is set, the function enforces it only when `ENFORCE_APP_CHECK=true`, and until then an unattested caller simply gets the tighter ceiling and is counted in the logs. The two remaining steps are console work — see *Turning App Check on* below. | Opus-alone | `DONE` (code) · `OWNER` (console) | `functions/rateLimit.js` + **46 tests** |
 | 0.4 | Validate content, not only length | `domain` and `language` are closed sets checked as closed sets. `priorAnswers` is **rebuilt** from the known domain list rather than filtered, so a caller cannot influence the shape of what reaches the model — only the values of at most thirteen known keys. `prompt`/`role`/`history`/`attachments` are ignored entirely, asserted by test. | Opus-alone | `DONE` | `functions/communityAck.test.js` — 41 tests |
-| 0.5 | Abort on the discard window | `AuraChat.jsx` gives the model 1,500 ms then discards the answer without aborting, so it runs to completion server-side and bills in full. Reduced but not fixed: the server timeout is now 20s rather than 90s and the output cap 200 tokens rather than 8192. | Opus-alone | `OPEN` | — |
+| 0.5 | Abort on the discard window | `AuraChat.jsx` gives the model 1,500 ms then discards the answer without aborting, so it runs to completion server-side and bills in full. Reduced but not fixed: the server timeout is now 20s rather than 90s and the output cap 200 tokens rather than 8192. ⚠️ **This is `AC8`, which `AURA-TODO.md` 4.4 closed by correcting the finding**: `httpsCallable` carries no cancellation signal, so aborting in the client cannot stop the Cloud Function — the prescribed fix would not do what this row says. The 20s/200-token bounds *are* the fix. | Opus-alone | `DONE` (as `AC8`) | `AURA-TODO.md` 4.4 |
 | 0.6 | Close the dead endpoints | `publicTriageChat` — 145 lines, unauthenticated, interpolated `request.data.language` into its own system instruction with no allowlist, **and had no callers**. Its body is gone; the **export deliberately remains as a stub that throws**. ⚠️ Deleting the source does not delete the deployed function, and `deploy.yml:37` runs `deploy --only functions,firestore:rules` with no `--force` on a TTY-less runner — firebase-tools ABORTS on an orphan rather than skipping it, which would half-apply the merge (rules land, `communityAck` does not, the auth check does not, Hosting never runs, and every later push fails the same way). `src/utils/auraChat.js` deleted outright — it is client code and deploys with the bundle. | Opus-alone | `DONE` | export diff vs `origin/main` shows **additions only**, so no deletion prompt |
 
 
@@ -238,10 +244,10 @@ Cheap, and each one removes a way the portal can drift back into a P1.
 |---|---|---|---|---|---|
 | 4.1 | One theme key | `CP12`. A prior *"FIX 1"* changed three files to `nexus-theme` and left four on `nexus_theme`, including `App.jsx`, which owns the class on `<html>` — splitting the setting along the pathway gate rather than unifying it. | Opus-alone | `DONE` | `189a61b` · `src/utils/theme.js` |
 | 4.2 | Share `selectCTA` and the tier table | Two copies kept in agreement by a comment that was **already false** (`CP9`). Move beside `calculateRiskScore` in `src/utils/`. `ctaTierParity.test.js` detects the drift; a shared module makes it unrepresentable, and that test can then be deleted rather than maintained. | Opus-alone | `OPEN` | — |
-| 4.3 | Test the remaining pure logic | `deriveFlags` and `parseClinicalData` have no tests. `calculateRiskScore` had none either, and it was wrong for its entire life. | Opus-alone | `OPEN` | — |
+| 4.3 | Test the remaining pure logic | `deriveFlags` and ~~`parseClinicalData`~~ have no tests. `calculateRiskScore` had none either, and it was wrong for its entire life. *`parseClinicalData` was extracted to `src/utils/clinicalParse.js` with tests under `AC5` (`AURA-TODO.md` 4.6); `deriveFlags` is what remains.* | Opus-alone | `OPEN` (`deriveFlags`) | `src/utils/clinicalParse.test.js` for the other half |
 | 4.4 | Persist in-progress state | `CP12`. **`sessionStorage`, not `localStorage`** — the portal runs on community-centre terminals and clinic tablets, and answers about food insecurity and psychological distress left for the next person are identifying in practice. The result is mirrored on arrival and restored before the redirect effect runs; both pathways resume mid-assessment; `clearAssessment()` wipes id, answers and result together. | Opus-alone | `DONE` | `src/utils/assessmentSession.js` · 15 tests |
 | 4.5 | `path="*"` route | `CP12`. `firebase.json` rewrites everything to `index.html`, so a mistyped URL loaded the whole SPA and rendered **nothing** — a blank page, indistinguishable from a broken site, for visitors arriving from a QR code or a forwarded link. | Opus-alone | `DONE` | `NotFound.jsx` · 14 tests asserting the wildcard cannot shadow a real route, against react-router's own matcher |
-| 4.6 | One session id | `CP12`. **Five** were minted — the four screens plus a fallback in `ResultPage` — and all were shown as *"ID:"*. The one written to Firestore was the third, so an id quoted off any other screen matched nothing in the record, on a portal that invites returning respondents to type a previous id in. | Opus-alone | `DONE` | `getSessionId()` · `grep Math.random src/components/` returns nothing |
+| 4.6 | One session id | `CP12`. **Five** were minted — the four screens plus a fallback in `ResultPage` — and all were shown as *"ID:"*. The one written to Firestore was the third, so an id quoted off any other screen matched nothing in the record, on a portal that invites returning respondents to type a previous id in. | Opus-alone | `DONE` | `getSessionId()` · `grep Math.random src/components/` returns **two hits, neither a session id**: `AuraPulseBot.jsx` (the anonymous wellbeing-log key — `AU13`, still open) and `AuraGreeting.jsx` (picks a quote). *(Corrected 2026-09-03: this cell said "returns nothing", which was false — `AU13`'s own subject, and the document set's worked example of an evidence string that outran its grep.)* |
 
 ---
 
@@ -484,13 +490,30 @@ P7.7  translate falls + Healthier SG         ─ DONE · needs a native-speaker 
 CD13  native-speaker review of 19 strings    ─ owner's; the only thing left on group 1 + 4
 CD10  groups 2, 3, rest of 4                 ─ owner's call; group 2 is the URGENT tier
 CD4 / CD11                                   ─ owner's, in parallel, not blocked on me
-P0.5  abort the discarded request
+P0.5  abort the discarded request            ─ closed as AC8: not possible as stated
 P3.4  resource freshness
 P4.2  share selectCTA                        ─ retires ctaTierParity.test.js
-P4.3  tests for deriveFlags / parseClinicalData
+P4.3  tests for deriveFlags                  ─ parseClinicalData done under AC5
 P4.4  P4.5  P4.6                             ─ cheap, do together
 P5    the data question                      ─ owner's
+CD14  CD15  CD16                             ─ owner's, from the RHS review (P8 below)
 ```
+
+---
+
+## P8 — Decisions promoted from the RHS review · `CD14` `CD15` `CD16` · owner's
+
+[`REVIEW-RHS-SOCIAL-PRESCRIBING.md`](REVIEW-RHS-SOCIAL-PRESCRIBING.md) (2026-08-22, an
+external-perspective read of the portal) ended with five things a Regional Health System
+would need before piloting. Two were code and became `CP` rows. Three are decisions and
+were tracked nowhere until 2026-09-03; they are recorded here so the review can be
+archived without losing them.
+
+| # | Id | Decision | Owner | Status |
+|---|---|---|---|---|
+| 8.1 | `CD14` | **A consent model** that lets a respondent opt into being contacted. Today the record is de-identified by construction (`CP3`) and nobody can be contacted, which is the right default — but a referral pathway needs the opposite, on the person's say-so. | **OWNER** | `OPEN` |
+| 8.2 | `CD15` | **A named partner willing to receive referrals**, and the channel they receive them through. The printable slip (3e.6) is the current answer; it assumes the person carries it. | **OWNER** | `OPEN` |
+| 8.3 | `CD16` | **The data-retention position in writing** — how long `community_assessments` are kept and who may read them. `functions/retention.cjs` implements *a* window; the policy it implements has not been stated anywhere a member of the public could read. Overlaps `P5` and the info card's §4. | **OWNER** | `OPEN` |
 
 ---
 

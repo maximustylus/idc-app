@@ -6,6 +6,17 @@ health screening they implement, and the Cloud Function behind them.
 **Method:** every claim below was checked against the code and carries `file:line`.
 Where I fixed something, the commit is named. Where I did not, it says so.
 
+> ### ⚠️ STATUS 2026-09-03 — frozen finding list; the status lives in `COMMUNITY_TODO.md`
+>
+> Written against a branch that has since merged: the portal audited here shipped to the
+> public in app **v2.1.2 / v2.1.3** (merged 2026-08-25), so *"not deployed"* above is
+> history. Of the four items *"still open"* in §0, the chat's call to the staff AI
+> endpoint is closed (`chatWithAura` refuses unauthenticated callers; the public pathway
+> has its own bounded `communityAck` — `COMMUNITY_TODO.md` 0.2/0.3) and the PAVS parser
+> defects are closed (`AC1`/`AC2`, 2026-08-23). The `file:line` citations are against the
+> 2026-08-21 tree and will not resolve today. `COMMUNITY_TODO.md`'s status table is the
+> authoritative count; the chat pathway's AI findings are `AC`n in `AURA-TODO.md`.
+
 ---
 
 ## 0. The short version

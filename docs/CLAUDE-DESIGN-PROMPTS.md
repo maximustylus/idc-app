@@ -7,8 +7,9 @@ depth · soft drop shadows**, light mode.
 **How to use**
 
 1. Start a canvas (`/design` or the Design entry point) and paste **Prompt 0** first —
-   it is the style system every artboard inherits. Attach the screenshots from
-   `walkthrough-shots.zip` when a slide prompt calls for them.
+   it is the style system every artboard inherits. Attach the screenshots when a
+   slide prompt calls for them — see the note at the end of this file on where they
+   come from; the archive is **not** committed to the repository.
 2. Then paste the slide prompts one at a time (or in batches of 3–4). Each names its
    artboard, its screenshots, and its content verbatim.
 3. Use the **iteration prompts** at the end to push any artboard further in one
@@ -83,7 +84,7 @@ word "NEXUS" very large (140px+) in soft slate, above the line "Try the roster
 for your team" in pastel violet, above two calm sentences: "A ten-minute,
 hands-on walkthrough for Allied Health leads." and "Everything happens in a
 sandbox — nothing you do is saved, and no sign-in is needed." Small footer:
-"v2.1.0 · August 2026". Right third: 09-drafted-mobile.png floating in a glass
+"v2.10.0 · September 2026" (use whatever `package.json` says on the day). Right third: 09-drafted-mobile.png floating in a glass
 phone frame, tilted 3°, with the deepest extrusion on the page. One large mint
 blob behind the phone, one lavender blob behind the title.
 ```
@@ -132,8 +133,9 @@ whole time." (bold). Foot strip: "The Guide tab reopens the tour any time."
 ```
 Artboard 5, "Open Roster — the calendar your team would live in", step coin "3".
 Screenshots: 05-roster-desktop.png and 05-roster-mobile.png. Bullets:
-"Department shows everyone; My week shows one person." / "CSV and ICS export to
-spreadsheet or calendar." / "Configure is where you describe YOUR service."
+"Department shows everyone; My week shows one person." / "One Export button:
+PDF wall calendar, Excel workbook, CSV, or ICS for your calendar app." /
+"Configure is where you describe YOUR service."
 (bold) / "On the phone the calendar stacks vertically — rosters are read at the
 bedside, not at a desk."
 ```
@@ -249,5 +251,10 @@ door stays open, and nothing you tried today touched live data."
 ---
 
 *Screenshots: `walkthrough-shots.zip` (22 PNGs, light mode, 2× resolution,
-captured 2026-08-24 from the v2.1.0 build on branch `aura`). Content text mirrors
-`docs/NEXUS-roster-walkthrough.pptx`; if the deck's wording changes, change it here too.*
+captured 2026-08-24 from the v2.1.0 build on branch `aura`) was never committed and
+is not in the repository — recapture from the current build before using this pack.
+⚠️ The v2.1.0 captures are stale for the roster screens: since v2.9.0 the toolbar is
+one row of four icon-over-label controls (Configure · Export · Department · My week)
+and the four file-extension buttons are gone. Content text mirrors
+`docs/NEXUS-roster-walkthrough.pptx`, which shows the same v2.1.0 screens; if the
+deck's wording changes, change it here too.*

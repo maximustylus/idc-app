@@ -1,6 +1,7 @@
 # AURA — handoff
 
-**Last updated:** 2026-08-23. **Read this first.** [`AURA-TODO.md`](AURA-TODO.md) is the
+**Last updated:** 2026-09-03 (a housekeeping pass — counts, the merge, and the two
+findings opened 2026-08-27/28; the substance of the audit is as of 2026-08-24). **Read this first.** [`AURA-TODO.md`](AURA-TODO.md) is the
 plan, [`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md) is the evidence,
 [`AURA-CHANGELOG.md`](AURA-CHANGELOG.md) is the version history.
 
@@ -9,8 +10,8 @@ plan, [`AURA-POSTMORTEM.md`](AURA-POSTMORTEM.md) is the evidence,
 ## 0. Today, in one paragraph
 
 AURA was audited end to end on 23 August 2026 across three surfaces — the staff assistant,
-the public health screening, and the intelligence layer. **56 findings**, of which **14 are
-closed with evidence** as of the same evening. The most serious was not an AI defect at all: **six named
+the public health screening, and the intelligence layer. **56 findings** *(60 now — see
+below)*, of which **14 were closed with evidence** by the same evening. The most serious was not an AI defect at all: **six named
 colleagues' job grades were in the public JavaScript bundle** (`AN1`), served on every route
 including the community screening a member of the public opens — and `STAFF_PROFILES` turned
 out to be one of **two** copies, the other being `TEAM_DIRECTORY.title`, which only a check
@@ -20,17 +21,23 @@ description of NEXUS as *"a proprietary, autonomous AI agent"* (`AU1`) — which
 month because a cluster-level rostering ICT is asking what NEXUS is.
 
 **Updated 2026-08-24, end of the closing sweep:** `AC16` and the guardrail work's `P8`
-items joined the ledger since the paragraph above was written, and **46 findings are now
-closed with evidence — the engineering queue is empty** (`AURA-TODO.md`'s status table is
-the authoritative count; `AU29` and the IMDA info card joined and closed 2026-08-28). What remains is the owner's column: nine
-decisions, the model-routing and real-turns items (`AURA-TODO.md` P8.7/P8.8), the
-20-turn read (`AURA-VERIFICATION-TURNS.md`) that gates the merge, the three
-native-speaker reviews (`docs/CD13-translation-review.xlsx` is the instrument), and
-the production `teamIds` check that unlocks deleting the legacy email bridge. Branch
-`aura` carries it all; **nothing is deployed** — deploy order is rules → functions →
-hosting.
+items joined the ledger since the paragraph above was written, and the engineering queue
+was declared empty. **Updated 2026-09-03/06:** the ledger stands at **65 findings — 52
+closed with evidence, 13 open** (`AURA-TODO.md`'s status table is the authoritative count);
+`AU31`–`AU35` were opened and closed on 2026-09-05 by the first live twenty-turn read.
+`AU29` (chat history survived sign-out) and `AU30` (model chosen by visibility, not
+usability) were opened 2026-08-27/28 and closed the same week, with the IMDA info card.
+Three engineering items are open again — `AU13`, `AU18`, `AC4`, all small — plus the
+owner's column: ten decisions, the model-routing and real-turns items (`AURA-TODO.md`
+P8.7/P8.8), the 20-turn read (`AURA-VERIFICATION-TURNS.md`), the three native-speaker
+reviews (`docs/CD13-translation-review.xlsx` is the instrument), and the production
+`teamIds` check that unlocks deleting the legacy email bridge. **The `aura` branch merged
+to `main` in v2.1.x (PRs #2–#4, 2026-08-28/29) and is deployed**; the 20-turn read did not
+run before the merge. It ran three times on 2026-09-05 (v2.11.0–v2.12.0); the drafted read
+is `docs/P8.8-owner-read-2026-09-05.md`, and the owner's verdicts on it are what now gate
+any *claim* of guardrail compliance.
 
-⚠️ **Five of the 56 findings were opened by reviewing the FIXES, not by the original audit,
+⚠️ **Five of the first 56 findings were opened by reviewing the FIXES, not by the original audit,
 and one of those fixes was a regression worse than the bug it closed** — a keyword added to
 the sandbox router would have answered *"I saw 3 arrests back to back and I am wrung out"*
 with *"Logged 3 against your workload record"*. Read §6 before assuming a small fix is
@@ -46,7 +53,7 @@ small.
 |---|---|---|---|
 | Staff assistant | `AuraPulseBot.jsx` → `chatWithAura` | Gemini, runtime-resolved | signed-in staff |
 | Public screening | `AuraChat.jsx` → `communityAck` | Gemini, 200 tokens | **anyone** |
-| Year-end analysis | `SmartAnalysis.jsx` → `generateSmartAnalysis` | Gemini, temp 0.2 | **anyone** ⚠️ `AN4` |
+| Year-end analysis | `SmartAnalysis.jsx` → `generateSmartAnalysis` | Gemini, temp 0.2 | a signed-in **lead** of the team *(was **anyone** — `AN4`, closed 2026-08-23, §2)* |
 | Rollup · nudge · PDPA guard | `insights.cjs` · `scheduledPulseNudge` · `processFeedPost` | mixed | scheduled / members |
 | The sandbox | `demoAura.js` | **none** — local, deterministic | anyone |
 | **The roster generator** | `auraEngine.js` · `rosterEngineV2.js` | **none — not AI** | team members |
@@ -74,7 +81,8 @@ sandbox downloads the `.docx` and says plainly that nothing was saved.*
 **Nothing in this section is open.** The nearest thing to a live risk is now a
 BEHAVIOURAL unknown, not a defect: the guardrail preamble has never been run against a
 real model (`AURA-GUARDRAILS.md`, assumptions item 7). That is what the 20-turn read
-exists to answer, and it gates the merge.
+exists to answer. It was meant to gate the merge; the merge happened without it, so it
+now gates any claim that AURA follows the guardrails — including the info card's §3.
 
 ### Verify the grade fix yourself
 
@@ -139,7 +147,7 @@ Not blocked on engineering time. Several are not code.
 
 | Id | The question | Clock |
 |---|---|---|
-| **`AU1`** | Is NEXUS an *AI roster generator*, or a *deterministic engine with an AI assistant beside it*? | ⚠️ **The cluster ICT survey.** See §5. |
+| ~~**`AU1`**~~ | ~~Is NEXUS an *AI roster generator*, or a *deterministic engine with an AI assistant beside it*?~~ **Decided and `DONE`** (`AURA-TODO.md` 6.7): the README now separates the two. The survey reply itself is §5. | ~~⚠️ **The cluster ICT survey.**~~ See §5. |
 | `AU5` | Should `teams/{id}/workload` have a reader, or should MODE 3 stop writing to it? | — |
 | `AU8` | Should the wellbeing assessment be content-gated rather than turn-count-gated — and should a field on a staff record be called `diagnosis_ready`? | — |
 | `AU11` | Should the model's own summary persist as memory and re-enter the next prompt? | — |
@@ -152,10 +160,12 @@ Not blocked on engineering time. Several are not code.
 | P8.7 | Should the **model tier** be routed by the stakes of the task (Rule 16)? Today `resolveModel()` picks one model for every call, from a research review to a category label. | — |
 | P8.8 | Who runs the real turns that would tell us whether AURA **follows** the ten prompt-carried guardrails, and when? | ⚠️ before any claim of compliance |
 
-⚠️ **Ten of these carry a finding id and two do not.** `AURA-TODO.md`'s *"The owner's ten"*
-and `AURA-GOLIVE-GATE.md` both mean the ten with ids, and are still correct as written. The
-last two rows came in with the guardrails on 2026-08-24 and are cited as `AURA-TODO.md` P8.7
-and P8.8, because no post-mortem finding covers either.
+⚠️ **Ten of these carry a finding id and two do not** — and one of the ten (`AU1`) is
+decided, so **nine id-carrying decisions plus `AU28`** (the persona texts that open with
+*"System Override:"*, `AURA-TODO.md` 7.2, which was never in this table) are what actually
+wait: `AU5` `AU8` `AU11` `AU17` `AU28` `AC11` `AN7` `AN9` `AN11` `AN12`. The last two rows
+came in with the guardrails on 2026-08-24 and are cited as `AURA-TODO.md` P8.7 and P8.8,
+because no post-mortem finding covers either.
 
 ---
 
@@ -181,8 +191,11 @@ Determinism is the engine's strongest asset in front of a governance body. The R
 currently throws it away in a badge. `AU1` is mostly a paragraph, and it is the highest
 external-value item in the set.
 
-Draft survey answers, already written and not sent, are in the session scratchpad as
-`ict-survey-response.md`. The `AU17` and `AN12` decisions belong in that reply too.
+Draft survey answers, already written and not sent, were in the session scratchpad as
+`ict-survey-response.md` — ⚠️ **not in the repository, and a scratchpad from August 2026
+is almost certainly gone.** If the reply was sent, file a copy under `docs/`; if not, it
+has to be redrafted from §5 and the README's *What NEXUS actually is*. The `AU17` and
+`AN12` decisions belong in that reply too.
 
 ---
 
@@ -213,7 +226,11 @@ post-mortems into `AURA-POSTMORTEM.md`. See [`IDS.md`](IDS.md).
 > is closed with evidence. What survives of "the order" is the owner's sequence:
 > demo → hand `docs/CD13-translation-review.xlsx` to three readers → run
 > `AURA-VERIFICATION-TURNS.md` → merge `aura` → `main` (rules → functions → hosting)
-> → the nine decisions in §4. The original text below is kept as the record of the plan.
+> → the decisions in §4. The original text below is kept as the record of the plan.
+>
+> **2026-09-03:** the demo happened (2026-08-24) and the merge happened (v2.1.x, PRs
+> #2–#4) — but out of order: the 20-turn read and the three native-speaker reviews have
+> **not** run. They are still owed; what they gate is now a compliance claim, not a deploy.
 
 Not by severity — by the gap between cost and consequence.
 

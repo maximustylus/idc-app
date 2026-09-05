@@ -5,7 +5,14 @@ tier. It moves independently of the app version in `package.json` and is **not**
 an app release. `CHANGELOG.md:12` is the source of that rule; this file is the history it
 refers to.
 
-**Currently `v2.3`.** The app is `v2.1.3`.
+**Currently `v2.3`.** The app is `v2.10.0` *(as of 2026-09-03; `package.json` is the
+source, this line is a snapshot — it read `v2.1.3` for nine roster-only releases).*
+
+⚠️ **Open question for the owner (2026-09-03):** the batch below was headed *"Unreleased —
+v2.3.1"* and has shipped, but nothing was bumped — `CHANGELOG.md`, `README.md`,
+`.claude/agents/version-steward.md` and the info card all still say the engine tier is
+`v2.3`. Either the tier is `v2.3.1` and those four lines move together, or the batch is
+documentation-and-hardening within `v2.3` and the heading below is renamed. Not decided here.
 
 > ### ⚠️ How to read this file
 >
@@ -22,7 +29,7 @@ refers to.
 
 ---
 
-## Unreleased — **v2.3.1**, not v2.4 · 2026-08-23 → 2026-08-28
+## ~~Unreleased~~ Shipped — the **v2.3.1** batch, not v2.4 · 2026-08-23 → 2026-08-28 · merged to `main` 2026-08-28/29 (PRs #2–#4), live since app v2.1.x
 
 ⚠️ **This section said *"Nothing yet. Every row is `OPEN`"* until 2026-08-24, by which point
 two days of remediation had shipped.** A changelog that is not written when the work lands is
@@ -60,8 +67,9 @@ The owner's sixteen rules, in [`AURA-GUARDRAILS.md`](AURA-GUARDRAILS.md) and
 - **Rule 12 / `AU16` (half)** — which model answered is **recorded**: on every chat and
   analysis response, in the .docx export footer, in the `smart_database` audit row and in the
   archived year-end report. It was recorded nowhere, and `resolveModel()` silently falls back
-  between five models, so it was not recoverable afterwards either. ⚠️ The **cache reset**
-  half of `AU16` is still open.
+  between five models, so it was not recoverable afterwards either. ~~⚠️ The **cache reset**
+  half of `AU16` is still open.~~ *Both halves closed the same day — see the entry below
+  and `AURA-TODO.md` 1.4 / 8.2; this line was the stale one.*
 - **P1** — the wellbeing report carries a declared *"Assumptions, gaps and unverified items"*
   block, and when the model omits one the report says the model declared nothing rather than
   claiming there was nothing to declare.
@@ -107,8 +115,10 @@ test count moving **3,015 → 3,232 across 86 files** and the rules emulator at
 - **`AU3`'s deferred half** — the `hasOnly` backstop on the workload document,
   riding the same rules deploy `AN13` requires, emulator-verified.
 
-⚠️ **Deploy note, unchanged:** rules → functions → hosting, in that order, after
-the owner's 20-turn read. Nothing above is live until the merge.
+~~⚠️ **Deploy note, unchanged:** rules → functions → hosting, in that order, after
+the owner's 20-turn read. Nothing above is live until the merge.~~ **Merged to `main`
+2026-08-28/29 (PRs #2–#4) and live since app v2.1.x.** The 20-turn read did not run
+first; it is still owed (`AURA-TODO.md` P8.8).
 
 ### Before that — `c2b45d9`, `a99ffa6`, `addf3a5`, `e3b6bb9`
 
@@ -126,7 +136,8 @@ a consolidated card for the three generative surfaces after the guidelines' Anne
 capabilities and prohibitions, safety and reliability (qualitative only; nothing quantitative
 exists to cite), data practices per surface, and reporting channels, with the known gaps
 (`AU17`, `P8.8`, no age assurance) declared in the card body rather than omitted. The card
-is a **draft pending owner sign-off** (`AURA-TODO.md` 9.1). The roster engine is
+~~is a **draft pending owner sign-off** (`AURA-TODO.md` 9.1)~~ was signed off the next day —
+see *2026-08-28* below. The roster engine is
 deliberately outside the card: no model, no card row, per `AU1`.
 
 **Surfaced the same day (P9.2/P9.3, closed with evidence in `AURA-TODO.md`):** the app

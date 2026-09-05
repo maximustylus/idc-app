@@ -6,9 +6,9 @@ data is handled, and how to raise a concern.**
 | | |
 |---|---|
 | **Card status** | ✅ **In effect.** Approved 2026-08-28 by **Muhammad Alif (owner)** — the named sign-off `AURA-GUARDRAILS.md` Rule 12 requires. The owner read draft v0.3 in full and approved it as written; the same session's `AU29` fix and 9.5 decision are folded into this version, recorded in the changelog below. |
-| **Card version** | 1.1 |
-| **Last updated** | 2026-08-28 |
-| **Describes** | NEXUS **v2.1.3** (app) · AURA engine tier **v2.3** · guardrails **v1.0** |
+| **Card version** | 1.2 |
+| **Last updated** | 2026-09-03 |
+| **Describes** | NEXUS **v2.12.0** (app) · AURA engine tier **v2.3** · guardrails **v1.0** |
 | **Framework** | Structured after the **IMDA Transparency Guidelines for Generative AI Chatbots** (Infocomm Media Development Authority, Singapore, published 20 July 2026), Annex B sample format. The guidelines are voluntary; NEXUS adopts them as its transparency baseline. |
 
 > **This is a consolidated card for a family of AURA surfaces** (the guidelines allow one
@@ -299,10 +299,14 @@ reports enter that same pipeline.
 2. **The card is surfaced in the product and in force in the codebase.** The app serves
    this document at `/aura-info`, shows a safety statement with a link at first use of the
    staff assistant and before the public pathways, and keeps a persistent info icon in
-   both chat headers (`AURA-TODO.md` 9.2/9.3, closed with test evidence). It reaches
-   users when the branch carrying it deploys.
-3. **Prompt-carried safeguards are unverified in production.** The 20-turn read that would
-   verify them (`P8.8`) has not been run.
+   both chat headers (`AURA-TODO.md` 9.2/9.3, closed with test evidence). Deployed with
+   app v2.1.x (merged to `main` 2026-08-28/29).
+3. **Prompt-carried safeguards are verified only by a read the owner has not yet signed.**
+   The 20-turn read (`P8.8`) ran three times against the live model on 2026-09-05; the
+   injection block and the JSON contract held on every run, five behaviours found were
+   fixed the same day (`AU31`–`AU35`), and the drafted verdicts
+   (`docs/P8.8-owner-read-2026-09-05.md`) await the owner's acceptance. Until then this
+   card does not claim the safeguards are followed.
 4. **No attachment content inspection exists** (`AU17`): count, size and type are bounded
    in code and logged, but nothing classifies what is inside a file before it reaches
    Google's API. User instruction is the current data-classification control, and whether
@@ -370,7 +374,7 @@ the update triggers below exist because these facts move.*
 | Demo sandbox sends nothing to any model (§1) | `src/utils/demoAura.js` — no network call of any kind | Confirmed 2026-08-27 |
 | Medical disclaimer quoted verbatim; Red/Amber/Green tiers (§2, §3) | `src/components/ResultPage.jsx` | Confirmed 2026-08-27 |
 | Community record de-identified by construction; fingerprint removed (§4) | `src/utils/telemetry.js`, `CP3` | Confirmed 2026-08-27, with the "construction, not schema" hedge the audit asked for |
-| Versions: app 2.1.3, engine v2.3, guardrails 1.0 (header) | `package.json`, `AURA-CHANGELOG.md`, `functions/guardrails.cjs` | Confirmed 2026-08-27 at 2.1.0; app version re-checked 2026-08-28 after merging main's v2.1.1–v2.1.3 patch releases |
+| Versions: app 2.10.0, engine v2.3, guardrails 1.0 (header) | `package.json`, `AURA-CHANGELOG.md`, `functions/guardrails.cjs` | Confirmed 2026-08-27 at 2.1.0; re-checked 2026-08-28 (2.1.3) and 2026-09-03 (2.10.0 — every release between was roster-only; no AURA surface changed). The app version line is checked on every release. |
 | Model follows its prompt-carried rules (§3) | — | **Unverifiable from source**, stated as such; gated on the 20-turn read (`P8.8`) |
 | Google's internal data handling (§4) | Google's API terms | **Not independently verified**, stated as such (gap 6) |
 
@@ -389,6 +393,7 @@ single authoritative app version.
 
 | Card version | Date | Change |
 |---|---|---|
+| 1.2 | 2026-09-06 | Header: app version 2.1.3 → 2.12.0. §5 item 2: "when the branch carrying it deploys" → deployed with v2.1.x. §5 item 3: the P8.8 read has now run (three live runs, 2026-09-05) and the card says so, still without claiming the safeguards are followed until the owner signs the read. v2.11.0–v2.12.0 added controls the read found necessary (`AU31` a proposal needs a figure in the current message; `AU33` a shortened rework is announced) — behaviour that narrows what AURA does, none that widens it. Approval stands; the owner should re-read §1–§3 against those releases. |
 | 1.1 | 2026-08-28 | §1 updated after a live failure the same day (`AU30`): model selection is now quota-aware — a model the key can see but not use is set aside and the call retried once on the next in the list — and API failures reach the browser as a clean sentence, never the upstream quota/billing text. No other content change; approval stands. |
 | **1.0** | 2026-08-28 | **Signed off by the owner (Muhammad Alif) and in effect** — approval given against draft v0.3, read in full. Folded into this version, from the same session: `AU29` fixed (sign-out and identity change now clear the AURA session; 4 tests), §3/§4 rewritten to the fixed behaviour, and the 9.5 decision recorded (a dedicated non-personal support address will be published here once created; in-app reporter until then). |
 | 0.3 (draft) | 2026-08-27 | Steward audit corrections before sign-off: the false panel-close history claim replaced with the true clearing behaviour and the `AU29` shared-terminal caveat; "91 emulator checks" corrected to the current 140; `AN13` corrected from "accepted gap" to its shipped NRIC/FIN fence; "by design" hedged to "by construction"; gap items 10–12 added. 21 other load-bearing claims steward-CONFIRMED against source. |

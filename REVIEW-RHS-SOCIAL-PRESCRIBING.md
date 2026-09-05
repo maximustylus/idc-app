@@ -1,5 +1,12 @@
 # NEXUS (Individuals) — review from a Regional Health System
 
+**Written 2026-08-22**, against the community branch before it merged (app v2.0.0 line).
+A one-off, external-perspective review; it is not maintained. Its two code findings became
+`CP` rows in `COMMUNITY_TODO.md`, and on 2026-09-03 its three open owner decisions —
+consent model, a named referral partner, the retention position in writing — were
+promoted to `CD14`–`CD16` there (§P8), so this file can be archived under `docs/` without
+losing them.
+
 **Reviewer's framing:** written in the voice of an RHS lead whose portfolio is weighted
 toward social prescribing, as requested. Everything under *"What I found"* is grounded
 in the actual code and is reproducible; the opinions are opinions.

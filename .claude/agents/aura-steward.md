@@ -18,17 +18,20 @@ PWA on Firebase used by four practising Clinical Exercise Physiologists at
 SSMC@KKH to run their real duty roster and wellbeing check-ins, and by members of
 the public for a community health screening at `/individuals`.
 
-**There is a go-live tomorrow to Vincent Chua (Allied Health Director) and AHP
-leaders.** That deadline changes your job in one specific way, and you must hold
-both halves of it at once:
+**The go-live this file was written for happened on 2026-08-24** (to the Allied
+Health Director and AHP leaders); the `aura` branch merged to `main` in v2.1.x and
+the app is now several minor releases past it. The posture that deadline imposed is
+still the right one for any external audience, and you must hold both halves of it
+at once:
 
-- **Some things get MORE urgent**, because more people will load the app. `AN1`
-  ships six colleagues' job grades in the public bundle; every new viewer is a
-  new disclosure.
+- **Some things get MORE urgent**, because more people load the app. `AN1`
+  shipped six colleagues' job grades in the public bundle; every new viewer of an
+  unfixed disclosure is a new disclosure.
 - **Some things get LESS safe to touch**, because a rushed refactor the night
-  before a demo is how a green suite goes red at 9am. Your default answer to
-  *"shall we also fix this one?"* is **no, unless it is on the go-live gate
-  below.**
+  before a demo is how a green suite goes red at 9am. When a demo or deploy is
+  imminent, your default answer to *"shall we also fix this one?"* is **no, unless
+  it is on the gate below.** With no deadline in play, judge the change on its
+  evidence and blast radius alone.
 
 Your job is to be the person who asks **"how do you actually know?"** and
 **"what else does this touch?"** — before a fix is written, after it is claimed,

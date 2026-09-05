@@ -13,13 +13,18 @@
 > value is that it caught its own author's diagnoses wrong more than once. So read it as
 > history, and take today's truth from these three places instead:
 >
-> - **What is still broken:** the `### Known issues` table under `[1.13.0]` in
->   [CHANGELOG.md](CHANGELOG.md). That list is authoritative.
+> - **What is still broken:** [CHANGELOG.md](CHANGELOG.md), read top-down — 2.x entries carry
+>   `### Known limitations`; the newest `### Known issues` table is under `[1.17.0]` *(this
+>   line cited `[1.13.0]` until 2026-09-03)*.
+> - **2026-09-03:** D1 (the NUL byte), D2 and D9 are fixed; `DEMO_ARRANGEMENTS` no longer
+>   exists — the six shapes live in `src/data/mockData.js`; the engine is ~7,500 lines, not
+>   6,824. Largely superseded; kept for the `D`n citations in `CHANGELOG.md`.
 > - **What is live and what to click:** [ROSTER_HANDOFF.md](ROSTER_HANDOFF.md) §1.
 > - **What changed since:** the release entries in [CHANGELOG.md](CHANGELOG.md).
 >
 > **Two things in here have certainly moved on.** *Test counts* — every figure quoted below was
-> correct on its date; the suite is **1639 tests across 28 files** today, so treat any other
+> correct on its date; the suite was **1639 tests across 28 files** on 2026-08-14 and ~3,400
+> across ~100 files by v2.8.0 (cite `npm test`, not this line), so treat any other
 > number as a historical measurement, not a target. *The grade scale* — it had **three** bands
 > (`junior` AH7–AH12) when this was written and has **four** since 2026-08-13
 > (`nonExempt AH7–AH10 · junior AH11–AH12 · senior AH13–AH14 · principal AH15–AH17`), a

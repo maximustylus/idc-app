@@ -1,7 +1,24 @@
 # AURA Roster — Handoff
 
-**Last updated:** 2026-08-14. **Read this first**; `ROSTER_TODO.md` is the plan,
-`ROSTER_QC_AUDIT.md` is the audit.
+**Last updated:** 2026-09-03 (a housekeeping pass over the parts that describe *today*;
+the sections themselves are dated 2026-08-06 → 2026-08-19 and say so). **Read this first**;
+`ROSTER_TODO.md` is the plan, `ROSTER_QC_AUDIT.md` is the audit of the post-mortem, and
+the three `ROSTER_QC_AUDIT_*.md` files are dated audits of engine packages.
+
+> ### ⚠️ 2026-09-03 — what this file does not yet describe
+>
+> Twelve releases landed after the last substantive edit here (v1.18.0 → v2.10.0), and
+> this file's §1 was still naming v1.18.0 as live. In one paragraph: NEXUS is
+> **multi-team** (v2.0.0 — a team per department per institution, membership-as-data in
+> `firestore.rules`, the hardcoded directory and the `@kkh.com.sg` login gate both gone);
+> **live mode runs the same engine as the sandbox** with a persisted per-department
+> configuration (v2.1.0); duties have names, not acronyms (v2.2); a lead can add a colleague
+> at their own hospital, use `NN` grades, name the roles MOH does not (v2.3–v2.4), roster a
+> colleague who has not registered (v2.5), give a lead *some* duties and an acronym (v2.6),
+> **rotate duties weekly** (v2.7), name a **standby** (v2.8), and take the roster off the
+> screen as **PDF or Excel** behind one Export control (v2.9–v2.10). `CHANGELOG.md` is the
+> record; `README.md` Pillar D is the summary. Everything below that contradicts this is
+> struck and dated rather than rewritten.
 
 > ### ⚠️ Sections 2, 3 and 4 were written on 2026-08-06 and have been CORRECTED IN PLACE.
 > Several things they described as broken or unbuilt have since shipped. Where a claim is now
@@ -32,16 +49,22 @@ cannot be dragged into an illegal state. **1639 tests green, lint clean, CI gree
 
 ## 1. What is LIVE right now
 
-`smartdashboard.web.app` is running **v1.18.0** with the **four-band engine**, the **numbered 1–7
+`smartdashboard.web.app` is running **v2.10.0** *(2026-09-03; this line read v1.18.0 for
+twelve releases despite the correction note below — the app renders its version from
+`package.json`, so the footer, not this file, is the durable answer)*. The v1.18.0 state
+this section goes on to describe — the **four-band engine**, the **numbered 1–7
 configuration wizard**, the **owner's category palette** and the **six-shape picker** in the
-Sandbox — and, as of **2026-08-19 00:26:54 SGT**, with **`firestore.rules` actually deployed**.
+Sandbox, and, as of **2026-08-19 00:26:54 SGT**, **`firestore.rules` actually deployed** —
+is all still true and now also runs in live mode (v2.1.0).
 
 ⚠️ **That last one is the change that matters most and it is not visible on screen.** Until this
 release, any verified `@kkh.com.sg` address — not just the ten of you — could read every
-clinician's wellbeing record and overwrite the duty roster. It is now the directory allowlist.
-**Roster generation is admin-only from this release**; accepting a swap is unchanged. If anybody
+clinician's wellbeing record and overwrite the duty roster. ~~It is now the directory allowlist.~~
+*Since v2.0.0 it is **membership-as-data** — `exists(/teams/{teamId}/members/{uid})` — and the
+directory is deleted (`AN14`); a lead adds a member document, no rules edit.*
+**Roster generation is lead-only**; accepting a swap is unchanged. If anybody
 reports the roster failing to load or a swap refusing, roll back in ~60 seconds: Firebase console
-→ Firestore → Rules → history icon → restore the version before 2026-08-19 → Publish.
+→ Firestore → Rules → history icon → restore the previous version → Publish.
 
 *(Corrected 2026-08-18: this line read **v1.14.0** and had been stale since v1.15.0 shipped. It is
 the first thing anybody reads before presenting, so it is now updated as part of the release
@@ -105,11 +128,14 @@ old theatre is *gone*: `multiverse timeline` and `Simulation Locked` both return
    tool: it tells you what it could not do instead of quietly double-booking someone.
 3. Or type any team's names and routines and Generate — that is the try-it-yourself path for the
    respiratory and psychology teams.
-4. CSV and ICS both export complete data from a generated Sandbox roster.
+4. CSV and ICS both export complete data from a generated Sandbox roster. *(Since v2.9.0 they
+   sit behind one **Export** control with a **PDF** wall calendar and an **Excel** workbook —
+   `RosterExportMenu.jsx`, `rosterPdf.js`, `rosterXlsx.js`.)*
 
-One cosmetic rough edge: the CSV shows `undefined` in the Co-Lead column for that single
+~~One cosmetic rough edge: the CSV shows `undefined` in the Co-Lead column for that single
 unstaffable slot, because the shift genuinely has no co-lead. Harmless, and arguably makes the
-point — but if it bothers you on stage, mention it before someone spots it.
+point — but if it bothers you on stage, mention it before someone spots it.~~ *Stage advice for
+a demo that happened in August, against an export path rebuilt since; not re-verified.*
 
 **Rollback, fastest first:**
 1. Firebase Console → Hosting → `smartdashboard` → **Rollback** on the previous release. Instant, no git.
@@ -127,7 +153,7 @@ point — but if it bothers you on stage, mention it before someone spots it.
 > engine's *limits* listed at the end of this section are still accurate and still worth
 > reading before you promise anything — that is why the section stays.
 
-**`src/utils/rosterEngineV2.js`** — the constraint-aware engine you asked for. Built, tested (174 tests of its own, 428 total), **not yet wired into the app** at the time of writing. Wiring into Sandbox is in progress.
+**`src/utils/rosterEngineV2.js`** — the constraint-aware engine you asked for. Built, tested (174 tests of its own, 428 total), ~~**not yet wired into the app** at the time of writing. Wiring into Sandbox is in progress.~~ *Wired into Sandbox by 2026-08-14 (the correction above) and into **live mode in v2.1.0** — both screens run `generateRosterV2`.*
 
 It accepts, per staff member: FTE, skills, unavailable dates, max duties per day. Per task: required skill, which weekdays it runs, how many leads and co-leads. Plus rules: daily capacity, max consecutive days, forbidden pairs.
 
@@ -181,7 +207,7 @@ were not broken; they were starved.
 **The workaround, and it works.** A copy outside iCloud with its own `node_modules`:
 
 ```bash
-/private/tmp/nexus-jsdom/verify.sh          # both CI gates: 1639 tests + eslint, ~35s
+/private/tmp/nexus-jsdom/verify.sh          # both CI gates: the full suite + eslint (~3,400 tests as of v2.8.0)
 /private/tmp/nexus-jsdom/verify.sh lint     # lint only
 /private/tmp/nexus-jsdom/verify.sh test src/components   # one directory
 ```
@@ -207,7 +233,9 @@ space is still worth doing (11 GiB free of 460 GiB), but it is the smaller half 
 > is wrong for five of the eight rows below — they are fixed, and the status column says so. It
 > also claimed to be the same list `CHANGELOG.md` carries under "Known issues", and it was not:
 > that table has five items this one omitted. Both are corrected. **The `### Known issues` table
-> under `[1.13.0]` in [CHANGELOG.md](CHANGELOG.md) is the authoritative list of what is open**;
+> under `[1.13.0]` in [CHANGELOG.md](CHANGELOG.md) is the authoritative list of what is open**
+> *(2026-09-03: the newest such table is under `[1.17.0]`; 2.x releases record what they
+> leave open per entry under `### Known limitations`, so read the CHANGELOG top-down)*;
 > this table is the audit history with today's status beside it.
 
 The five open items this section used to omit, now included at the foot of the table.
@@ -219,8 +247,8 @@ The five open items this section used to omit, now included at the foot of the t
 | **P0.7** | `npm run lint` has never worked — no ESLint config exists in the repo at all. | ✅ **FIXED in v1.11.0.** A config exists, lint passes clean over 79 files, and `deploy.yml` runs it between the test and build steps. It could not run *locally* until 2026-08-14 either — the iCloud cause in §3 — and now does, via `verify.sh lint`. *(Corrected 2026-08-15: this read HALF FIXED while its own text described both halves as done, and three other documents called it fixed.)* The separate **still-open** item is defect **D6** — `.eslintrc.cjs` disables `no-unused-vars` for `rosterEngineV2.js`. |
 | **M10** | CSV formula injection. | ✅ **FIXED in v1.7.1** — quoting, formula-injection guard, CRLF + UTF-8 BOM. |
 | **M12** | No duplicate-request guard. | ✅ **FIXED in v1.7.1** — duplicate swap requests blocked per session. |
-| **C1 / C3 / C4** | Single hardcoded `roster_2026` document; staff pool hardcoded in the component; **no `firestore.rules` in the repo**. | ⚠️ **STILL OPEN.** A `firestore.rules` proposal now exists in the repo but is **inert — not wired, not deployed**. See **Q6** below; this is the one to settle before another department's data is involved. |
-| **D2 / D3 / D9** | A mistyped availability window silently deletes a person from the roster; `measureRosterLoad`'s `neverRostered` has no UI caller. | ⚠️ **STILL OPEN**, from the audit. D2 is the one that could embarrass you: a typo makes someone vanish rather than raising an error. |
+| **C1 / C3 / C4** | Single hardcoded `roster_2026` document; staff pool hardcoded in the component; **no `firestore.rules` in the repo**. | ✅ **CLOSED.** ~~STILL OPEN … inert — not wired, not deployed~~ *(this cell contradicted §1 of the same file for two weeks)*. **C4**: rules deployed 2026-08-19 and on every merge since (`deploy.yml` → `functions,firestore:rules,firestore:indexes`). **C1/C3**: v2.0.0 partitions everything under `teams/{teamId}/…` and v2.1.0 persists the staff pool and configuration at `teams/{id}/settings/roster` (`rosterSettings.js`). |
+| **D2 / D3 / D9** | A mistyped availability window silently deletes a person from the roster; `measureRosterLoad`'s `neverRostered` has no UI caller. | ✅ **FIXED 2026-08-19** — an amber never-rostered callout naming the people and the four causes; see `ROSTER_TODO.md` queue item 2. *(This cell said STILL OPEN while that file said DONE.)* |
 | **D5** | The slot "needs skill" input is reachable but **unusable for a typed-in team** — the staff table has no skills column, so any skill on a task refuses the whole run. | ⚠️ **STILL OPEN.** This is what makes Q12's skill workaround demo-only. |
 | **D6** | `.eslintrc.cjs` disables `no-unused-vars` for the whole 6,800-line engine — the "passes by disabling things" failure. Two real findings sit behind it. | ⚠️ **STILL OPEN.** Distinct from P0.7, which is fixed. |
 | **D7** | `compileQuota`'s comment contradicts the validator on `max: 0`. | ⚠️ **STILL OPEN**, low. |
@@ -404,8 +432,8 @@ Answered earlier: swap semantics = **mechanical substitution**; **notify the ros
 Still open — **Q** for a question only you can answer:
 
 - **Q3** — should the requester be told when a swap is accepted or declined? Currently nobody tells them. Needs a second listener or a Cloud Function.
-- **Q4** — partition the roster per year/team instead of one `roster_2026` document. Needs a migration decision. **Widened 2026-08-17: this is the multi-institution question.** 28 allied health professions across several SingHealth institutions cannot share one document, and `WelcomeScreen.jsx:109` admits only `@kkh.com.sg`. The engine is *not* the obstacle — it holds no site concept and already takes per-team bands, rules and tasks — so this is persistence plus authorization, and it is **blocked on `Q6`**: partitioning before rules deploy is false assurance. See the multi-institution note at the foot of `ROSTER_TODO.md`.
-- **Q5** — which `TEAM_DIRECTORY` roles are rosterable? (Recommend `role === 'staff'`, matching today.)
+- ~~**Q4**~~ — **ANSWERED by v2.0.0 (2026-08-23):** the roster is `teams/{teamId}/rosters/{year}`, a team per department per institution, migrated by `scripts/migrate-to-teams.cjs` (`RELEASE-v2.0.0.md`); the login gate is a configurable domain allowlist (`config/domains`), not one hardcoded domain. *(Original text follows.)* partition the roster per year/team instead of one `roster_2026` document. Needs a migration decision. **Widened 2026-08-17: this is the multi-institution question.** 28 allied health professions across several SingHealth institutions cannot share one document, and `WelcomeScreen.jsx:109` admits only `@kkh.com.sg`. The engine is *not* the obstacle — it holds no site concept and already takes per-team bands, rules and tasks — so this is persistence plus authorization, and it is **blocked on `Q6`**: partitioning before rules deploy is false assurance. See the multi-institution note at the foot of `ROSTER_TODO.md`.
+- ~~**Q5**~~ — **MOOT since v2.0.0:** `TEAM_DIRECTORY` is deleted; a member is rostered unless the lead sets `rostered: false` on their member document. *(Was: which `TEAM_DIRECTORY` roles are rosterable? Recommend `role === 'staff'`, matching today.)*
 - **Q6** — ⚠️ **ANSWERED 2026-08-18, AND THE FINDING IS WORSE THAN THE QUESTION.** You supplied the console rules. Their operative clause is `match /{document=**} { allow read, write: if isVerifiedStaff(); }`, and `isVerifiedStaff()` is **any verified `@kkh.com.sg` address — not your ten-person directory.** The Firebase API key is public (it ships in the bundle), so any KKH employee who registers an account can today read `wellbeing_history` — the per-clinician burnout record — and overwrite the duty roster and approve any swap. Whole-hospital, not internet-wide, and live right now. The reconciled rules close it, are wired to deploy on merge, and are emulator-verified (31/31, including four checks proving exactly that outsider now gets nothing). **Two of your five hand-written blocks governed nothing** — `community_resources` (0 references in the codebase) and `feeds` (a UI view name, not a collection). **Two live pathways would have been killed silently** by the pre-reconciliation proposal — public screening telemetry and sandbox feedback — and both now ship open-but-shape-pinned. **Still yours before merge:** the §3 pre-flight, the §6 Playground cases, and a capture of the current console rules for rollback. *(Original text follows.)*
 - ~~**Q6**~~ — **`firestore.rules`.** *(Corrected 2026-08-14: an earlier version of this line said "there is none in the repo", which contradicted §4 of this same document.)* The file **now exists and is tracked** — derived call-site by call-site rather than from a template — but it is an **inert proposal**: `firebase.json` declares only `hosting` and `functions`, so nothing deploys it. Roster writes remain client-side and authorization still lives only in your Firebase console, unversioned. Fine for one trusted team; **this is the first thing to settle before another department's data is involved.** I need your console's current rules to wire it safely.
 - **Q7** — the case-volume / skill-mix claim at `README.md:35` and `AppGuide.jsx:28` is still untrue. The research you supplied gives a legitimate route to making it true (NHPPD × Average Daily Census → required hours → FTE → slot counts).
@@ -433,7 +461,7 @@ Still open — **Q** for a question only you can answer:
    click a colleague's shift → request cover from yourself → your AURA alert opens →
    Accept. *(In Sandbox the wizard is now the v1.8.0 staff/task tables — add a row
    with your name instead; note the sandbox swap path only simulates.)*
-3. For the other departments: the platform transfers; **multi-team support does not exist yet** (one shared document, hardcoded login list, hardcoded team directory). Offer a pilot, not a handover.
+3. For the other departments: the platform transfers; ~~**multi-team support does not exist yet** (one shared document, hardcoded login list, hardcoded team directory).~~ **Multi-team shipped in v2.0.0** — a team per department per institution, a lead who adds members and configures the roster, no code or rules edit to onboard. What a pilot still needs is in `README.md` Pillar D and the expressiveness ledger in `ROSTER_TODO.md`. Offer a pilot, not a handover.
 
    **Respiratory and audiology are both named instances of this *(2026-08-17)*.**
 
@@ -468,6 +496,8 @@ Still open — **Q** for a question only you can answer:
      conversation rather than in numbers is how "it does not scale" gets discovered in front of
      the person you were trying to convince.
 
-   And per point 3's own rule, this is still a pilot conversation: one shared document and a
-   hardcoded team directory do not become multi-team because a third department said yes.
-4. Your strongest material is `ROSTER_POSTMORTEM.md` + `ROSTER_QC_AUDIT.md` — an audit that found its own author's diagnosis wrong in five places. For colleagues deciding whether to trust their duty roster to your software, that is more persuasive than a clean demo.
+   And per point 3's own rule, this is still a pilot conversation ~~: one shared document and a
+   hardcoded team directory do not become multi-team because a third department said yes~~ —
+   *the structure exists now (v2.0.0); what a third department needs is its rules to be
+   sayable, which is the ledger's question, and the Excel question below.*
+4. Your strongest material is `ROSTER_POSTMORTEM.md` + `ROSTER_QC_AUDIT.md` (and the three dated package audits, `ROSTER_QC_AUDIT_FOUNDATIONS/PRIMITIVES/SURFACES.md`) — an audit that found its own author's diagnosis wrong in five places. For colleagues deciding whether to trust their duty roster to your software, that is more persuasive than a clean demo.

@@ -28,8 +28,8 @@ swap mutator inside `src/components/AuraPulseBot.jsx`.
 > | **B3** — the calendar opens on a hardcoded, now-stale month | ✅ **FIXED in v1.7.1.** It initialises from `new Date()` (`RosterView.jsx:648`). |
 > | **B4** | ✅ **FIXED in v1.7.1.** |
 > | **C2** — generation is a destructive whole-document overwrite | ✅ **FIXED in v1.6.0** (commit `f888c3a`). The write is `setDoc(…, { merge: true })` at `RosterView.jsx:1402`, under a comment naming C2. *(An automated status pass proposed v1.7.0 here; `git log -S'merge: true'` disproves it.)* |
-> | **C4** — no `firestore.rules` in the repository | ⚠️ **HALF fixed.** The file now **exists and is tracked**, derived call-site by call-site. But it is **inert**: `firebase.json` declares only `hosting` and `functions`, so nothing deploys it. Authorization still lives only in the owner's console, unversioned. **Tracked as Q6 — the first thing to settle before another department's data is involved.** |
-> | **C1, C3** — one shared `roster_2026` document; staff pool hardcoded in the component | ❌ **STILL OPEN.** |
+> | **C4** — no `firestore.rules` in the repository | ✅ **FIXED — deployed 2026-08-19** and on every merge to `main` since (`Q6` closed). *(Status as of 2026-08-15: HALF fixed — the file existed but was inert. Updated 2026-09-03.)* |
+> | **C1, C3** — one shared `roster_2026` document; staff pool hardcoded in the component | ✅ **FIXED in v2.0.0 / v2.1.0** — a roster document per team per year, and the staff pool is the team's member list with its configuration persisted at `teams/{id}/settings/roster`. *(Was STILL OPEN; updated 2026-09-03.)* |
 > | **M1, M3** — two one-click paths that destroyed the live roster | ✅ **FIXED in v1.6.0.** Both were CRITICAL and armed at the time of writing. |
 > | **M5, M8, M9, M11** | ✅ **FIXED in v1.6.1.** |
 > | **M4** — the requester is never told the outcome, *and* AURA claims a notification that does not exist | ⚠️ **HALF fixed in v1.6.1, and the open half is the bigger one.** The false claim is gone and the shipped copy now says to tell them yourself — *"AURA cannot notify … yet"* (`RosterView.jsx:1685`, `:1750`). But **nobody notifies the requester and there is still no mechanism**; the code says so outright at `RosterView.jsx:1614`. Tracked as decision **Q3**. *(Corrected 2026-08-15: this row previously read FIXED, which was the only place in the document set where a still-open HIGH defect was claimed closed.)* |
@@ -37,8 +37,10 @@ swap mutator inside `src/components/AuraPulseBot.jsx`.
 > | **M7** | ✅ **FIXED in v1.7.0.** |
 > | **P0.7** — `npm run lint` has never worked, no ESLint config exists | ✅ **FIXED in v1.11.0.** A config exists, lint passes, and it gates every deploy. It still could not be run *locally* until 2026-08-14 — the cause was iCloud evicting `node_modules`, not the code. See `ROSTER_HANDOFF.md` §3. |
 >
-> **The authoritative list of what is still broken is the `### Known issues` table under
-> `[1.13.0]` in [CHANGELOG.md](CHANGELOG.md)** — not this document.
+> **The authoritative list of what is still broken is [CHANGELOG.md](CHANGELOG.md), read
+> top-down** — 2.x entries record what they leave open under `### Known limitations`, and the
+> newest `### Known issues` table is under `[1.17.0]` *(this line cited `[1.13.0]`)* — not this
+> document. M4 (`Q3`, the requester is never told) is still open as of v2.10.0.
 >
 > **Note on ids.** The `D`n ids used in the audits and the CHANGELOG are **defects**. The `Q`n ids
 > in `ROSTER_HANDOFF.md` are **open decisions for the owner**. They were both once `D`n and

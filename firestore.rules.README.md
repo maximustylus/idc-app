@@ -25,15 +25,17 @@
 >   team A gets nothing from team B.**
 >
 > **The current record is the rules file's own header plus
-> `scripts/firestore-rules-verify.mjs` — 119 checks, last run 2026-08-23 against the
-> emulator, 0 failed.** Read those, not this. (It was 91 on 2026-08-21; the 28 added
-> since cover pay-grade privacy and the department's roster configuration, both of
-> which arrived after this banner was written.) The one part below still worth reading
+> `scripts/firestore-rules-verify.mjs` — 149 `check(` calls as of 2026-09-03.** Read
+> those, not this. (It was 91 on 2026-08-21 and 119 on 2026-08-23; the additions since
+> cover pay-grade privacy, the department's roster configuration, `config`,
+> `lead_requests` and `community_insights` — none of which this runbook describes.
+> Count the script rather than trusting this number.) The one part below still worth reading
 > is §4, which is how the live console was reconciled and how it should be
 > reconciled again before the next deploy.
 
 
-**Status: PROPOSAL. INERT. Nothing deploys it.**
+~~**Status: PROPOSAL. INERT. Nothing deploys it.**~~ **Superseded — see the banner
+above. The rules are deployed by CI on every merge to `main`.**
 **Subject: project `idc-app-e0c59`, Cloud Firestore, `(default)` database.**
 **Companion to:** `firestore.rules` · closes the analysis half of `ROSTER_POSTMORTEM.md` C4 and decision **Q6** (`ROSTER_HANDOFF.md` §5).
 
@@ -60,7 +62,7 @@
 |---|---|
 | `firestore.rules` exists in the repo | ✅ tracked and committed |
 | `firebase.json` has a `firestore` section | ✅ **added** — `"firestore": { "rules": "firestore.rules" }` |
-| `.github/workflows/deploy.yml` touched | ✅ **args changed** to `deploy --only functions,firestore:rules` |
+| `.github/workflows/deploy.yml` touched | ✅ **args changed** to `deploy --only functions,firestore:rules` (now `functions,firestore:rules,firestore:indexes`) |
 | `firebase deploy` would deploy it | ✅ yes |
 | CI on merge to `main` would deploy it | ✅ **yes — merging to `main` changes the live authorization boundary** |
 | Application code changed | ❌ none. Zero files under `src/` or `functions/` |
@@ -643,10 +645,14 @@ Add to `firebase.json` — and *only* this:
 ⚠️ **The moment you add that, `firebase deploy` with no `--only` flag will deploy
 rules too.** Get in the habit of the flag.
 
-⚠️ **Do not add rules to `.github/workflows/deploy.yml`.** That workflow runs on
-every merge to `main`. An accidental rules change reaching production through a
-merge is the exact failure mode this whole file is written to avoid. Rules should
-be a deliberate, attended, human deploy until a rules test suite runs in CI.
+> ⚠️ **THIS PARAGRAPH IS THE OPPOSITE OF WHAT CI DOES NOW.** It read: *"Do not add
+> rules to `.github/workflows/deploy.yml` … Rules should be a deliberate, attended,
+> human deploy until a rules test suite runs in CI."* That condition was met: the
+> emulator suite (`scripts/firestore-rules-verify.mjs`) runs in the pipeline, and
+> since v1.17.0 the workflow deploys `functions,firestore:rules,firestore:indexes` on
+> **every merge to `main`** — which is exactly why a rules edit on `main` is a
+> production change and must be treated as one. Kept, struck, so nobody restores the
+> old advice from this file.
 
 ### 8.2 Deploy
 

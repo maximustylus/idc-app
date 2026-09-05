@@ -11,13 +11,18 @@ Nothing in `src/` or `functions/` was modified by this audit. Nothing was commit
 > value is that it caught its own author's diagnoses wrong more than once. So read it as
 > history, and take today's truth from these three places instead:
 >
-> - **What is still broken:** the `### Known issues` table under `[1.13.0]` in
->   [CHANGELOG.md](CHANGELOG.md). That list is authoritative.
+> - **What is still broken:** [CHANGELOG.md](CHANGELOG.md), read top-down — 2.x entries carry
+>   `### Known limitations`; the newest `### Known issues` table is under `[1.17.0]` *(this
+>   line cited `[1.13.0]` until 2026-09-03)*.
+> - **2026-09-03:** the rules proposal (Defect 7) has been deployed since 2026-08-19;
+>   `forbidPairs`, `maxConsecutiveDays` and `maxConcurrentPerDay` are reachable from
+>   Configure (§3 is stale). See Defect 1 for the one finding checked individually.
 > - **What is live and what to click:** [ROSTER_HANDOFF.md](ROSTER_HANDOFF.md) §1.
 > - **What changed since:** the release entries in [CHANGELOG.md](CHANGELOG.md).
 >
 > **Two things in here have certainly moved on.** *Test counts* — every figure quoted below was
-> correct on its date; the suite is **1639 tests across 28 files** today, so treat any other
+> correct on its date; the suite was **1639 tests across 28 files** on 2026-08-14 and ~3,400
+> across ~100 files by v2.8.0 (cite `npm test`, not this line), so treat any other
 > number as a historical measurement, not a target. *The grade scale* — it had **three** bands
 > (`junior` AH7–AH12) when this was written and has **four** since 2026-08-13
 > (`nonExempt AH7–AH10 · junior AH11–AH12 · senior AH13–AH14 · principal AH15–AH17`), a
@@ -81,6 +86,12 @@ reaching the person it was built to reach.
 ## 2. Defects these packages missed — ranked by severity
 
 ### Defect 1 — HIGH. A coverage request now reaches nobody unless the recipient happens to open the Roster tab. M5 is reopened.
+
+> ✅ **CLOSED** — `src/components/CoverageWatcher.jsx`, mounted unconditionally from
+> `App.jsx`, is the always-on notifier this defect asked for; its header comment cites this
+> finding as the reason it exists. It notices and takes you to the roster; the roster alone
+> answers. *(Noted 2026-09-03 — no roster document recorded the closure, so this file was
+> the only place the defect appeared, still marked open.)*
 
 `src/App.jsx:771` · `src/App.jsx:635` · `src/components/RosterView.jsx:856` · `src/App.jsx:106`
 

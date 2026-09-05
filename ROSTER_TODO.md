@@ -15,6 +15,12 @@ files were byte-identical to `HEAD`. Those `DONE` markers were false and are rem
 
 > ## ⚠️ STATUS PASS 2026-08-15, against v1.14.0 — the P0–P8 plan is FINISHED
 >
+> **Housekeeping 2026-09-03, against v2.10.0.** Twelve releases later, this file's live
+> parts had gone stale: queue item 1 (`Q6`) is deployed, item 7's *"no concept of standby"*
+> shipped in v2.8.0, multi-institution shipped in v2.0.0, and Excel *out* shipped in v2.9.0.
+> Each is corrected in place below, struck and dated. P9–P11 were appended above the queue,
+> so the queue is no longer the last section — it is still the live one.
+>
 > **Everything from `P0` to `P8` has shipped**, across v1.6.0 → v1.14.0. The plan sections below
 > are kept as the record of what was decided and why — including the rev-1 mistakes, which is the
 > point of the "Corrected in rev 2" note at the foot of this file. But they are written in the
@@ -24,7 +30,7 @@ files were byte-identical to `HEAD`. Those `DONE` markers were false and are rem
 >
 > | Question | Answer lives in |
 > |---|---|
-> | What is still broken | the `### Known issues` table under `[1.13.0]` in [CHANGELOG.md](CHANGELOG.md) — **authoritative**, and the only one |
+> | What is still broken | [CHANGELOG.md](CHANGELOG.md), read top-down: 2.x releases record what they leave open per entry under `### Known limitations`; the newest `### Known issues` table is under `[1.17.0]` *(this row said `[1.13.0]`, which is two tables older, and "the only one", which it never was)* |
 > | What is live, and what to click | [ROSTER_HANDOFF.md](ROSTER_HANDOFF.md) §1 |
 > | What the owner still has to decide | [ROSTER_HANDOFF.md](ROSTER_HANDOFF.md) §5, ids `Q1`–`Q8` and `Q10`–`Q12` — **there is no `Q9`** |
 > | What to build next | **§Current queue** at the foot of this file |
@@ -54,8 +60,9 @@ files were byte-identical to `HEAD`. Those `DONE` markers were false and are rem
 > principal AH15–AH17` — because AH7–AH10 are non-exempt staff and AH11–AH12 are junior AHPs. Any
 > three-band assumption below predates that.
 >
-> **Test counts below are historical measurements, correct on their dates.** The suite is **1639
-> tests across 28 files** today.
+> **Test counts below are historical measurements, correct on their dates.** The suite was **1639
+> tests across 28 files** on 2026-08-15 and **~3,400 across ~100 files** by v2.8.0
+> (`CHANGELOG.md` [2.8.0]); cite `npm test`, not this line.
 
 ---
 
@@ -205,8 +212,11 @@ Awaiting **Q4–Q6** *(written `D4–D6`)*. Per-year document partitioning; staf
 `README.md:159` already documents.
 
 **Partly moved, 2026-08-15.** `firestore.rules` now EXISTS and is tracked — derived call-site by
-call-site rather than from a template, with a runbook at `firestore.rules.README.md`. It is still
-**inert**: `firebase.json` declares only `hosting` and `functions`, so nothing deploys it.
+call-site rather than from a template, with a runbook at `firestore.rules.README.md`. ~~It is still
+**inert**: `firebase.json` declares only `hosting` and `functions`, so nothing deploys it.~~
+**Closed:** deployed 2026-08-19 and on every merge to `main` since (`deploy.yml` →
+`functions,firestore:rules,firestore:indexes`); `TEAM_DIRECTORY` is gone (v2.0.0, `AN14`) and
+the staff pool persists at `teams/{id}/settings/roster` (v2.1.0). P7 is done.
 
 **Q6 is now on the critical path, not adjacent to it.** Cardiology's roster master asked for a
 *time-gated roster release* to stop premeditated sick leave — and that is an authorization
@@ -250,7 +260,7 @@ wants. Needs the owner's current console rules.
 | P8.1 (pin dep) | **DONE** | `@google/generative-ai` `"latest"` → `"^0.24.1"` (matches installed `0.24.1`, so behaviour unchanged); `package.json` trailing whitespace removed — `grep -c " $" package.json` → 0. |
 | P8.2 (version + changelog) | **DONE — verified by orchestrator** | `version-steward` ran: `1.0.0` → **`1.6.0`** (minor), `CHANGELOG.md` created (248 lines), README metadata aligned, `package-lock.json` desync fixed (it would have broken `npm ci`). Verified: version/lockfile consistent, `git tag -l` → 0, HEAD still `79e3b99`, `npm test` exit 0. Changelog's known-issues table carries A1/M1/M3/M5/M6/B1/P0.7 by id. **No commit, no tag** — deliberate. |
 | P7, P8.4 | **BLOCKED** | Decisions **Q3–Q7** still open *(written `D3–D7`)*. `Q1`/`Q2`/`Q8` answered: mechanical substitution; notify-owner chosen but not yet built; 1.6.0 minor accepted. Since answered too: **Q10** "Non-exempt" is the right word, **Q11** a technologist may hold a junior grade. New: **Q12** — a task can require only ONE thing, so registration gating is not expressible. |
-| Tags | **DONE — 13 tags** | `v1.5.0-pre-remediation` and `v1.6.0` → `v1.14.0`, all cut and pushed. *(The `git tag -l` → `0` in the P8.2 row below was true on its date and is now the opposite; tagging is routine.)* |
+| Tags | **DONE — 13 tags** *(42 by v2.10.0; routine)* | `v1.5.0-pre-remediation` and `v1.6.0` → `v1.14.0`, all cut and pushed. *(The `git tag -l` → `0` in the P8.2 row below was true on its date and is now the opposite; tagging is routine.)* |
 | A1 live status | **RESOLVED BY DESIGN** | The v1.6.1 mutator handles both shift shapes and upgrades legacy on write, so the answer no longer changes any decision. |
 | Post-mortem rev 2 | **DONE** | Audited by `qc-steward`; 1 overstated + 4 wrong claims corrected in place, corrections marked `[rev2]`. |
 | ~~A1 live status~~ | ~~**LIVE-VERIFY PENDING**~~ | **STRUCK 2026-08-15 — this row contradicted the identical row two above it**, which records `RESOLVED BY DESIGN`. Both were in the same table. The v1.6.1 mutator handles both shift shapes, so no read is needed and no decision depends on it. Kept struck rather than deleted: a ledger that silently loses a row it once carried is not a ledger. |
@@ -453,13 +463,13 @@ against the table instead of taken on trust.
 
 | # | Item | Why it is here, and why in this position |
 |---|---|---|
-| **1** | **`Q6` — deploy `firestore.rules`.** ⚠️ **RECONCILED AND WIRED 2026-08-18 — NOT YET MERGED.** The owner supplied the console rules, so the blocker is gone. `firebase.json` declares the file and the CI args are now `--only functions,firestore:rules` (the `firebase.json` section **alone deploys nothing** — `--only functions` excludes rules). Re-verified against the emulator: **31 checks, 31 as specified** (`scripts/firestore-rules-verify.mjs`). **What remains is the owner's, and merging to `main` IS the deploy:** the §3 pre-flight (every clinician's profile display name must still match `TEAM_DIRECTORY`, or they are silently locked out of their swap listener), the §6 Playground cases, and capturing the current console rules so §7's rollback has a source. | Was "settle before another department's data is involved". It is now **blocking a named requirement from a named person**: cardiology's roster master releases weekly and **time-gates** the release to stop premeditated sick leave. Time-gating is an **authorization** feature, not a visibility one — the roster document is read client-side by every client, so a UI-only gate would be *false assurance* about the exact fairness property she wants. It also still gates C1/C3/C4 and M12's durable duplicate guard. Nothing else here should jump it. |
+| **1** | ~~**`Q6` — deploy `firestore.rules`.**~~ ✅ **DONE — deployed 2026-08-19 00:26 SGT, and on every merge since.** The pre-flight below (display names matching `TEAM_DIRECTORY`) was overtaken by v2.0.0, which replaced the directory with membership documents. *(Original text follows.)* ⚠️ **RECONCILED AND WIRED 2026-08-18 — NOT YET MERGED.** The owner supplied the console rules, so the blocker is gone. `firebase.json` declares the file and the CI args are now `--only functions,firestore:rules` (the `firebase.json` section **alone deploys nothing** — `--only functions` excludes rules). Re-verified against the emulator: **31 checks, 31 as specified** (`scripts/firestore-rules-verify.mjs`). **What remains is the owner's, and merging to `main` IS the deploy:** the §3 pre-flight (every clinician's profile display name must still match `TEAM_DIRECTORY`, or they are silently locked out of their swap listener), the §6 Playground cases, and capturing the current console rules so §7's rollback has a source. | Was "settle before another department's data is involved". It is now **blocking a named requirement from a named person**: cardiology's roster master releases weekly and **time-gates** the release to stop premeditated sick leave. Time-gating is an **authorization** feature, not a visibility one — the roster document is read client-side by every client, so a UI-only gate would be *false assurance* about the exact fairness property she wants. It also still gates C1/C3/C4 and M12's durable duplicate guard. Nothing else here should jump it. |
 | **2** | ~~**Surface `measureRosterLoad`**~~ — **DONE 2026-08-19.** | Defect **D2/D3/D9**. ⚠️ **The framing above was wrong and the correction is the interesting part.** "The engine computes this and **discards it** — there is no UI caller at all" is true of the FUNCTION but misleading about what a roster master could see: `result.load` is built `for (const person of staff)`, so a never-rostered colleague **always had a row in the load table, reading `0`**. Nothing was hidden. The real gap was that a `0` among nine rows does not announce itself — and D2/D3/D9's own scenario, a mistyped availability window quietly removing somebody, is exactly when nobody thinks to look. **Fixed with a callout, not a data pipe:** an amber panel between "could not be staffed" and the load table naming the people and the four causes (grade outside every band gate, missing skill, unavailable dates, a window outside the run), plus the two other figures `measureRosterLoad` returns and nothing read — `busiestDay` and `maxDutiesPerPersonPerDay`. **Amber, not red, on purpose:** never-rostered is a *question*, not a failure — it is correct for the respiratory shape's three below-floor staff and a silent disaster for a typo, and the panel cannot tell which, so it says so. 3 tests, each verified to fail when the panel is removed. Cardiology's fairness question ("who keeps avoiding the treadmill room") is answered by the load table that was already there. |
 | **3** | **Single-cell shift editing** — change one assignment without regenerating. | Cardiology updates *daily* for sick leave; today the only tool is a full regenerate. Independently the highest-value item from the competitor analysis. Should log the change, so it doubles as the audit trail item 2 wants. |
 | **4** | **Half-day sessions** — a task, and an availability, that can say **AM or PM**. *See `Q13`.* | **Audiology's roster master asked for both halves of this**, on 2026-08-17: *which half of the day does this task run in*, and *is this person in for that half* — for last-minute changes **and** for contracted half work days. The engine already has the **duration** of a half day (`DEFAULT_TASK_HOURS` is 4 — *"a session, not a day"*, and two make a working day) but not its **position**, so two tasks that both really run in the morning are 8h against an 8.4h cap: the engine takes them, and has silently double-booked a morning — the one thing it promises never to do. It is not a refusal it failed to make, it is a fact it was never given. Opt-in by decision `Q13a`, so an unlabelled task behaves exactly as today. Placed **after item 3** and not before it: his second-in-charge corrects the week *within* the week, and a half-day marker you can only change by regenerating the whole roster solves nothing. |
 | **5** | **A third eligibility axis** — `registration` / `staffCategory`. *See `Q12`.* **(5(b), the grade threshold, SHIPPED 2026-08-19 in v1.18.0.)** | **(a) Registration — still open, still blocked.** `requiresSkill` is a **single string**, so a task can require exactly ONE thing and registration competes with real competency: *"a registered clinician who is also CPET-competent"* cannot be expressed at all. **Two professions have asked independently.** Blocked on one decision only: boolean, or an ordered list (registered / provisionally registered / assistant / student)? That is the `Q12` question the respiratory room was meant to answer and nobody recorded. **(b) The grade threshold — DONE.** `minGrade` is the fourth eligibility requirement kind, gating **every** assignee rather than the lead alone; the respiratory shape now states `AH12` instead of approximating it with a band gate plus `coLeads: 0`; defect `D10` is closed and the stress probe reports `GAP CLOSED`. Merging the two into one item was right for the machinery — both are requirement kinds composed by `eligibilityOf` — and (b) shipping alone proves it was also right that only (a) needed a decision. |
 | **6** | **Supervision pairing** — "a trainee only alongside a signed-off senior". | Engine limit: a task's skill requirement gates the **co-lead** too, so "qualified senior supervising an unqualified trainee" has no representation. Cardiology named it unprompted. Depends on item 5. |
-| **7** | **On-call / standby**, with post-call rest. | **Last, because it is the largest.** There is *no* concept of standby in the engine — zero occurrences. It is not a duty: it is a period with call-in, and it drags a post-call rest rule behind it. `maxConsecutiveDays` cannot see across generation runs, so a naive version would leak at every month boundary. |
+| **7** | **On-call / standby**, with post-call rest. **Standby half SHIPPED in v2.8.0** (`secondPerson: 'standby'` — a named backup on a shift, not billed a duty or hours for a session they do not attend; `rosterStandby.test.js`). | **Last, because it is the largest.** ~~There is *no* concept of standby in the engine — zero occurrences.~~ *Stale since v2.8.0.* What remains is on-call proper: it is not a duty, it is a period with **call-in**, and it drags a **post-call rest** rule behind it. `maxConsecutiveDays` cannot see across generation runs, so a naive version would leak at every month boundary. Also still open from v2.8.0's own notes: a standby is not checked for a clock-time clash (needs `Q13`), and a standby still satisfies a quota. |
 
 **Still open and small:** the swap modal's two `<select>`s lack `id`/`htmlFor` pairing (its tests
 locate them by their options as a workaround). Defects `D5`, `D6`, `D7`, `D8` and the live-mode
@@ -480,8 +490,14 @@ rule they state out loud**. Every `No` below is a team that cannot.
 | ~~*"minimum job grade AH12"*~~ | ✅ **YES — since v1.18.0.** `minGrade` is a fourth requirement kind, and it gates every assignee rather than the lead alone | **shipped** — the first `No` to leave this table |
 | *"is this task AM or PM, and is this person in for that half"* | **No** — a duty has a duration but no position in the day | item 4 |
 | *"a registered clinician who is **also** CPET-competent"* | **No** — `requiresSkill` is a single string, so one requirement evicts the other | item 5(a) |
-| *"time-gate the roster release"* | **No** — it is authorization, and no rules are deployed | item 1 / `Q6` |
+| *"time-gate the roster release"* | **No** — it is authorization; the rules *are* deployed now (`Q6`), so it is buildable, and nobody has built it | was item 1 / `Q6`; unscheduled |
 | *"everyone on this duty must meet the grade floor"* | **Partly** — only by `coLeads: 0`, because a band gates the lead alone | 5(b) makes it direct |
+| *"we rotate duties weekly — one person leads a duty for the week, then it passes on"* | ✅ **YES — since v2.7.0** (`rules.rotateWeekly`; every duty, incumbency counted in days, leave covered per day) | shipped |
+| *"the second person is a standby, not a second pair of hands"* | ✅ **YES — since v2.8.0** (`secondPerson: 'standby'`) | shipped; clock-time clash still unchecked |
+| *"these two must never be on together"* | ✅ **YES** — `rules.forbidPairs` in Configure (storage fixed v2.7.3 after a data-loss defect) | shipped |
+| *"our lead only carries two of the nine duties, and is written `MA` on the calendar"* | ✅ **YES — since v2.6.0** (`onlyTasks`, `shortName`) | shipped |
+| *"roster the new colleague now; they register next month"* | ✅ **YES — since v2.5.0** (placeholder member, replaced on registration) | shipped, script-driven |
+| *"give me the roster as a spreadsheet / on the wall"* | ✅ **YES — since v2.9.0** (Excel workbook, PDF calendar) | shipped; Excel **in** is not (below) |
 | juniors on wards, seniors in clinics — band gates in both directions | **Yes** | shipped v1.8.0 |
 | a monthly clinic, same practitioner each time | **Yes** | shipped v1.8.0 |
 | at least two Saturdays a month, under an hours ceiling | **Yes** | shipped v1.9.0/v1.10.0 |
@@ -520,18 +536,21 @@ grades existed: any grade may cover it.
 Item 4 is what he *asked* for; the spreadsheet is what he is actually *using*. A weekly grid that
 already works is both the migration path and the incumbent this tool has to beat, and nothing in
 the queue addresses getting one in or out. Recorded here so it is not lost behind the feature
-that was easier to name. **Not scheduled** — it needs the sheet in front of us first.
+that was easier to name. **Not scheduled** — it needs the sheet in front of us first. *(2026-09-03:
+**out** shipped in v2.9.0 — an Excel workbook with a calendar tab per month and a staff-by-week
+sheet, `rosterXlsx.js`. **In** — reading an existing spreadsheet into a configuration — is still
+unaddressed and still needs the sheet in front of us.)*
 
-**Multi-institution: specified, blocked on `Q6`, and NOT an engine problem.** One shared
-`roster_2026` document and a login gate hardcoded to `@kkh.com.sg` (`WelcomeScreen.jsx:109`) are
-what stop a second institution using this — not the engine, which contains no site concept at all
-and already supports per-team band scales (`rules.bands`), per-team rules and per-team task sets.
-So an RT team at another hospital can already express their own rotation *provided their rule is
-sayable*, which is why the ledger above is the real constraint. What multi-institution needs when
-it comes: a roster document per institution/team, per-institution grade scales and rules, and a
-login gate that is not one hardcoded domain. **Deliberately not designed yet** — partitioning data
-per institution before `firestore.rules` is deployed is false assurance, the same argument already
-accepted for item 1. Revisit as part of `Q4`.
+**Multi-institution: ~~specified, blocked on `Q6`, and NOT an engine problem~~ SHIPPED in v2.0.0
+(2026-08-23).** A team per department per institution under `teams/{teamId}/…`, per-team bands,
+rules and task sets, membership-as-data in the rules, and a configurable domain allowlist
+(`config/domains`, `scripts/bootstrap-config.cjs`) in place of the hardcoded `@kkh.com.sg` gate.
+The argument below — that the engine was never the obstacle, and that partitioning before rules
+deployed would be false assurance — held, and the cutover ran in that order (`RELEASE-v2.0.0.md`).
+*(Original text:)* One shared `roster_2026` document and a login gate hardcoded to `@kkh.com.sg`
+were what stopped a second institution using this — not the engine, which contains no site concept
+at all. What multi-institution needed: a roster document per institution/team, per-institution
+grade scales and rules, and a login gate that is not one hardcoded domain. All three exist.
 
 **One question for cardiology, worth asking before item 5:** their roster master's title is
 *senior principal* cardiac physiologist. If that is a rank **above** principal, the four-band

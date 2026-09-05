@@ -6,8 +6,12 @@ We take the security and data privacy of the NEXUS platform very seriously. Curr
 
 | Version | Support Status |
 | ------- | -------------- |
-| 2.8.x   | Supported (Active Beta — multi-team) |
+| 2.10.x  | Supported (Active Beta — multi-team) |
+| 2.9.x   | Supported (superseded — upgrade to 2.10.x) |
+| 2.8.x   | Supported (superseded — upgrade to 2.9.x) |
 | 2.7.x   | Supported (superseded — upgrade to 2.8.x) |
+| 2.6.x   | Supported (superseded — upgrade to 2.7.x) |
+| 2.5.x   | Supported (superseded — upgrade to 2.6.x) |
 | 2.4.x   | Supported (superseded — upgrade to 2.5.x) |
 | 2.3.x   | Supported (superseded — upgrade to 2.4.x) |
 | 2.2.x   | Supported (superseded — upgrade to 2.3.x) |
@@ -18,8 +22,10 @@ We take the security and data privacy of the NEXUS platform very seriously. Curr
 
 > This table must match the *Supported Versions* table in [`README.md`](README.md); both are
 > downstream of `package.json` `version`, which is the single authoritative copy. It had
-> drifted eight minor versions behind (it still named 1.5.x as the Active Beta at v1.13.0) —
-> the support boundary moves with each release and is not an independent policy.
+> drifted eight minor versions behind (it still named 1.5.x as the Active Beta at v1.13.0),
+> and drifted again by two minors between v2.8.0 and v2.10.0 — the support boundary moves
+> with each release and is not an independent policy. Nothing tests this table; until
+> something does, it is part of the release checklist in `.claude/agents/version-steward.md`.
 
 ## Reporting a Vulnerability
 
@@ -41,7 +47,7 @@ generative AI surfaces. The chatbot info card the guidelines describe is
 [`docs/AURA-CHATBOT-INFO-CARD.md`](docs/AURA-CHATBOT-INFO-CARD.md) — what AURA can and
 cannot do, how it is kept safe, how data is handled (including what reaches Google's
 Gemini API), and how to report issues. The card was signed off by the owner on 2026-08-28
-(v1.0, in effect); the remaining refinement — a dedicated public support address — is
+(now at v1.1, in effect, served in-app at `/aura-info`); the remaining refinement — a dedicated public support address — is
 tracked in [`AURA-TODO.md`](AURA-TODO.md) §P9 (9.5).
 
 ## Data Governance Reminder
