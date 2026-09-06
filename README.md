@@ -406,6 +406,7 @@ The live record lives beside the code. [`IDS.md`](IDS.md) is the legend for ever
 | [`TRANSLATION-BRIEF.md`](TRANSLATION-BRIEF.md) | The `CD10` brief: what needs translating into ms/zh/ta, and why machine-translating clinical advice is dangerous |
 | `docs/NEXUS-roster-walkthrough.pptx` · `docs/CLAUDE-DESIGN-PROMPTS.md` | The AHP walkthrough deck (v2.1.0 screens; the roster toolbar has since changed) and the prompt pack for restyling it |
 | `docs/CD13-translation-review.xlsx` | The native-speaker review workbook for the 19 machine-translated strings |
+| [`docs/NATIVE-APP-PORTING.md`](docs/NATIVE-APP-PORTING.md) | The workflow for shipping the staff app to the App Store and Google Play with Capacitor — phases, gates, the four seams that must change, and the owner's decisions. Not started |
 
 **The audit history is in git, not in the tree.** The post-mortems, the QC audits, the two
 handoffs, the go-live gate and the two executed runbooks were dated snapshots whose findings
