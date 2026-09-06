@@ -1,6 +1,6 @@
-# NEXUS: Smart Operations Dashboard v2.12.2
+# NEXUS: Smart Operations Dashboard v2.12.3
 
-![Version](https://img.shields.io/badge/Version-v2.12.2-blue) ![Status](https://img.shields.io/badge/Status-In%20production-emerald) ![Teams](https://img.shields.io/badge/Multi--Team-28%20AHP%20professions-indigo) ![Roster](https://img.shields.io/badge/Roster%20engine-deterministic-0f766e) ![Assistant](https://img.shields.io/badge/AURA%20assistant-Gemini-purple) ![PWA](https://img.shields.io/badge/PWA-Native%20Push%20Enabled-blue) ![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2ea44f)
+![Version](https://img.shields.io/badge/Version-v2.12.3-blue) ![Status](https://img.shields.io/badge/Status-In%20production-emerald) ![Teams](https://img.shields.io/badge/Multi--Team-28%20AHP%20professions-indigo) ![Roster](https://img.shields.io/badge/Roster%20engine-deterministic-0f766e) ![Assistant](https://img.shields.io/badge/AURA%20assistant-Gemini-purple) ![PWA](https://img.shields.io/badge/PWA-Native%20Push%20Enabled-blue) ![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2ea44f)
 
 **NEXUS** (formerly IDC App) is a clinician-led platform for workload management, skill-mix routing and staff wellbeing, built inside an allied health department and now serving departments beyond the one it was written for.
 
@@ -43,8 +43,8 @@ health screening on the public `/individuals` pathway. It is genuinely a languag
 should be assessed as one.
 
 ⚠️ **Known and documented, rather than implied:** AURA's surfaces carry open findings — see
-[`AURA-TODO.md`](AURA-TODO.md) (65 findings, 52 closed with evidence as of 2026-09-06; the
-rest are the owner's decisions and three small engineering rows).
+[`AURA-TODO.md`](AURA-TODO.md) (65 findings, 53 closed with evidence as of 2026-09-06; the
+rest are the owner's decisions and two small engineering rows).
 
 > **Master the Grind * Protect the Pulse * Build the Future**
 > *NEXUS is in production. It began as one department's tool and now serves allied health departments as a team per department per institution; Live Mode is restricted to registered members of a team, and the Demo Sandbox is open to anyone.*
@@ -445,7 +445,16 @@ Use Demo Mode to verify system integrity before a demonstration or after a deplo
 > also lists the **known issues that are documented but not yet fixed**. The summaries
 > below are narrative highlights; where the two disagree, `CHANGELOG.md` is correct.
 
-### NEXUS v2.12.2 [Current] — The info card catches up with what the live read changed
+### NEXUS v2.12.3 [Current] — "11 of 6 checked in"
+
+The pulse board's header counted every key the daily pulse document had ever accumulated —
+anonymous phantoms, legacy name entries, a colleague who left, check-ins from weeks ago —
+against a denominator that was the real member list. It now counts the **team's tiles, for
+today**, so it can never exceed the team size, and the anonymous AURA log no longer writes
+into the per-person map at all (`AU13`, closed). The average and the zone badge are computed
+over the same honest set. Stale keys already in the document are simply no longer counted.
+
+### NEXUS v2.12.2 — The info card catches up with what the live read changed
 
 The IMDA chatbot info card served at `/aura-info` (card v1.3) now describes v2.11–v2.12:
 the rewritten model list and probe-before-trust resolution, the two code controls the

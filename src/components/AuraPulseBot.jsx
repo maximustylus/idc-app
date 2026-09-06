@@ -55,7 +55,7 @@ import {
 import { resetMessagesPreservingAlerts } from '../utils/auraEngine';
 import { sanitizeWellbeingLog, PHASE_BANDS } from '../utils/wellbeingLog';
 import { reworkNote, withReworkNote } from '../utils/reworkNote';
-import { legacyPulseKeys } from '../utils/pulseKeys';
+import { legacyPulseKeys, pulseTimestamp } from '../utils/pulseKeys';
 
 // ─── CLOUD FUNCTION LINK ──────────────────────────────────────────────────────
 const functions = getFunctions(undefined, 'us-central1');
@@ -542,6 +542,8 @@ export default function AuraPulseBot({ isOpen, onClose, onOpen: _onOpen, user })
                 role:       activeUser?.title,
                 lastUpdate: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 status:     isDemo ? 'demo-active' : 'checked-in',
+                // The calendar date the pulse board reads to count TODAY's check-ins.
+                ...pulseTimestamp(),
             };
 
             /**
@@ -565,11 +567,18 @@ export default function AuraPulseBot({ isOpen, onClose, onOpen: _onOpen, user })
             }
 
             if (selectedPersona?.id === 'anon') {
-                const heatKey = `Anon_${Math.floor(Math.random() * 9999)}`;
+                /**
+                 * `AU13`. An anonymous log goes to the anonymous log ONLY. This
+                 * branch also used to mint a random `Anon_NNNN` key into the daily
+                 * pulse document — an entry no tile could ever display (tiles
+                 * resolve by uid or name), never deleted, and counted as a person
+                 * by the board's header every day thereafter. That is how a
+                 * six-person team read "11 of 6 checked in". Nothing anonymous
+                 * belongs in a per-person map.
+                 */
                 const anonRef = doc(db, ...anonymousWellbeingPath(teamId));
                 await setDoc(anonRef, { last_updated: timestamp }, { merge: true });
                 await updateDoc(anonRef, { logs: arrayUnion(logData) });
-                await setDoc(doc(db, ...pulsePath(teamId, PULSE_PERIOD_DAILY)), { [heatKey]: heatmapPayload }, { merge: true });
             } else if (user?.uid) {
                 // ⚠️ `user.uid`, NOT `user.id`. `user.id` is the DIRECTORY id
                 // ('brandon'), and this block used to write the profile to

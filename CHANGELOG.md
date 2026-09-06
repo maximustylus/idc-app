@@ -56,6 +56,49 @@ not changed by this release.
 
 ---
 
+## [2.12.3] - 2026-09-06
+
+"11 of 6 checked in" on a six-person team.
+
+### Fixed
+
+- **The pulse board's header counted the document, not the team.** The denominator
+  was the member list; the numerator was every key in `teams/{id}/pulse/daily` that had
+  ever been written. That map only grows: a random `Anon_NNNN` key per anonymous AURA
+  wellbeing log, never removed (`AU13`); legacy name-keyed entries for anyone who had not
+  saved since the uid conversion; colleagues since removed from the team; and — because
+  "daily" was only the document's name — every check-in ever made, since nothing expired.
+  The team energy average and the zone badge were computed over the same set.
+
+  Two rules replace it, in `src/utils/pulseKeys.js`. `pulseStats` walks the **team's
+  tiles** and resolves each person's entry, so a key that belongs to nobody on the board
+  cannot be counted and the numerator can never exceed the denominator. And an entry
+  counts only if it was written **today**: `lastUpdate` was a clock time with no date, so
+  every writer now stamps `updatedOn` (local calendar date) and `updatedAt` beside it. An
+  entry without a date predates this release and is not today's — its tile still shows
+  the last known energy, it just is not "checked in" until the person checks in.
+
+- **The anonymous AURA log no longer writes into the pulse map at all.** The `Anon_` key
+  was an entry no tile could ever display (tiles resolve by uid or name), so it was pure
+  phantom. The log itself still goes to the anonymous wellbeing log. This closes `AU13`.
+
+### Verification
+
+- `pulseKeys.test.js` +15: an eleven-key document shaped like a real one after a month
+  (two members under legacy name keys, four anonymous phantoms, one departed colleague,
+  one entry from yesterday, one with no date) counts **3**, never more than the team, and
+  averages only the three it counted. `AuraPulseBot.au13.test.js` (6) pins the source:
+  `Anon_${` greps to zero, both writers stamp the date, the board derives its header from
+  `pulseStats` and no longer counts `Object.values`.
+- Full suite **3,667 tests across 108 files**, lint clean — run in a copy outside iCloud.
+
+### Known limitation
+
+- Stale keys already in the document are not deleted by this release; they are simply no
+  longer counted. A member's own legacy name key is still removed on their next save.
+
+---
+
 ## [2.12.2] - 2026-09-06
 
 The chatbot info card catches up with what the live read changed.

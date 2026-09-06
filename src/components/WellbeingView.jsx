@@ -4,7 +4,7 @@ import { doc, onSnapshot, setDoc, deleteField } from 'firebase/firestore';
 import { Users, Activity, Zap, X, Save, Lock, Bell, BellRing } from 'lucide-react';
 import { useTeam } from '../context/TeamContext';
 import { pulsePath, userPath, PULSE_PERIOD_DAILY } from '../utils/teamPaths';
-import { legacyPulseKeys, resolvePulseEntry } from '../utils/pulseKeys';
+import { legacyPulseKeys, resolvePulseEntry, pulseStats, pulseTimestamp } from '../utils/pulseKeys';
 
 // --- CONTEXT, DATA & FIREBASE MESSAGING ---
 import { useNexus } from '../context/NexusContext';
@@ -19,7 +19,6 @@ const WellbeingView = ({ user }) => {
     // own people rather than another service's clinical exercise physiologists.
     const { teamId, members } = useTeam(); 
     const [pulseData, setPulseData] = useState({});
-    const [stats, setStats] = useState({ avg: 0, active: 0, zone: 'HEALTHY' });
 
     // --- AURA MODAL STATE ---
     const [selectedStaff, setSelectedStaff] = useState(null);
@@ -42,19 +41,28 @@ const WellbeingView = ({ user }) => {
             .filter(person => person.displayName)
             .map(person => ({ uid: person.uid, name: person.displayName }));
 
+    /**
+     * "N of M checked in" is derived from the TILES, for TODAY — never from the
+     * document's keys. The document accumulates keys that are nobody on this
+     * board (anonymous phantoms, legacy name entries, colleagues who left) and
+     * never expired, which is how a six-person team read "11 of 6". See
+     * `pulseStats` for the two rules.
+     */
+    const stats = pulseStats(pulseData, pulseTiles);
+
     useEffect(() => {
         if (isDemo) {
             const mockPulse = {};
             MOCK_STAFF.forEach(char => {
                 mockPulse[char.name] = {
-                    energy: char.battery, 
-                    focus: 8,             
+                    energy: char.battery,
+                    focus: 8,
                     lastUpdate: 'Just now',
-                    status: 'online'
+                    status: 'online',
+                    ...pulseTimestamp(),
                 };
             });
             setPulseData(mockPulse);
-            calculateStats(mockPulse);
         } else {
             // NO TEAM, NO LISTENER — `pulsePath` throws on a null teamId rather than
             // composing `teams//pulse/daily`, so this window has to be an early return.
@@ -62,9 +70,7 @@ const WellbeingView = ({ user }) => {
 
             const unsub = onSnapshot(doc(db, ...pulsePath(teamId, PULSE_PERIOD_DAILY)), (docSnap) => {
                 if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    setPulseData(data);
-                    calculateStats(data);
+                    setPulseData(docSnap.data());
                 }
             });
             
@@ -80,23 +86,6 @@ const WellbeingView = ({ user }) => {
             return () => unsub();
         }
     }, [isDemo, user, teamId]);
-
-    const calculateStats = (data) => {
-        const values = Object.values(data);
-        if (values.length === 0) return;
-        
-        const validCheckIns = values.filter(curr => curr.energy > 0 || curr.lastUpdate);
-        const total = values.reduce((acc, curr) => acc + (curr.energy || 0), 0);        
-        const avg = validCheckIns.length > 0 
-            ? Math.round(total / validCheckIns.length) 
-            : 0;
-
-        setStats({
-            avg,
-            active: validCheckIns.length,
-            zone: avg > 79 ? 'HEALTHY' : avg > 49 ? 'REACTING' : 'INJURED'
-        });
-    };
 
     // --- NOTIFICATION HANDLER ---
     const handleEnableNotifications = async () => {
@@ -156,13 +145,14 @@ const WellbeingView = ({ user }) => {
             energy: savedEnergy,
             focus: parseInt(newFocus),
             lastUpdate: timeString,
-            status: 'online'
+            status: 'online',
+            // The calendar date the reader needs to know this is TODAY's check-in;
+            // `lastUpdate` is a clock time and cannot say which day.
+            ...pulseTimestamp(),
         };
 
         if (isDemo) {
-            const updatedData = { ...pulseData, [selectedStaff.uid]: updatePayload };
-            setPulseData(updatedData);
-            calculateStats(updatedData);
+            setPulseData({ ...pulseData, [selectedStaff.uid]: updatePayload });
         } else {
             if (!teamId) return;
             /**
@@ -172,8 +162,10 @@ const WellbeingView = ({ user }) => {
              * in the one document `firestore.rules`'s own header names display-name
              * keying as the root problem of. Each save writes the uid key AND
              * deletes the legacy name key in the same call, so the board converts
-             * itself one person at a time and `calculateStats` (which counts
-             * `Object.values`) never double-counts a person under two keys.
+             * itself one person at a time. (The header used to count the
+             * document's keys, so a leftover legacy key was a double count; since
+             * `AU13` it counts the tiles, and this cleanup is hygiene, not the
+             * thing keeping the count honest.)
              */
             const write = { [selectedStaff.uid]: updatePayload };
             /**
@@ -182,8 +174,8 @@ const WellbeingView = ({ user }) => {
              *    that differs in case; deleting only the exact key meant the
              *    one scenario the tolerant read existed for was the one the
              *    migration failed to clean, and the person was then counted
-             *    TWICE by `calculateStats`. `legacyPulseKeys` is the same set
-             *    the reader resolves from, so the two cannot disagree again.
+             *    TWICE by the old key-counting header. `legacyPulseKeys` is the
+             *    same set the reader resolves from, so the two cannot disagree again.
              */
             for (const staleKey of legacyPulseKeys(pulseData, selectedStaff.name, selectedStaff.uid)) {
                 write[staleKey] = deleteField();
