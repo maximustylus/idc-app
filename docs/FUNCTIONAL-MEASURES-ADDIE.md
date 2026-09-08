@@ -31,13 +31,123 @@ connect them to.
 
 ---
 
+## 0.1 Revision 1 (2026-09-08): three sources supplied by the owner
+
+The owner supplied three primary sources after the first pass. They **materially improve
+the feature's feasibility** and correct one of my findings, which was stated too strongly.
+The original text is left standing below rather than quietly edited, in the ledger's own
+tradition; where it is superseded, this section governs.
+
+**The sources**
+
+1. **Tomkinson GR, Lang JJ, Rubín L, et al.** *International norms for adult handgrip
+   strength: a systematic review of data on 2.4 million adults aged 20 to 100+ years from
+   69 countries and regions.* J Sport Health Sci 2025;14:101014.
+   doi 10.1016/j.jshs.2024.101014. **Open access, CC BY.**
+2. **CDC STEADI**, *Assessment: 30-Second Chair Stand* (2017).
+3. **Strassmann A, Steurer-Stey C, Dalla Lana K, et al.** *Population-based reference
+   values for the 1-min sit-to-stand test.* Int J Public Health 2013;58:949-53.
+   doi 10.1007/s00038-013-0504-z.
+
+### What this corrects
+
+**My "the norms do not exist" finding was too strong, and I was working from a weaker
+source than the best available.** The first pass surfaced a disputed 2026 pooled-Asian
+paper. Tomkinson 2025 is larger, newer to my knowledge of it, open access, and not the
+subject of that dispute. It supplies **exactly the artefact the feature needs**: absolute
+grip strength percentiles (P5 to P95) by sex, in **5-year age bands from 20-24 to 100+**,
+modelled with GAMLSS and population-weighted to UN 2021 demographics. Table 2 of that
+paper is directly usable.
+
+Likewise, **the 30-second chair stand does have citable age and sex cut-offs.** CDC STEADI
+publishes "below average" thresholds for ages 60 to 94 (for example, 60-64: men under 14,
+women under 12; 85-89: both under 8), with a below-average score indicating fall risk. And
+Strassmann 2013 covers the **under-60 gap** for a sit-to-stand variant, with percentiles
+for the 1-minute test across ages 20 to 79, though in a Swiss population.
+
+### What this does not change
+
+**None of the three is a South East Asian norm.** Tomkinson is explicitly *international*,
+population-weighted to global demographics and framed for "global peer-comparisons"; the
+paper itself notes that for within-country comparison its scores may be complementary to
+national norms. STEADI is US-derived. Strassmann is Swiss. **The phrase "South East Asian
+population norms" cannot appear in the product**, and the on-screen and page 2 wording must
+name the actual reference population. This is a labelling correction, not a design blocker.
+
+**The age-band problem is now the single remaining data blocker.** Every one of these
+sources is stratified in 5-year bands. NEXUS collects three (21-40, 41-60, an unbounded
+60+), and `parseAgeBand` discards a typed exact age. A 5-year band cannot be derived from
+a 20-year one. This is now `CD25` and it gates any age-specific comparison at all.
+
+### What this reinforces
+
+**The CDC's own form is the strongest argument yet for `CD17`.** It is a practitioner
+instrument with Patient, Date and Time fields, whose instructions read "Instruct the
+patient", carry the marginal note **"Stand next to the patient for safety"**, and include a
+stop rule ("if the patient must use his/her arms to stand, stop the test") that requires
+somebody watching. It also specifies a 17-inch seat height. A browser can do none of this.
+The reference protocol for the test the owner proposed **presumes a supervising person in
+the room**, which is precisely why the portal should accept a measured value rather than
+elicit a performance.
+
+**Protocol variation is bigger than assumed, which hardens the provenance requirement.**
+Tomkinson's harmonisation adjustments run from under 1% to 10% across dynamometer types and
+participant positions, and **up to 17% for different reporting variants**. Their reference
+protocol is specific: hydraulic dynamometer, seated, elbow flexed, forearm neutral, handle
+adjusted to hand size, both hands, 3 reps per hand, maximum value. The authors recommend
+applying their adjustment factors when comparing against their norms. So a stored value is
+only interpretable if the portal also stores **which device, which position, how many
+reps and which summary statistic**. Provenance moves from good practice to a correctness
+requirement.
+
+**Their lower percentiles may be biased high.** The authors note grip testing is often
+contraindicated in adults with chronic conditions, pain or injury, so included samples were
+probably healthier than the general population and "our lower percentiles overestimate true
+general population values". For a screening tool this errs toward flagging more people,
+which is the safe direction, but it must be said on page 2.
+
+### The output design, now with an author-endorsed framework
+
+Tomkinson §4.2 prescribes a **quintile interpretation** rather than a bare percentile:
+below the 20th percentile is "low", 20th to 39th "somewhat low", 40th to 59th "moderate",
+60th to 79th "somewhat high", 80th and above "high". They further note the lowest quintile
+has been used as a threshold for low fitness and linked to poor health and early death, and
+propose it as an interim cut-point for identifying at-risk adults.
+
+This is better than what I proposed and it supersedes it. The recommendation stays **a band,
+not a raw number**, but the band is now a five-level framework taken from the source itself,
+with the 20th percentile as the actionable threshold. `CD18` is therefore resolved in
+favour of a band **derived from a real percentile table**, not in favour of abandoning
+percentiles as uncomputable.
+
+### Revised instrument position
+
+`CD19` is no longer a straight swap. There are three defensible instruments and the choice
+now turns on the target age range:
+
+| Instrument | Reference | Ages | Output | Population |
+|---|---|---|---|---|
+| Grip strength | Tomkinson 2025 | 20 to 100+ | Percentiles, quintile bands | International |
+| 30-second chair stand | CDC STEADI | 60 to 94 | Below-average cut-off | US |
+| 1-minute sit-to-stand | Strassmann 2013 | 20 to 79 | Percentiles | Swiss |
+
+**Recommendation:** keep grip strength on Tomkinson as the primary measure, because it is
+the only one covering the whole adult lifespan from one source. For sit-to-stand, if the
+target is 60+, **the owner's original 30-second chair stand is fine** and STEADI is the
+citation; the five-times swap is no longer necessary. If the portal wants sit-to-stand for
+under-60s as well, Strassmann's 1-minute test is the only option and it is Swiss, which is
+a weaker claim than the grip table.
+
+
+---
+
 ## 1. What changed from the proposal, and why
 
 | Proposed | Recommended | Why |
 |---|---|---|
 | Resident performs a 30-second chair sit-to-stand and enters reps | Resident enters a value **measured elsewhere**, or is routed to where it can be measured | No web page can guard, stop, or call help for a person mid-exertion. §2.6 |
-| 30-second chair stand (reps) | **Five-times sit-to-stand (seconds)** | The Asian consensus instrument. Has a published cut-point and Asian reference values; the 30-second version has neither for this population. §2.4 |
-| Instant percentile vs South East Asian norms | **Band** against a named published threshold, with the source printed | The norms do not exist for one measure and are disputed for the other; and measurement error is wider than the percentile is precise. §2.4 |
+| 30-second chair stand (reps) | ~~Five-times sit-to-stand~~ **Keep the 30-second chair stand for 60+, cited to CDC STEADI** | Superseded by Revision 1. STEADI publishes age and sex cut-offs for 60 to 94. For under-60s no sit-to-stand reference exists outside a Swiss cohort. §0.1 |
+| Instant percentile vs South East Asian norms | **Quintile band** off a real percentile table, reference population named honestly | Revised by Revision 1. Percentiles exist (Tomkinson 2025, ages 20 to 100+) but are international, not South East Asian, and the authors themselves prescribe quintile bands. §0.1 |
 | Feeds the report and Firebase | Feeds the report; **band only** to Firebase, raw value stays on the device | Two continuous values make the record re-identifiable to anyone who ran the session. §2.7 |
 | Inserted before the NEXUS record question (index 12) | **Appended after** the existing conditional steps | The gating data (age, falls, symptoms) only exists after them, and insertion means renumbering 13 index-aligned arrays with no test covering them. §2.5 |
 | Affects the result | **Display-only.** Does not touch `calculateRiskScore` or the traffic light | The repo has already answered this once: falls is conditional and deliberately unscored. §2.5 |
@@ -445,13 +555,14 @@ answerable later.
 | Id | Decision | Recommendation |
 |---|---|---|
 | `CD17` | Does the portal ever ask a resident to perform a physical test? | **No.** Accept measured values and route to measurement. Encode as a build-failing test. |
-| `CD18` | Percentile or band? | **Band**, against a named cited threshold. A percentile is not supportable. |
-| `CD19` | 30-second chair stand or five-times sit-to-stand? | **Five-times.** It is the Asian consensus instrument and the only one with usable reference values. |
+| `CD18` | Percentile or band? | **Band.** Revised: percentiles are now available (Tomkinson 2025). Use that source's own quintile framework, with the 20th percentile as the actionable threshold. |
+| `CD19` | Which sit-to-stand instrument, and is the feature gated to 60+? | Revised: **your 30-second chair stand is fine for 60+**, cited to CDC STEADI. Under-60 sit-to-stand has only a Swiss reference. Gating to 60+ is the cleaner call. |
 | `CD20` | Do these values enter `calculateRiskScore` or move the traffic light? | **No.** Follow the `falls` precedent. Display-only. |
-| `CD21` | Which threshold sources, by full citation, and who signs them off? | Owner's, as exercise physiologist. Note the Grgic/Lim dispute before citing percentile sources. |
+| `CD21` | Which threshold sources, and who signs them off? | Largely resolved by the three supplied sources. Remaining: confirm the reference population is described honestly as international and US, never as South East Asian. |
 | `CD22` | If a standalone report block is required, what is cut from page 1 to pay for it? | Prefer tiles in the existing strip at zero cost. |
 | `CD23` | Is re-measurement made real, or is "starting point" only wording? | Make it real, or the learning case weakens substantially. |
 | `CD24` | Wearables and AI: separate authenticated product, or extend this one? | **Separate.** Extending it ends the anonymity the portal is built on. |
+| `CD25` | Collect age in 5-year bands, or drop age-specific comparison? | **The remaining blocker.** Every reference is stratified in fives; the portal collects three bands. No 5-year band, no age-specific comparison. |
 
 ---
 
