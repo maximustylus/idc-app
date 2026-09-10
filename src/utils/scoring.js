@@ -18,18 +18,20 @@
  * ⚠️ TWO FIELDS THAT LOOK INTERCHANGEABLE AND ARE NOT
  * ------------------------------------------------------------------------------
  *
- *     pavsMinutes   MINUTES PER SESSION.  Capped at 65 by `MINS_MIDPOINT`.
+ *     pavsMinutes   MINUTES PER SESSION.  Form chips map to at most 65;
+ *                   chat parsing can retain another finite value.
  *     pavsScore     MINUTES PER WEEK.     days × minutes — the PAVS figure itself.
  *
  * 150 min/week is a WEEKLY threshold, so only `pavsScore` can be compared against
  * it. This function compared `pavsMinutes`.
  *
- * Because 65 < 150 always, the "physical activity deficit" point was added to
- * EVERY respondent who ever completed the assessment, through either pathway. The
- * score could not distinguish somebody doing nothing from somebody doing 390
- * minutes a week — on the single dimension the entire portal is about — while
- * presenting itself as an ACSM-derived risk band. Fixed 2026-08-21; the test suite
- * beside this file exists because of it.
+ * For the form pathway, 65 < 150 always, so the "physical activity deficit" point
+ * was added to every respondent. The chat pathway had the same unit mismatch, even
+ * though its parser can retain a per-session value above 65. The score could not
+ * reliably distinguish somebody doing nothing from somebody doing 390 minutes a
+ * week — on the single dimension the entire portal is about — while presenting
+ * itself as an ACSM-derived risk band. Fixed 2026-08-21; the test suite beside this
+ * file exists because of it.
  *
  * ------------------------------------------------------------------------------
  * ⚠️ MISSING DATA IS A DEFICIT, NOT COMPLIANCE

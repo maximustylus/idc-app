@@ -24,7 +24,7 @@ import { calculateRiskScore } from './scoring';
  * produce. Named here because the two field names that matter look interchangeable
  * and are not:
  *
- *   pavsMinutes  MINUTES PER SESSION   — max 65, from MINS_MIDPOINT
+ *   pavsMinutes  MINUTES PER SESSION   — form chips max at 65; chat may differ
  *   pavsScore    MINUTES PER WEEK      — days x minutes, the PAVS figure itself
  *
  * 150 is a WEEKLY threshold. Only one of these can be compared against it.
@@ -49,10 +49,10 @@ const SEDENTARY = profile({ pavsDays: 0, pavsMinutes: 0, pavsScore: 0, strengthD
 describe('calculateRiskScore — the activity dimension must actually measure activity', () => {
     /**
      * ⚠️ THE BUG THIS SUITE WAS WRITTEN FOR. The function compared
-     * `data.pavsMinutes` — minutes PER SESSION, which `MINS_MIDPOINT` caps at 65 —
-     * against 150, a WEEKLY threshold. 65 < 150 always, so the "physical activity
-     * deficit" point was added to EVERY respondent who ever completed the
-     * assessment, through either pathway.
+     * `data.pavsMinutes` — minutes PER SESSION, which the form's local
+     * `MINS_MIDPOINT` caps at 65 — against 150, a WEEKLY threshold. That guaranteed
+     * the deficit for every form respondent; the chat path had the same unit
+     * mismatch even though its parser can retain another finite value.
      *
      * The consequence is not a rounding error. It is that the score cannot tell a
      * sedentary person from an athlete on the one dimension the whole portal is

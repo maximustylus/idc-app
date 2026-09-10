@@ -43,8 +43,8 @@ health screening on the public `/individuals` pathway. It is genuinely a languag
 should be assessed as one.
 
 ⚠️ **Known and documented, rather than implied:** AURA's surfaces carry open findings — see
-[`AURA-TODO.md`](AURA-TODO.md) (65 findings, 54 closed with evidence as of 2026-09-10; the
-rest are the owner's decisions and one small engineering row).
+[`AURA-TODO.md`](AURA-TODO.md) (65 findings, 55 closed with evidence as of 2026-09-10; the
+rest are the owner's decisions).
 
 > **Master the Grind * Protect the Pulse * Build the Future**
 > *NEXUS is in production. It began as one department's tool and now serves allied health departments as a team per department per institution; Live Mode is restricted to registered members of a team, and the Demo Sandbox is open to anyone.*
@@ -389,7 +389,7 @@ The live record lives beside the code. [`IDS.md`](IDS.md) is the legend for ever
 | [`SECURITY.md`](SECURITY.md) | Supported versions, how to report a vulnerability, the IMDA transparency pointer |
 | [`IDS.md`](IDS.md) | Which prefix means what, and the rule that a new series adds a row |
 | [`ROSTER_TODO.md`](ROSTER_TODO.md) | The roster engine: the remediation ledger, the current queue, the expressiveness ledger, and the owner's open `Q`n decisions |
-| [`AURA-TODO.md`](AURA-TODO.md) · [`AURA-CHANGELOG.md`](AURA-CHANGELOG.md) | AURA, the assistant: the ledger — 65 findings, 54 closed with evidence, 11 open (1 engineering, 10 owner decisions) — and the engine-tier history |
+| [`AURA-TODO.md`](AURA-TODO.md) · [`AURA-CHANGELOG.md`](AURA-CHANGELOG.md) | AURA, the assistant: the ledger — 65 findings, 55 closed with evidence, 10 open (all owner decisions) — and the engine-tier history |
 | [`AURA-GUARDRAILS.md`](AURA-GUARDRAILS.md) | The owner's sixteen working rules, verbatim, with the honest conformance table — what is CODE, what is only asked of a model |
 | [`AURA-VERIFICATION-TURNS.md`](AURA-VERIFICATION-TURNS.md) · `docs/P8.8-owner-read-2026-09-05.md` | The 20 real turns that gate any claim that AURA *follows* the guardrails, and the drafted read from three live runs on 2026-09-05 — owner verdicts pending |
 | [`docs/AURA-CHATBOT-INFO-CARD.md`](docs/AURA-CHATBOT-INFO-CARD.md) | The IMDA-aligned chatbot info card for AURA's generative surfaces — owner-approved, served in-app at `/aura-info` |
