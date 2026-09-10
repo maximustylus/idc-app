@@ -43,7 +43,7 @@
  *
  * ALIGNMENT:
  *   • Option values and midpoint maps match AuraChatbot exactly.
- *   • selectCTA() and deriveFlags() are identical to AuraChatbot.
+ *   • Both pathways hand the same result shape to scoring and routing.
  *   • Navigation state shape matches AuraChatbot → identical ResultPage render.
  */
 
@@ -58,8 +58,9 @@ import {
 import { readTheme, writeTheme } from '../utils/theme';
 import { readLanguage, writeLanguage, applyDocumentLanguage } from '../utils/language';
 import { getSessionId, saveProgress, loadProgress, clearProgress } from '../utils/assessmentSession';
-import { toSector, isValidSector } from '../utils/singapore/postalSectors';
-import { parseFallsAnswer, parseHealthierSg, parseAgeBand, isSixtyPlus } from '../utils/clinicalFlags';
+import { isValidSector } from '../utils/singapore/postalSectors';
+import { isSixtyPlus } from '../utils/clinicalFlags';
+import { DAYS_MIDPOINT, MINS_MIDPOINT, deriveFormClinicalData } from '../utils/formClinicalData';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OPTION TABLES — values match AuraChatbot quick-reply strings exactly
@@ -177,22 +178,6 @@ const RACE_OPTIONS = [
   { value: 'Others',  en: 'Others',  ms: 'Lain-lain', zh: '其他',  ta: 'மற்றவர்கள்' },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PARSING — mirrors AuraChatbot parseClinicalData() exactly
-// ─────────────────────────────────────────────────────────────────────────────
-
-const DAYS_MIDPOINT = { '0 days': 0, '1–2 days': 1.5, '3–4 days': 3.5, '5–7 days': 6 };
-const MINS_MIDPOINT = { 'Less than 20 mins': 15, '20–30 mins': 25, '30–45 mins': 37, '45–60 mins': 52, '60+ mins': 65 };
-const STR_MIDPOINT  = { 'No strength training': 0, '1 day a week': 1, '2 days a week': 2, '3+ days a week': 3 };
-
-const MED_FLAG_VALUES     = new Set(['High blood pressure', 'Prediabetes or diabetes', 'Heart condition']);
-const SYMPTOM_FLAG_VALUE  = 'Dizziness or chest pain when active';
-const FINANCIAL_BARR_VALS = new Set(['Too expensive', 'Too far away']);
-const SOCIAL_FLAG_VALS    = new Set(['I mostly manage on my own', 'I feel quite isolated']);
-const PSYCHO_FLAG_VALS    = new Set(['Some stress but managing', 'Feeling quite stressed or low', 'Overwhelmed — caregiving', 'Overwhelmed — financial pressure']);
-/** Caregiver strain is its own route, and also counts as psychological distress. */
-const CAREGIVER_FLAG_VALS = new Set(['Overwhelmed — caregiving']);
-
 // Identical to AuraChatbot selectCTA()
 const selectCTA = ({ symptomFlag, medFlag, age, sdohPsychological, sdohFinancial, sdohSocial, pavsScore }) => {
   if (symptomFlag)                      return 'URGENT';
@@ -204,59 +189,6 @@ const selectCTA = ({ symptomFlag, medFlag, age, sdohPsychological, sdohFinancial
   if (pavsScore < 150)                  return 'START';
   if (pavsScore <= 300)                 return 'LEVEL_UP';
   return 'ADVANCED';
-};
-
-const deriveFlags = (f) => {
-  const pavsDays    = DAYS_MIDPOINT[f.pavsDays] ?? 0;
-  const _minsRaw    = MINS_MIDPOINT[f.pavsMins] ?? 0;
-  const pavsMinutes = pavsDays === 0 ? 0 : _minsRaw; // 0 days → 0 mins/session
-  const pavsScore   = Math.round(pavsDays * pavsMinutes);
-  const strengthDays = STR_MIDPOINT[f.strength] ?? 0;
-
-  const noConditions  = f.medical.includes(MEDICAL_EXCLUSIVE);
-  const medFlag       = !noConditions && f.medical.some(v => MED_FLAG_VALUES.has(v));
-  const symptomFlag   = !noConditions && f.medical.includes(SYMPTOM_FLAG_VALUE);
-
-  const sdohFinancial     = f.barriers.some(v => FINANCIAL_BARR_VALS.has(v)) || f.incomeAdequacy === 'Inadequate';
-  const sdohSocial        = SOCIAL_FLAG_VALS.has(f.social);
-  const sdohPsychological = PSYCHO_FLAG_VALS.has(f.wellbeing);
-  const caregiverStrain   = CAREGIVER_FLAG_VALS.has(f.wellbeing);
-
-  // ⚠️ THE SAME PARSERS THE CHAT USES, not a second implementation. Two pathways
-  //    deriving one flag two ways is `CP9` — a comment claiming they were
-  //    identical while they were not — and it is why `parseFallsAnswer` lives in
-  //    `clinicalFlags.js` rather than in either component.
-  const fallsParsed       = parseFallsAnswer(f.falls);
-  const healthierSgEnrolled = parseHealthierSg(f.healthierSg);
-  const sdohFoodInsecure  = f.foodInsecure === true;
-  const sdohHousing       = f.housing === 'HDB 1-2 Room';
-
-  // The same parser the chat uses. The form's values are a controlled select, so
-  // this is identical in behaviour — it is here so there is one age parser rather
-  // than two, which is the `CP9` lesson applied before it becomes a divergence.
-  const age    = parseAgeBand(f.ageGroup);
-  const gender = f.gender || 'Unknown';
-
-  return {
-    pavsScore, pavsDays, pavsMinutes, strengthDays,
-    medFlag, symptomFlag,
-    sdohFinancial, sdohSocial, sdohPsychological, caregiverStrain,
-    fallsCount: fallsParsed.falls, fallsRisk: fallsParsed.fallsRisk,
-    fearOfFalling: fallsParsed.avoidsActivity, fallsAsked: fallsParsed.asked,
-    healthierSgEnrolled,
-    psychoFlag: sdohPsychological,
-    sdohFoodInsecure, sdohHousing,
-    // ⚠️ PARITY WITH THE CHAT. These three were derived here but returned under
-    //    different names, or computed in `handleSubmit` instead — so the two
-    //    pathways handed different shapes to the same scorer, and
-    //    `pathwayParity.test.js` could not see they agreed. `postalSector` in
-    //    particular was computed twice, in two places, from two expressions.
-    ethnicity: f.race || 'Unknown',
-    housingType: f.housing || 'Unknown',
-    postalSector: toSector(f.postalCode),
-    age, gender,
-    previousId: f.previousId?.trim().toUpperCase() || null,
-  };
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -760,14 +692,14 @@ export default function ConventionalForm() {
     if (busy || !isStepValid()) return;
     setBusy(true);
     try {
-      const flags   = deriveFlags(f);
+      const flags   = deriveFormClinicalData(f);
       const ctaTier = selectCTA(flags);
       const score   = calculateRiskScore(flags);
       // ⚠️ VALIDATED, AND `null` WHEN IT IS NOT A REAL SECTOR. The form asks for
       //    the first two digits and only checked the LENGTH, so '99' or '74' —
       //    neither of which is a Singapore sector — went into the record as though
       //    they were places, and `|| '00'` turned a blank into one too.
-      // One derivation, from `deriveFlags`. This used to recompute it here, so the
+      // One derivation, from `deriveFormClinicalData`. This used to recompute it here, so the
       // record and the flags could in principle disagree about where somebody was.
       const sector  = flags.postalSector;
 
@@ -984,7 +916,7 @@ export default function ConventionalForm() {
   );
 
   const Step4 = () => {
-    const preview   = deriveFlags(f);
+    const preview   = deriveFormClinicalData(f);
     const liveScore = Math.round((DAYS_MIDPOINT[f.pavsDays] ?? 0) * (MINS_MIDPOINT[f.pavsMins] ?? 0));
     return (
       <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-400">

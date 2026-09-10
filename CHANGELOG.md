@@ -74,6 +74,12 @@ not changed by this release.
 
 ### Fixed
 
+- **Community `P4.3` — the conventional screening form's result derivation is now
+  directly tested.** Activity, strength, clinical, social-needs, falls, Healthier SG,
+  demographic and identifier outputs moved from the React component into
+  `src/utils/formClinicalData.js`. The form calls that function for both its preview
+  and submitted result; the controlled-answer rules and pathway routing are unchanged.
+
 - **`AC4` — the scoring comments now describe each pathway's real minutes value.**
   The form's answer-chip mapping tops out at 65 minutes per session; the chat parser
   can retain another finite value. This is a documentation correction only; weekly
