@@ -60,10 +60,11 @@ sentence told a reader for nine days that a broken clinical score was live to th
 
 | | Count | Ids / rows |
 |---|---|---|
-| `DONE`, evidenced | 14 | `CP1` `CP2` `CP3` `CP5` `CP6` `CP7` `CP9` `CP12` `CP13` `CP14` `CP15` `CP17` `CP18` `CP19` |
-| `OPEN`, mine | 2 | `CP8` `CP16` |
+| `DONE`, evidenced | 15 | `CP1` `CP2` `CP3` `CP5` `CP6` `CP7` `CP9` `CP12` `CP13` `CP14` `CP15` `CP16` `CP17` `CP18` `CP19` |
+| `OPEN`, mine | 0 | — |
 | `OWNER DECISION`, console only | 1 | `CP7`'s last two steps — see *Turning App Check on*, below. The code is shipped and inert. |
 | `OPEN`, translation | 1 | `CP10`/`CD10` groups 2, 3 and the rest of 4 — group 1 and the slip's flag lines are shipped, see `7.7` |
+| `OWNER DECISION`, content governance | 1 | `CP8`: name the content owner, review interval and stale-claim action. |
 | `OWNER DECISION` | 17 | `CD4` `CD10` `CD11` `CD12` (design) `CD13` (translation review) · `CD14`–`CD16` (consent, referral partner, retention) · `CD17`–`CD25` (proposed functional measures; P9) |
 
 **`CD13` opened 2026-08-23** — a native-speaker review of the 19 strings already
@@ -170,7 +171,7 @@ The three that changed what a person was told about their own health.
 | 3.1 | Translate the urgent CTA copy | `CP10`/`CD10`. The in-chat card renders `primaryStep`, `healthierSG` and `resources` raw from a flat English object; only labels are translated. A Tamil speaker reporting chest pain reads *"call 995"* in English. `ResultPage`'s `CTA_BANNER` already has reviewed `ms`/`zh`/`ta` for the same tiers and is the source to adapt from. **I have not machine-translated urgent clinical advice and will not.** | **OWNER** | `OPEN` | — |
 | 3.2 | Split the cardiac question | `CD11`. `AuraChat.jsx:241` asks two things at once with single-tap chips, so high blood pressure **and** exertional chest pain cannot both be recorded. Tap the condition and `symptomFlag` is false — the person loses URGENT and is routed to a paid exercise programme. The form pathway records both correctly. Splitting it changes the instrument. | **OWNER** | `OPEN` | — |
 | 3.3 | Decide the URGENT tier | `CD4`. The red-flag tier's resource list includes an exercise programme. My recommendation: its own resource set with no exercise in it, and its own visual treatment. Yours to decide. | **OWNER** | `OPEN` | — |
-| 3.4 | Resource freshness contract | `CP8`. The prompt labels the inventory *"VERIFIED RESOURCE INVENTORY"* and the model quotes prices and hours to the public as fact. `lastVerified` is written by `firestore_seed.cjs` on every run and **read by nothing**. Either check it and suppress stale entries, or take the word "VERIFIED" out. | Opus-alone | `OPEN` | — |
+| 3.4 | Resource freshness contract | `CP8`. The dead seeded inventory and its unsupported *"VERIFIED RESOURCE INVENTORY"* framing are gone (`CP16`), but live ResultPage, handover and chat copy still make maintainable claims such as programme availability, price, eligibility, phone service and opening arrangements. Before code can enforce freshness, the owner must name the accountable content role, review interval and stale-claim action (hide, reduce to an official finder, or fail a release check). A deploy date cannot serve as review evidence. | **OWNER** | `OWNER DECISION` | `ffca5dd` establishes the importable live ResultPage registry and removes the false seed timestamp; policy remains unset |
 
 ---
 
@@ -185,7 +186,7 @@ what a member of the public sees. **`CP16` corrects `CP8` above.**
 | 3b.1 | **No disclaimer and no privacy notice on screen** | `CP13`. Both the *"Important Medical Disclaimer"* (`ResultPage.jsx:746`) and the full data-governance text (`:782`) sit **four to five divs deep inside the off-screen PDF template** opened at `:636` with `position:absolute; top:-10000px`. Neither renders on the visible page. On screen the form pathway offers one half-sentence, on step 4 of 4, after the health questions are already answered (`ConventionalForm.jsx:253`). **The chat pathway offers nothing at all** — `grep -ci "de-identified\|privacy\|consent\|we collect" AuraChat.jsx` returns `0`, and it writes age band, gender, ethnicity, housing, postal sector and four health flags. | Fable-supervised | `DONE` | `MedicalDisclaimer` + `DataGovernance` render on the visible page; `PathwaySelection` carries a collection notice **before** either pathway starts. English only — `CD10`. |
 | 3b.2 | **"Green" tells people below the guidelines that they meet them** | `CP14`. `greenDesc` is *"You meet the physical activity guidelines."* The tier comes from the **risk score**, not from PAVS: `getRiskTier` returns Green for 0–1. Someone at 100 min/week who strength-trains twice a week scores exactly 1 → Green → told they meet guidelines, **on the same screen where `getPavsTier(100)` renders `below`**. | Opus-alone | `DONE` | Green now uses `pavsBelowDesc` — already translated in all four languages — when the figure is below target |
 | 3b.3 | **Chat flags are unanchored substring regex** | `CP15`. `AuraChat.jsx:516-530` tests raw free text. `/low/` is unanchored, so *"I walk slowly but I feel great"*, *"I follow a routine"* and *"I allow myself rest days"* all flag as **psychological distress** and route to the WELLBEING tier. It is also negation-blind: *"I do not get chest pain"* sets `symptomFlag` and triggers URGENT. Both directions over-triage, which is the safe way to be wrong — but it is wrong, and it is the tier ladder's input. | Opus-alone | `DONE` | `src/utils/clinicalFlags.js` · 46 tests · plus a linkage bug of my own finding, below |
-| 3b.4 | **The seeded resource collection reaches nobody** — ⚠️ **corrects `CP8`** | `CP16`. `scripts/firestore_seed.cjs` writes 22 records to `resources`. Its only reader is `publicTriageChat`, which **has no callers** (`CP6`). What the public actually sees is a *second, unrelated* registry of 16 entries hardcoded in JSX at `ResultPage.jsx:191-208` — different ids, different URLs, nothing derives one from the other. So `CP8`'s freshness finding was about a collection with no reader; the freshness problem that matters is the hardcoded one, which has no `lastVerified` field at all. | Opus-alone | `OPEN` | `grep -rn "'resources'" src/` → only `teamPaths.js:120` (roster-side) |
+| 3b.4 | **The seeded resource collection reached nobody** — ⚠️ **corrects `CP8`** | `CP16`. The unused 22-record Firestore seed was retired. Its `lastVerified` value was the time the seed ran, not evidence of a human review, and `publicTriageChat` is a closed stub that reads no Firestore. ResultPage now consumes the importable 16-record `COMMUNITY_RESOURCES` registry and pure `generateCommunityResourcePlan`; existing ids, translations, URLs, route order, deduplication, regional additions and six-card cap are preserved. The broader freshness policy remains `CP8`. | Opus-alone | `DONE` | `ffca5dd` · `src/data/communityResources.test.js` (2) + `src/utils/communityResourcePlan.test.js` (22) + focused related suites: **122 passed** · full `npm test`: **112 files, 3745 passed** · `npm run build` and `npm run lint` passed · `rg "firestore_seed|lastVerified|verifiedBy" src functions scripts firestore.rules` → 0 |
 | 3b.5 | **The page is not usable by the people it targets** | `CP17`. `index.html:5` sets `maximum-scale=1.0, user-scalable=no` — **pinch-zoom is disabled portal-wide** on a tool explicitly built for elderly users. `index.html:2` is `<html lang="en">` and never changes, so a screen reader announces Malay, Chinese and Tamil content as English. | Opus-alone | `DONE` | `user-scalable=no` removed; `src/utils/language.js` sets `<html lang>` on every screen · 16 tests |
 
 **The audit returned 70 further findings** — clinical safety, reliability, correctness
@@ -490,7 +491,7 @@ P0.3  App Check + rate limit                 ─ needs the Firebase console
 CD13  native-speaker review of 19 strings    ─ owner's; the only thing left on group 1 + 4
 CD10  groups 2, 3, rest of 4                 ─ owner's call; group 2 is the URGENT tier
 CD4 / CD11                                   ─ owner's, in parallel, not blocked on me
-P3.4  CP8 + CP16: one live resource registry and freshness contract
+P3.4  CP8 resource freshness policy             ─ OWNER DECISION; engineering scaffold shipped under CP16
 P6.2  P6.3                                    ─ CD12 owner design: PDF and share output
 CD14  CD15  CD16                             ─ owner's, from the RHS review (P8 below)
 CD17  through CD25                           ─ OWNER DECISION; proposed measures, no build authorised
@@ -556,5 +557,9 @@ Recorded so a future pass does not "fix" something that is already right:
   clinically right, even where `CD4` questions the destination.
 - **The four-language support.** It is real, it covers the resource registry, and
   `CP10` is a gap in it — not a reason to reconsider it.
-- **The resource registry itself.** Real addresses, real programme names, real prices.
-  Somebody did the legwork. `P3.4` is about keeping it true, not about replacing it.
+- **The localized ResultPage resource cards.** The 16 stable ids, destinations,
+  logos and four-language copy now live in `src/data/communityResources.js` and
+  feed a directly tested deterministic plan. The former branch-level Firestore
+  inventory, addresses, prices and hours were unused and are `HISTORICAL`; they
+  must not be described as verified current data. `CP8` governs review of the
+  factual claims that remain on live public surfaces.
