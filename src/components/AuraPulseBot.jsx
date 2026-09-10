@@ -56,6 +56,7 @@ import { resetMessagesPreservingAlerts } from '../utils/auraEngine';
 import { sanitizeWellbeingLog, PHASE_BANDS } from '../utils/wellbeingLog';
 import { reworkNote, withReworkNote } from '../utils/reworkNote';
 import { legacyPulseKeys, pulseTimestamp } from '../utils/pulseKeys';
+import responseParser from '../../functions/responseParser.cjs';
 
 // ─── CLOUD FUNCTION LINK ──────────────────────────────────────────────────────
 const functions = getFunctions(undefined, 'us-central1');
@@ -408,12 +409,7 @@ export default function AuraPulseBot({ isOpen, onClose, onOpen: _onOpen, user })
                 });
 
                 try {
-                    const raw      = result.data?.text ?? '';
-                    const stripped = raw.replace(/```json|```/g, '').trim();
-                    const start    = stripped.indexOf('{');
-                    const end      = stripped.lastIndexOf('}') + 1;
-                    if (start === -1 || end === 0) throw new Error('No JSON object found');
-                    analysis = JSON.parse(stripped.substring(start, end));
+                    analysis = responseParser.parseJsonResponse(result.data?.text ?? '').parsed;
                 } catch {
                     throw new Error('AURA returned an unreadable format. Please try again.');
                 }
