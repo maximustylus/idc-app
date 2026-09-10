@@ -54,6 +54,17 @@ not changed by this release.
 
 ## [Unreleased]
 
+### Documentation
+
+- Reconciled `README.md` with current architecture and controls: CI builds before its
+  bundle-level tests; coverage and roster mutation are outside AURA; attachment bounds
+  and metadata logging from `AU15` are present but content classification remains open
+  under `AU17`; Feeds controls are described without an unsupported PDPA-compliance
+  claim; internal staff authorization is separated from the public `/individuals`
+  pathway; and multi-team architecture is recorded as shipped rather than future work.
+- Corrected the stale `AU17` evidence text in `AURA-TODO.md` without changing the
+  finding's `OPEN` owner-decision status.
+
 ---
 
 ## [2.12.3] - 2026-09-06
@@ -3406,8 +3417,12 @@ is now accounted for at `1.6.0`.
 
 ### [1.5.0] — reconstructed from README
 
-- **NEXUS Feeds Integration:** the Digital Watercooler for PDPA-compliant clinical
-  knowledge sharing and Community of Practice updates.
+- **NEXUS Feeds Integration:** the Digital Watercooler for internal team knowledge
+  sharing and Community of Practice updates.
+  > **Corrected 2026-09-10:** the reconstructed description called the feed
+  > "PDPA-compliant". Current code provides team scoping, screened post creation and
+  > a deterministic NRIC/FIN-shaped fence on comments; that evidence does not establish
+  > the broader compliance claim.
 - **Immersive Lightbox UI:** distraction-free reading with nested real-time discussion
   threads.
 - **Smart Routing Architecture:** URL-parameter detection for secure deep-linking and
@@ -3422,10 +3437,12 @@ is now accounted for at `1.6.0`.
 
 - **AURA Engine upgrade to v2.3:** from reactive conversational bot to proactive
   database-middleware agent.
-- **Autonomous Roster Mediation:** AURA listens to Firebase collections via live
-  snapshots and executes peer-to-peer shift-swap matrix rewrites.
-  > Post-mortem Block A finds that this rewrite **never actually happens** — see **A1**
-  > under *Known issues*.
+- ~~**Autonomous Roster Mediation:** AURA listens to Firebase collections via live
+  snapshots and executes peer-to-peer shift-swap matrix rewrites.~~
+  > **Corrected 2026-09-10 (`AU1`/`AU23`):** AURA does not generate or alter the
+  > roster. Coverage requests moved to the roster surface in v1.10.0; accepting one
+  > rewrites the roster in the accepting colleague's browser. The original v1.4 claim
+  > was false when written, and later coverage code did not make it true of AURA.
 - **Native File Export:** direct Microsoft Word document downloads from parsed text,
   working around mobile browser limitations.
 - **Data Entry Payload Expansion:** LLM schema extended to extract operational

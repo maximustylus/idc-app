@@ -61,14 +61,13 @@ roster — see [What NEXUS actually is](#what-nexus-actually-is--two-systems-one
 `AU1`.*
 
 AURA changes persona with what the person asks for:
-* **Roster Mediation:** the app listens for peer-to-peer coverage requests over Firebase `onSnapshot`. A request surfaces **in the roster** — a badge on the affected shift and an inline card — and on approval the master roster document is rewritten in the accepting colleague's browser, then **read back** before the request is marked approved. *(Corrected 2026-08-15: this described AURA forcing open its chat panel with a `ROSTER_ALERT` bubble. That surface was removed in v1.10.0 — `AuraPulseBot.jsx:19-33` records the move — and nothing renders `ROSTER_ALERT` today. The requester is still **not** notified of the outcome; there is no mechanism, tracked as decision `Q3`.)*
 * **The Wellbeing Coach:** Utilising Motivational Interviewing (OARS) and the Mental Health Continuum, AURA provides peer-level psychological first aid and workflow adjustments based on real-time "Social Battery" indexing.
 * **The Database Assistant:** AURA extracts a figure and a period from natural language (e.g. "I saw 145 patients in June") and renders a **confirmation card**. Nothing is written until a human presses the button, and what the model proposes is validated first — collection, document, field, value and month are each checked against an allowlist or a type before any write (`src/utils/dataEntryGuard.js`, 66 tests). It also drafts memos, SOPs and incident reports for export.
 * **Native File System Integration:** Bypassing mobile browser constraints, AURA compiles parsed Markdown into true Microsoft Word `.docx` Blob objects, triggering native file downloads directly from the chat UI.
 * **Proactive Nudges:** Every weekday at 09:00 AM, AURA fires native push notifications prompting a 30-second check-in. Based on 0 to 10 sliders for Energy and Focus, it automatically routes staff into specific recovery protocols.
 
 ### Pillar B: NEXUS Feeds (The Digital Watercooler)
-* **Secure Knowledge Sharing:** A PDPA-compliant, internal social feed dedicated to sharing clinical insights, team wins, and Community of Practice updates. 
+* **Team Knowledge Sharing:** an internal, team-scoped social feed for operational insights, team wins and Community of Practice updates. Posts pass through `processFeedPost`; comments are written directly but are fenced in the client and Firestore rules against NRIC/FIN-shaped tokens (`AN13`). Those controls do not establish PDPA compliance.
 * **Immersive Lightbox UI:** Features distraction-free reading, secure deep-linking for seamless cross-platform sharing, and real-time nested discussion threads.
 
 ### Pillar C: Smart Workload and AI Audits
@@ -112,8 +111,9 @@ NEXUS is built on a dual-environment architecture, designed to switch seamlessly
 ### Working on the repository
 
 Two gates run on every push to `main` and must pass before the deploy stages run:
-`npm test` (Vitest — `src/`, `functions/` and `scripts/`) and `npm run lint`
-(`--max-warnings 0`), then `npm run build`. ⚠️ If the clone lives under `~/Documents`
+`npm run build`, then `npm test` (Vitest — `src/`, `functions/` and `scripts/`), then
+`npm run lint` (`--max-warnings 0`). Build comes first because bundle-level tests inspect
+the generated `dist/` artefact that Hosting will serve. ⚠️ If the clone lives under `~/Documents`
 with iCloud's *Optimise Mac Storage* on, `node_modules` gets evicted and the jsdom half of
 the suite never finishes — keep a copy outside iCloud (`/private/tmp` is not synced) and run
 the gates there. Merging to `main` **is** the deploy: hosting, functions, rules and indexes.
@@ -122,7 +122,7 @@ the gates there. Merging to `main` **is** the deploy: hosting, functions, rules 
 ```text
 nexus/
 |-- .github/workflows/
-|   |-- deploy.yml                 # CI: test, lint, build; deploys functions, rules, indexes, hosting
+|   |-- deploy.yml                 # CI: build, test, lint; deploys functions, rules, indexes, hosting
 |   |-- tag-release.yml            # Cuts the vX.Y.Z tag (also on workflow_dispatch)
 |-- docs/                          # Info card, walkthrough deck, design prompts, translation workbook
 |-- scripts/                       # Admin-SDK runbooks and the rules emulator suite (see below)
@@ -250,28 +250,17 @@ nexus/
 > `RosterExportMenu.jsx`, `TeamGate`, `src/version.js`, `scripts/` and `docs/` — was
 > missing. Every path above exists; test files are omitted (there are ~100).*
 
-### AURA System Diagram (v2.3)
+### AURA and roster boundary
 ```text
-┌─────────────────────────────────────────────────────┐
-│  AuraPulseBot.jsx (React Presentation & State)      │
-│                                                     │
-│  UI Logic: Frosted Glass Focus Blur (z-[90])        │
-│  Modes: COACH | ASSISTANT | RESEARCH | DATA_ENTRY   │
-│                                                     │
-│  [User Input] ────► sanitize ────► httpsCallable()  │
-│  [UI Render]  ◄──── JSON parse ◄── Firebase Return  │
-│                                                     │
-│  [Swap Modal] ◄──── onSnapshot ◄── Firebase Live DB │
-└─────────────────────────┬───────────────────────────┘
-                          │ (Secure HTTPS RPC & WebSockets)
-                          ▼
-┌─────────────────────────────────────────────────────┐
-│  Firebase Backend (Cloud Functions & Firestore)     │
-│                                                     │
-│  1. LLM Orchestration (Gemini API)                  │
-│  2. Data Extraction & Schema Validation             │
-│  3. shift_swaps Collection (Master Roster Mutator)  │
-└─────────────────────────────────────────────────────┘
+AuraPulseBot.jsx ── chatWithAura ── Gemini
+       │                 │
+       │                 └─ returns conversation text or a proposed write
+       └─ validates any proposal; a human confirms before the client writes
+
+RosterView.jsx / CoverageWatcher.jsx ── Firestore team roster + coverage requests
+       │
+       └─ deterministic roster engine and client-side coverage acceptance
+          (no Gemini call; AURA does not generate or alter the roster)
 ```
 
 ### Essential Components and Technical Standards
@@ -289,8 +278,8 @@ nexus/
 
 ## Security, Access and Data Governance
 
-**RESTRICTED: INTERNAL SSMC@KKH STAFF ONLY (LIVE MODE)**
-This application is an operational and workload management tool. It is not a clinical system and is not yet a fully integrated hospital system managed by Synapxe. Live Mode is locked behind enterprise-grade authentication.
+**THE INTERNAL STAFF UI REQUIRES AUTHENTICATION AND TEAM MEMBERSHIP. `/individuals` IS A SEPARATE PUBLIC PATHWAY.**
+NEXUS is an operational and workload management tool. It is not a clinical system and is not a fully integrated hospital system managed by Synapxe. Firebase Authentication identifies staff, Firestore rules gate team-scoped stored data by membership, and callable functions apply their own endpoint-specific checks. The public health-screening pathway does not use the internal staff assistant.
 
 ### Supported Versions
 | Version | Status |
@@ -330,15 +319,17 @@ This application is an operational and workload management tool. It is not a cli
    that part is a property of the system. Everything else here is an instruction, not a control:
    *do not upload patient data or PHI; use placeholders (e.g. `[Patient]`, `[Clinician]`).*
 
-   ⚠️ *Stated plainly 2026-08-23 (`AU17`): the attachment path accepts up to five files of any
-   size and any declared type and forwards them to Gemini. There is no scan, no size bound, no
-   type restriction and no log of what was sent. "We tell staff not to" is the honest description
-   of the current control, and whether that is sufficient is a decision on the owner's list in
-   [`AURA-TODO.md`](AURA-TODO.md), not a claim this file should keep making.*
+   ⚠️ *Updated 2026-09-10 (`AU15`/`AU17`): the server-side attachment field accepts at most
+   five files, limits each to about 4 MB and each request to about 8 MB, allows five declared
+   MIME types, and logs count, declared types and encoded sizes when attachments pass. The
+   current client does not send attachments. The MIME type remains caller-declared and the
+   application does not inspect or classify file contents before forwarding them to Gemini.
+   These are cost and audit controls, not a PDPA control; the policy decision remains `AU17`.*
 
-   The feed has a stronger control: posts are created **only** by a Cloud Function that screens
-   them first, and `firestore.rules` denies client creation outright. ⚠️ Feed **comments** are not
-   screened (`AN13`).
+   Feed posts are created **only** by a Cloud Function that screens them first, and
+   `firestore.rules` denies client creation outright. Comments do not pass through the model;
+   the client and Firestore rules reject NRIC/FIN-shaped tokens (`AN13`). That deterministic
+   fence covers one identifier shape and must not be described as general privacy screening.
 3. **Demo isolation (client-side):** Demo Mode injects `MOCK_TEAM_DATA` and the roster path writes nothing — three separate latches short-circuit before `setDoc`, and the sandbox roster is generated in the browser and lost on reload. ⚠️ **There are no separate demo collections**, so this is a guard in the code rather than a boundary in the database; and it is not total — `FeedsView.jsx:158` calls `processFeedPost` with `isDemo` and no short-circuit, so a demo feed post does reach the production `feed_posts` collection and is hidden from live users by a **client-side** filter (`FeedsView.jsx:136`). *(Corrected 2026-08-15: previously claimed "strictly isolated Firebase collections".)*
 
 ### Transparency: alignment with IMDA's guidelines for generative AI chatbots
@@ -683,7 +674,7 @@ Onboarding a clinician is a lead adding a member document — **zero code edits,
 * **Engineering Governance:** Published the roster post-mortem, independent QC audit and sequenced remediation plan; pinned the previously unpinned `@google/generative-ai` dependency; established `CHANGELOG.md` and reconciled `package.json` with the documented version.
 
 ### NEXUS v1.5
-* **NEXUS Feeds Integration:** Deployed the Digital Watercooler for secure, PDPA-compliant clinical knowledge sharing and Community of Practice updates.
+* **NEXUS Feeds Integration:** Deployed the Digital Watercooler for internal team knowledge sharing and Community of Practice updates. *(Corrected 2026-09-10: the original release description called the feed “PDPA-compliant”; current code supports team scoping, screened post creation and an NRIC/FIN-shaped comment fence, but those controls do not establish that compliance claim.)*
 * **Immersive Lightbox UI:** Implemented distraction-free reading environments with nested real-time discussion threads.
 * **Smart Routing Architecture:** Engineered URL parameter detection to support secure deep-linking and cross-platform post sharing.
 * **Security Enhancements:** Executed a master anti-zombie logout flush to instantly kill lingering Firebase database connections and replaced all native browser alerts with secure, custom-branded confirmation modals.
@@ -710,7 +701,7 @@ Onboarding a clinician is a lead adding a member document — **zero code edits,
 > Previously headed *"Pending v1.8"*. v1.8.0 shipped on 2026-08-08 and neither item below was part of it; nothing in `src/` references either today. The heading no longer names a version, so it cannot go stale again — these are unbuilt, not scheduled.
 
 * **Admin Security Audit Logs:** Implementation of a transparent access tracking system within the Admin Panel to monitor user logins, profile alterations, and data export events.
-* **Enterprise Scaling and Multi-Tenancy:** Transitioning the app from a hardcoded single-team environment to a dynamic, database-driven configuration. This will allow multiple departments to utilise NEXUS with completely isolated data sub-collections and custom organisation logos.
+* ~~**Enterprise Scaling and Multi-Tenancy:** Transitioning the app from a hardcoded single-team environment to a dynamic, database-driven configuration.~~ **SUPERSEDED by v2.0.0:** team membership, roles, settings and operational data are data-driven under `teams/{teamId}`. Custom organisation logos remain unbuilt; multi-team isolation itself is implemented and covered by the Firestore rules emulator suite.
 
 ***
 
