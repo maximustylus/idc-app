@@ -26,6 +26,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { deriveFormClinicalData } from './formClinicalData';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = (name) => readFileSync(resolve(HERE, '..', 'components', name), 'utf8');
@@ -79,15 +80,14 @@ const returnedKeys = (text, afterMarker) => {
 /**
  * `AC5` moved the chat's parser to `src/utils/clinicalParse.js`, exported and
  * unit-tested (`clinicalParse.test.js`) — the extraction this file's own header
- * wished for. The chat side of the parity check follows it there. The FORM side
- * still lives inside `ConventionalForm.jsx` and is still read as text; when it
- * gets the same extraction, `formFlags` follows and the source-scan helpers go.
+ * wished for. `P4.3` did the same for the form. Its side of this comparison now
+ * calls the exported function, so comments and JSX formatting cannot satisfy it.
  */
 const chatFlags = () => returnedKeys(
     readFileSync(resolve(HERE, 'clinicalParse.js'), 'utf8'),
     'export const parseClinicalData',
 );
-const formFlags = () => returnedKeys(src('ConventionalForm.jsx'), 'const deriveFlags');
+const formFlags = () => Object.keys(deriveFormClinicalData({}));
 
 /**
  * Keys each pathway legitimately has to itself. Anything NOT listed here must
@@ -174,13 +174,15 @@ describe('both pathways ask the questions those flags come from', () => {
 
     /**
      * Both use the SAME parser. Two pathways deriving one flag two ways is exactly
-     * how CP9 happened, which is why `parseFallsAnswer` lives in `clinicalFlags.js`
-     * rather than in either component.
+     * how CP9 happened, which is why the shared form utility and chat parser both
+     * import `parseFallsAnswer` and `parseHealthierSg` from `clinicalFlags.js`.
      */
     it('both use the shared parsers rather than their own', () => {
-        ['AuraChat.jsx', 'ConventionalForm.jsx'].forEach((file) => {
-            expect(src(file), file).toMatch(/parseFallsAnswer/);
-            expect(src(file), file).toMatch(/parseHealthierSg/);
+        const chatParser = readFileSync(resolve(HERE, 'clinicalParse.js'), 'utf8');
+        const formParser = readFileSync(resolve(HERE, 'formClinicalData.js'), 'utf8');
+        [chatParser, formParser].forEach((parser) => {
+            expect(parser).toMatch(/parseFallsAnswer/);
+            expect(parser).toMatch(/parseHealthierSg/);
         });
     });
 });

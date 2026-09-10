@@ -61,7 +61,7 @@ sentence told a reader for nine days that a broken clinical score was live to th
 | | Count | Ids / rows |
 |---|---|---|
 | `DONE`, evidenced | 14 | `CP1` `CP2` `CP3` `CP5` `CP6` `CP7` `CP9` `CP12` `CP13` `CP14` `CP15` `CP17` `CP18` `CP19` |
-| `OPEN`, mine | 4 | `CP8` `CP16` · `P4.2` `P4.3` (open engineering rows that were missing from this count) |
+| `OPEN`, mine | 3 | `CP8` `CP16` · `P4.2` |
 | `OWNER DECISION`, console only | 1 | `CP7`'s last two steps — see *Turning App Check on*, below. The code is shipped and inert. |
 | `OPEN`, translation | 1 | `CP10`/`CD10` groups 2, 3 and the rest of 4 — group 1 and the slip's flag lines are shipped, see `7.7` |
 | `OWNER DECISION` | 17 | `CD4` `CD10` `CD11` `CD12` (design) `CD13` (translation review) · `CD14`–`CD16` (consent, referral partner, retention) · `CD17`–`CD25` (proposed functional measures; P9) |
@@ -244,7 +244,7 @@ Cheap, and each one removes a way the portal can drift back into a P1.
 |---|---|---|---|---|---|
 | 4.1 | One theme key | `CP12`. A prior *"FIX 1"* changed three files to `nexus-theme` and left four on `nexus_theme`, including `App.jsx`, which owns the class on `<html>` — splitting the setting along the pathway gate rather than unifying it. | Opus-alone | `DONE` | `189a61b` · `src/utils/theme.js` |
 | 4.2 | Share `selectCTA` and the tier table | Two copies kept in agreement by a comment that was **already false** (`CP9`). Move beside `calculateRiskScore` in `src/utils/`. `ctaTierParity.test.js` detects the drift; a shared module makes it unrepresentable, and that test can then be deleted rather than maintained. | Opus-alone | `OPEN` | — |
-| 4.3 | Test the remaining pure logic | `deriveFlags` and ~~`parseClinicalData`~~ have no tests. `calculateRiskScore` had none either, and it was wrong for its entire life. *`parseClinicalData` was extracted to `src/utils/clinicalParse.js` with tests under `AC5` (`AURA-TODO.md` 4.6); `deriveFlags` is what remains.* | Opus-alone | `OPEN` (`deriveFlags`) | `src/utils/clinicalParse.test.js` for the other half |
+| 4.3 | Test the remaining pure logic | ~~`deriveFlags` and `parseClinicalData` have no tests.~~ `parseClinicalData` was extracted to `src/utils/clinicalParse.js` with tests under `AC5` (`AURA-TODO.md` 4.6). The form derivation is now exported from `src/utils/formClinicalData.js`; the component calls that tested function for previews and submission. | Opus-alone | `DONE` | `src/utils/formClinicalData.test.js` — **32 tests**; focused derivation + pathway parity — **55 passed**; `npm run build` — pass; `npm test` — **110 files / 3,708 tests passed**; `npm run lint` — pass, 0 warnings |
 | 4.4 | Persist in-progress state | `CP12`. **`sessionStorage`, not `localStorage`** — the portal runs on community-centre terminals and clinic tablets, and answers about food insecurity and psychological distress left for the next person are identifying in practice. The result is mirrored on arrival and restored before the redirect effect runs; both pathways resume mid-assessment; `clearAssessment()` wipes id, answers and result together. | Opus-alone | `DONE` | `src/utils/assessmentSession.js` · 15 tests |
 | 4.5 | `path="*"` route | `CP12`. `firebase.json` rewrites everything to `index.html`, so a mistyped URL loaded the whole SPA and rendered **nothing** — a blank page, indistinguishable from a broken site, for visitors arriving from a QR code or a forwarded link. | Opus-alone | `DONE` | `NotFound.jsx` · 14 tests asserting the wildcard cannot shadow a real route, against react-router's own matcher |
 | 4.6 | One session id | `CP12`. **Five** were minted — the four screens plus a fallback in `ResultPage` — and all were shown as *"ID:"*. The one written to Firestore was the third, so an id quoted off any other screen matched nothing in the record, on a portal that invites returning respondents to type a previous id in. | Opus-alone | `DONE` | `getSessionId()` · `grep Math.random src/components/` returns **one hit, not a session id**: `AuraGreeting.jsx` (picks a quote). *(Two until 2026-09-06 — `AuraPulseBot.jsx`'s anonymous wellbeing-log key, `AU13`, closed in v2.12.3.)* *(Corrected 2026-09-03: this cell said "returns nothing", which was false — `AU13`'s own subject, and the document set's worked example of an evidence string that outran its grep.)* |
@@ -492,13 +492,12 @@ CD10  groups 2, 3, rest of 4                 ─ owner's call; group 2 is the UR
 CD4 / CD11                                   ─ owner's, in parallel, not blocked on me
 P3.4  CP8 + CP16: one live resource registry and freshness contract
 P4.2  share selectCTA                        ─ retires ctaTierParity.test.js
-P4.3  tests for deriveFlags                  ─ parseClinicalData done under AC5
 P6.2  P6.3                                    ─ CD12 owner design: PDF and share output
 CD14  CD15  CD16                             ─ owner's, from the RHS review (P8 below)
 CD17  through CD25                           ─ OWNER DECISION; proposed measures, no build authorised
 ```
 
-`P0.5`, `P4.4`–`P4.6`, `P5` and the completed translation work in `P7.7` were removed
+`P0.5`, `P4.3`–`P4.6`, `P5` and the completed translation work in `P7.7` were removed
 from the active queue on 2026-09-10: their own rows already record them as closed,
 `DONE`, or settled and shipped. `CD13` retains the native-speaker review that remains.
 This is a queue correction, not a new closure.
