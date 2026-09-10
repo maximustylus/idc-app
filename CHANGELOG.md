@@ -67,6 +67,11 @@ not changed by this release.
 
 ### Fixed
 
+- **`AC4` — the scoring comments now describe each pathway's real minutes value.**
+  The form's answer-chip mapping tops out at 65 minutes per session; the chat parser
+  can retain another finite value. This is a documentation correction only; weekly
+  scoring continues to use `pavsScore` and no runtime behavior changed.
+
 - **`AU18` — the backend and staff chat now read Gemini JSON through one parser.**
   `functions/responseParser.cjs` owns fence stripping, object extraction, JSON parsing
   and required-field checks. Cloud Functions translate its typed failures to their
