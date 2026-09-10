@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CTA_TIER_BY_ROUTE, selectCTA } from './ctaRouting';
+import { RESOURCE_IDS_BY_CTA_TIER } from './communityResourcePlan';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const resultPage = readFileSync(resolve(HERE, '..', 'components', 'ResultPage.jsx'), 'utf8');
@@ -124,7 +125,7 @@ describe('CTA route and tier contract', () => {
 describe('every shared tier is rendered by ResultPage', () => {
   const sharedTiers = [...new Set(Object.values(CTA_TIER_BY_ROUTE))];
   const bannerTiers = objectKeys(resultPage, 'CTA_BANNER');
-  const actionPlanTiers = objectKeys(resultPage, 'tierPrimaries');
+  const actionPlanTiers = Object.keys(RESOURCE_IDS_BY_CTA_TIER);
 
   it('has a visible banner', () => {
     expect(sharedTiers.filter((tier) => !bannerTiers.includes(tier))).toEqual([]);

@@ -824,11 +824,6 @@ service cloud.firestore {
     // Not listed as blocks, because the absence of a rule IS the deny. Recorded so a
     // future reader knows the omission was deliberate:
     //
-    //   `resources/{resourceId}`
-    //       The national resource registry. Seeded by `scripts/firestore_seed.cjs`
-    //       and read only by `publicTriageChat`, both on the Admin SDK. No client
-    //       code touches it, so it gets no client permission.
-    //
     //   `smart_database/{id}`
     //       AURA's append-only audit sink. Left global and unruled on purpose; it is
     //       never read back and its documents carry their own author.
