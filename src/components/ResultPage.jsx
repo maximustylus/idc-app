@@ -237,7 +237,7 @@ const CTA_BANNER = {
     It had no entry here, so `CTA_BANNER[ctaTier] || CTA_BANNER.START` quietly
     served "download the Healthy 365 app" to the group least able to act on it,
     and the CareLine referral vanished with no error. See
-    `src/utils/ctaTierParity.test.js`.
+    `src/utils/ctaRouting.test.js`.
 
     ⚠️ EVERY STRING BELOW IS COMPOSED FROM COPY ALREADY REVIEWED IN THIS FILE —
        the four `desc` translations of `ALL_RESOURCES.singhealth_careline` above

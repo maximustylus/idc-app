@@ -74,6 +74,13 @@ not changed by this release.
 
 ### Fixed
 
+- **Community `P4.2` — both public screening pathways now use one CTA routing
+  contract.** The route ladder and route-to-tier table moved to
+  `src/utils/ctaRouting.js`, with direct precedence and boundary tests. The form
+  now preserves the chat's established `SOCIAL_CARE` priority for an isolated
+  respondent aged 60+, and every shared tier remains covered by ResultPage's
+  visible banner and resource plan.
+
 - **Community `P4.3` — the conventional screening form's result derivation is now
   directly tested.** Activity, strength, clinical, social-needs, falls, Healthier SG,
   demographic and identifier outputs moved from the React component into

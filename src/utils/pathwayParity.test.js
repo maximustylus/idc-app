@@ -12,14 +12,14 @@
  * ⚠️ IT HAPPENED AGAIN, AND THIS FILE EXISTS BECAUSE OF IT. The falls and
  *    Healthier SG questions were added to the chat and not to the form, so for two
  *    commits a 60+ respondent who had fallen was routed to falls prevention
- *    through the chat and not through the form. `ctaTierParity.test.js` did not
+ *    through the chat and not through the form. The former CTA parity test did not
  *    catch it: that file compares the TIERS the two can emit, and both could still
  *    emit the same tiers. What diverged was the FLAGS behind them.
  *
  * So this checks the flag surface — the object each pathway hands to
  * `calculateRiskScore`, `selectCTA` and `servicesForSector`. Reading it out of the
- * source, like `ctaTierParity`, because both derivations live inside large JSX
- * components that pull in Firebase at module scope.
+ * source, as the former CTA parity test did, because the chat derivation still
+ * lives behind a large JSX component with Firebase imports.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -34,7 +34,7 @@ const src = (name) => readFileSync(resolve(HERE, '..', 'components', name), 'utf
 /**
  * The keys of the object a pathway returns to the scorer. Brace-matched from the
  * `return {` that closes its derivation, not indentation-matched — the lesson from
- * `ctaTierParity`, whose first draft reported `flexDirection` as a CTA tier.
+ * the former CTA parity test, whose first draft reported `flexDirection` as a tier.
  */
 const returnedKeys = (text, afterMarker) => {
     const from = text.indexOf(afterMarker);

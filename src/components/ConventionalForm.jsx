@@ -61,6 +61,7 @@ import { getSessionId, saveProgress, loadProgress, clearProgress } from '../util
 import { isValidSector } from '../utils/singapore/postalSectors';
 import { isSixtyPlus } from '../utils/clinicalFlags';
 import { DAYS_MIDPOINT, MINS_MIDPOINT, deriveFormClinicalData } from '../utils/formClinicalData';
+import { selectCTA } from '../utils/ctaRouting';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OPTION TABLES — values match AuraChatbot quick-reply strings exactly
@@ -177,19 +178,6 @@ const RACE_OPTIONS = [
   { value: 'Indian',  en: 'Indian',  ms: 'India',     zh: '印度人', ta: 'இந்தியர்'  },
   { value: 'Others',  en: 'Others',  ms: 'Lain-lain', zh: '其他',  ta: 'மற்றவர்கள்' },
 ];
-
-// Identical to AuraChatbot selectCTA()
-const selectCTA = ({ symptomFlag, medFlag, age, sdohPsychological, sdohFinancial, sdohSocial, pavsScore }) => {
-  if (symptomFlag)                      return 'URGENT';
-  if (medFlag)                          return 'CLINICAL';
-  if (age === '60+' && pavsScore < 150) return 'COMMUNITY';
-  if (sdohPsychological)                return 'WELLBEING';
-  if (sdohFinancial && pavsScore < 150) return 'FREE_FIRST';
-  if (sdohSocial && pavsScore < 150)    return 'COMMUNITY';
-  if (pavsScore < 150)                  return 'START';
-  if (pavsScore <= 300)                 return 'LEVEL_UP';
-  return 'ADVANCED';
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DICTIONARY
@@ -693,7 +681,7 @@ export default function ConventionalForm() {
     setBusy(true);
     try {
       const flags   = deriveFormClinicalData(f);
-      const ctaTier = selectCTA(flags);
+      const ctaTier = selectCTA(flags).tier;
       const score   = calculateRiskScore(flags);
       // ⚠️ VALIDATED, AND `null` WHEN IT IS NOT A REAL SECTOR. The form asks for
       //    the first two digits and only checked the LENGTH, so '99' or '74' —
