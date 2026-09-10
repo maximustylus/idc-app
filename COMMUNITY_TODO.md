@@ -61,7 +61,7 @@ sentence told a reader for nine days that a broken clinical score was live to th
 | | Count | Ids / rows |
 |---|---|---|
 | `DONE`, evidenced | 14 | `CP1` `CP2` `CP3` `CP5` `CP6` `CP7` `CP9` `CP12` `CP13` `CP14` `CP15` `CP17` `CP18` `CP19` |
-| `OPEN`, mine | 3 | `CP8` `CP16` · `P4.2` |
+| `OPEN`, mine | 2 | `CP8` `CP16` |
 | `OWNER DECISION`, console only | 1 | `CP7`'s last two steps — see *Turning App Check on*, below. The code is shipped and inert. |
 | `OPEN`, translation | 1 | `CP10`/`CD10` groups 2, 3 and the rest of 4 — group 1 and the slip's flag lines are shipped, see `7.7` |
 | `OWNER DECISION` | 17 | `CD4` `CD10` `CD11` `CD12` (design) `CD13` (translation review) · `CD14`–`CD16` (consent, referral partner, retention) · `CD17`–`CD25` (proposed functional measures; P9) |
@@ -148,7 +148,7 @@ The three that changed what a person was told about their own health.
 |---|---|---|---|---|---|
 | 1.1 | PAVS weekly minutes | `CP1`. `scoring.js` compared **per-session** minutes against the 150 **min/week** benchmark. `MINS_MIDPOINT` maxes at 65, so the threshold could never be met and every respondent was charged the inactivity point — including one doing 390 min/week, who was shown "Moderate Risk" beside a banner congratulating them. | Opus-alone | `DONE` | `35f46ad` · `src/utils/scoring.test.js` 9 tests, was 0 |
 | 1.2 | Missing data scored as health | `CP2`. Absent fields coerced to a passing value. Now `asNumber()` returns `null` and `null` counts as a deficit, not as fitness. | Opus-alone | `DONE` | `35f46ad`, same suite |
-| 1.3 | The isolation tier routed to nothing | `CP9`. `AuraChat.selectCTA` ranks `SOCIAL_CARE` **second**, behind only chest pain. `ResultPage` had no banner for it and both read sites fall back to `START`, so an isolated resident 60+ was told *"Download the Healthy 365 app"* and the CareLine referral vanished silently. Banner composed only from copy already reviewed in the same file. | Opus-alone | `DONE` | `189a61b` · `src/utils/ctaTierParity.test.js` 5 tests, fails on the bug before the fix |
+| 1.3 | The isolation tier routed to nothing | `CP9`. The shared `selectCTA` ranks `SOCIAL_CARE` **second**, behind only chest pain. `ResultPage` had no banner for it and both read sites fall back to `START`, so an isolated resident 60+ was told *"Download the Healthy 365 app"* and the CareLine referral vanished silently. Banner composed only from copy already reviewed in the same file. | Opus-alone | `DONE` | `189a61b` · `src/utils/ctaRouting.test.js` verifies every shared tier has a banner and resource plan |
 
 ---
 
@@ -243,7 +243,7 @@ Cheap, and each one removes a way the portal can drift back into a P1.
 | # | Item | Detail | Tier | Status | Evidence |
 |---|---|---|---|---|---|
 | 4.1 | One theme key | `CP12`. A prior *"FIX 1"* changed three files to `nexus-theme` and left four on `nexus_theme`, including `App.jsx`, which owns the class on `<html>` — splitting the setting along the pathway gate rather than unifying it. | Opus-alone | `DONE` | `189a61b` · `src/utils/theme.js` |
-| 4.2 | Share `selectCTA` and the tier table | Two copies kept in agreement by a comment that was **already false** (`CP9`). Move beside `calculateRiskScore` in `src/utils/`. `ctaTierParity.test.js` detects the drift; a shared module makes it unrepresentable, and that test can then be deleted rather than maintained. | Opus-alone | `OPEN` | — |
+| 4.2 | Share `selectCTA` and the tier table | ~~Two copies kept in agreement by a comment that was already false (`CP9`).~~ `src/utils/ctaRouting.js` now owns the route precedence and route-to-tier table. Chat and form both call it; the form now preserves the established `SOCIAL_CARE` priority for an isolated respondent aged 60+. The source-scanning parity test was replaced by direct contract and ResultPage coverage tests. | Opus-alone | `DONE` | `src/utils/ctaRouting.test.js` — **18 tests**; focused Community run — **73 passed**; `npm run build` — pass; `npm test` — **110 files / 3,721 tests passed**; `npm run lint` — pass, 0 warnings |
 | 4.3 | Test the remaining pure logic | ~~`deriveFlags` and `parseClinicalData` have no tests.~~ `parseClinicalData` was extracted to `src/utils/clinicalParse.js` with tests under `AC5` (`AURA-TODO.md` 4.6). The form derivation is now exported from `src/utils/formClinicalData.js`; the component calls that tested function for previews and submission. | Opus-alone | `DONE` | `src/utils/formClinicalData.test.js` — **32 tests**; focused derivation + pathway parity — **55 passed**; `npm run build` — pass; `npm test` — **110 files / 3,708 tests passed**; `npm run lint` — pass, 0 warnings |
 | 4.4 | Persist in-progress state | `CP12`. **`sessionStorage`, not `localStorage`** — the portal runs on community-centre terminals and clinic tablets, and answers about food insecurity and psychological distress left for the next person are identifying in practice. The result is mirrored on arrival and restored before the redirect effect runs; both pathways resume mid-assessment; `clearAssessment()` wipes id, answers and result together. | Opus-alone | `DONE` | `src/utils/assessmentSession.js` · 15 tests |
 | 4.5 | `path="*"` route | `CP12`. `firebase.json` rewrites everything to `index.html`, so a mistyped URL loaded the whole SPA and rendered **nothing** — a blank page, indistinguishable from a broken site, for visitors arriving from a QR code or a forwarded link. | Opus-alone | `DONE` | `NotFound.jsx` · 14 tests asserting the wildcard cannot shadow a real route, against react-router's own matcher |
@@ -491,13 +491,12 @@ CD13  native-speaker review of 19 strings    ─ owner's; the only thing left on
 CD10  groups 2, 3, rest of 4                 ─ owner's call; group 2 is the URGENT tier
 CD4 / CD11                                   ─ owner's, in parallel, not blocked on me
 P3.4  CP8 + CP16: one live resource registry and freshness contract
-P4.2  share selectCTA                        ─ retires ctaTierParity.test.js
 P6.2  P6.3                                    ─ CD12 owner design: PDF and share output
 CD14  CD15  CD16                             ─ owner's, from the RHS review (P8 below)
 CD17  through CD25                           ─ OWNER DECISION; proposed measures, no build authorised
 ```
 
-`P0.5`, `P4.3`–`P4.6`, `P5` and the completed translation work in `P7.7` were removed
+`P0.5`, `P4.2`–`P4.6`, `P5` and the completed translation work in `P7.7` were removed
 from the active queue on 2026-09-10: their own rows already record them as closed,
 `DONE`, or settled and shipped. `CD13` retains the native-speaker review that remains.
 This is a queue correction, not a new closure.
