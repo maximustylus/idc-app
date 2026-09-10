@@ -432,7 +432,7 @@ The next work is governed by the live ledgers:
 
 - [`AURA-TODO.md`](AURA-TODO.md): staff AURA, public chat and intelligence findings. The engineering queue is currently empty; ten items require owner decisions.
 - [`ROSTER_TODO.md`](ROSTER_TODO.md): deterministic roster queue and `Q`-series owner decisions. Current gaps include single-cell editing, half-day sessions, registration as an eligibility axis, supervision pairing and on-call semantics.
-- [`COMMUNITY_TODO.md`](COMMUNITY_TODO.md): four open engineering items, App Check console work, translation review and seventeen owner decisions.
+- [`COMMUNITY_TODO.md`](COMMUNITY_TODO.md): no unblocked engineering finding remains. App Check console work, translation review, resource-content freshness policy and the other owner decisions remain open.
 - [`docs/FUNCTIONAL-MEASURES-ADDIE.md`](docs/FUNCTIONAL-MEASURES-ADDIE.md): a `PROPOSED` plan only. No implementation is authorised while its blocking decisions remain open.
 
 ***

@@ -74,6 +74,14 @@ not changed by this release.
 
 ### Fixed
 
+- **Community `CP16` — the result page now consumes an importable, directly
+  tested resource registry and deterministic plan.** The 16 existing resource
+  ids, destinations, logos, four-language copy, ordering, regional additions,
+  deduplication and six-card limit are preserved. The unused 22-record Firestore
+  seed was removed; its run timestamp did not establish human verification and
+  its collection had no runtime reader. `CP8` remains an owner decision covering
+  content ownership, review cadence and the action taken when a claim is stale.
+
 - **Community `P4.2` — both public screening pathways now use one CTA routing
   contract.** The route ladder and route-to-tier table moved to
   `src/utils/ctaRouting.js`, with direct precedence and boundary tests. The form
