@@ -6,7 +6,100 @@
 
 > **Master the Grind · Protect the Pulse · Build the Future**
 
-## Current status
+## Who NEXUS supports
+
+NEXUS brings the daily work of a department into connected views: understand workload, configure a roster, check in on wellbeing, prepare operational documents and share updates with colleagues. A separate public pathway supports community health navigation.
+
+| Audience | How they use NEXUS |
+|---|---|
+| **Team members** | View assignments, request cover, record workload, complete wellbeing check-ins and participate in team discussions. |
+| **Department leads** | Configure duties and staffing rules, review assignment gaps and workload, manage team membership and generate operational analysis. |
+| **Community visitors** | Complete a structured health-screening conversation or form and receive a navigation result and printable handover slip. |
+| **Evaluators and collaborators** | Explore sample workflows in Demo Mode and inspect the implementation, verification evidence and governance ledgers. |
+
+## Implemented capabilities
+
+The capabilities below are `IMPLEMENTED` in current code. Each surface has a distinct purpose; the [architecture](#product-boundaries) and [security guidance](#security-access-and-data-governance) explain its controls and operational limits.
+
+### Roster Engine V2 — plan duties around your team's rules
+
+Turn a department's staffing requirements into a repeatable roster. Leads configure the staff pool, duties and constraints, then review the generated assignments, unfilled slots and warnings.
+
+- **Describe the service:** set duty days, grade bands and minimum grades, required skills, working hours, availability and FTE.
+- **Control assignment patterns:** configure weekly rotation, quotas, consecutive-day limits, forbidden pairs and named standby assignments.
+- **Review the result:** use department and personal-week views, inspect workload distribution and identify assignments the configuration cannot fill.
+- **Coordinate cover:** request a colleague's help from the relevant shift and respond through the roster's coverage cards.
+- **Take the roster with you:** export a PDF calendar, Excel workbook, CSV or ICS file for use outside the dashboard.
+
+The engine is a deterministic constraint solver: the same inputs produce the same result. AURA does not generate or alter rosters. Leads should review the result and the [known limitations](#known-limitations) before operational use.
+
+### Staff AURA Assistant — support everyday writing and check-ins
+
+Use conversational assistance for routine operational tasks, with a person reviewing the output and confirming proposed entries.
+
+- **Reflect on wellbeing:** hold a check-in conversation and review a proposed wellbeing log before saving it.
+- **Prepare a first draft:** create memos, SOPs and incident-report drafts, then download a Word document for review and editing.
+- **Record workload conversationally:** enter a request such as “I saw 145 patients in June,” review the extracted details and confirm the entry. Application validation checks the proposed write before it is saved.
+- **Review targeted edits:** when a requested revision substantially shortens an earlier draft, an application-generated note highlights the change in length so the reader can check for omissions.
+
+AURA uses Google Gemini. Generated text needs human review, particularly factual statements, references and procedural content. The [chatbot info card](docs/AURA-CHATBOT-INFO-CARD.md) explains intended use and data handling.
+
+### NEXUS Feeds — keep your team informed
+
+Share operational updates, useful resources and team discussions within your department. Feeds gives colleagues a common place to find posts and continue the conversation.
+
+- **Share and discuss:** publish team updates and add comments to posts.
+- **Find relevant content:** browse category filters and open posts in a focused reading view.
+- **Bring colleagues to the discussion:** share a direct link to a post; access remains subject to team membership.
+- **Organise posts with assistance:** submitted post text receives automated screening and categorisation before publication.
+
+Automated screening supports responsible sharing. Members remain responsible for the information they submit; the specific checks and their coverage are documented under [access and data controls](#access-and-data-controls).
+
+### Smart Workload / Intelligence — turn operational figures into discussion
+
+Review workload dashboards and historical reports, then use AI-assisted analysis to prepare a department-level discussion of patterns, pressures and priorities.
+
+- **See workload in context:** inspect operational figures and historical records within the selected team.
+- **Generate a written analysis:** team leads can request a Gemini-generated brief based on the supplied workload and staff profiles.
+- **Review both summaries:** examine the generated executive and team-facing text before archiving a report.
+- **Revisit prior analysis:** open archived reports alongside the team's historical workload information.
+
+These are decision-support drafts for human interpretation. Smart Analysis sends seniority bands rather than exact grades, and its Gemini payload can include staff names, titles and workload figures. Use information authorised for that purpose.
+
+### Public health screening — make the next step easier to understand
+
+The separate `/individuals` pathway lets community visitors answer structured questions through a conversation or conventional form, without a staff account.
+
+- **Choose a format:** use the conversational pathway or work through the form.
+- **Choose a language:** access English, Malay, Chinese or Tamil interface text; outstanding translation reviews are tracked in the Community ledger.
+- **Receive a navigation result:** application code parses answers, calculates the screening score and selects the next-step routing.
+- **Carry the result forward:** generate a printable handover slip to support a follow-up conversation.
+
+Gemini supplies optional acknowledgement wording in the conversational pathway. It does not determine the screening score or routing. The result is a health-navigation aid, not a diagnosis or treatment recommendation.
+
+## Using NEXUS responsibly
+
+NEXUS combines team access controls, application validation and human review. These practices help users apply its capabilities appropriately:
+
+- **Review before acting:** check roster gaps, generated documents and analysis before operational use. Confirm AURA-proposed entries only after reviewing the details.
+- **Use authorised information:** AI features send their relevant inputs to Google's Gemini service. Staff names, titles and workload figures may be included in Smart Analysis; avoid patient-identifiable information and use placeholders in drafts.
+- **Match the tool to the task:** staff wellbeing conversations support reflection; public screening supports health navigation. Professional judgement and appropriate care remain necessary.
+- **Choose a deliberate demonstration workflow:** Demo Mode supplies sample data, but some signed-in actions still use production services. Follow the [Demo Mode guidance](#demo-mode-and-smoke-testing).
+- **Consult the evidence:** code-enforced safeguards and model instructions are distinguished in the [guardrails](AURA-GUARDRAILS.md). Open engineering work and owner decisions remain visible in the [governance records](#the-paper-trail).
+
+## Product boundaries
+
+| Surface | Access and processing |
+|---|---|
+| **Roster Engine V2** | Team roster access; lead-only generation and configuration writes. The solver runs deterministically without Gemini. |
+| **Staff AURA Assistant** | The internal UI uses staff access controls. Its separate `chatWithAura` callable requires Firebase authentication; proposed writes are subject to application validation, confirmation and applicable Firestore Rules. |
+| **NEXUS Feeds** | `processFeedPost` verifies authentication and membership in the selected team. Post text is sent to Gemini for screening and categorisation; comments follow a separate write path. |
+| **Smart Workload / Intelligence** | `generateSmartAnalysis` re-checks team-lead membership. Its model payload includes operational data and may identify staff. |
+| **Public screening** | Public access through `/individuals`. `communityAck` handles acknowledgement wording; parsing, scoring and routing remain separate application code. |
+
+A prompt instruction to Gemini is a request to a non-deterministic model. A technical guarantee requires application code that validates, constrains or rejects the relevant behaviour.
+
+## Current release status
 
 | Item | Status | Evidence and meaning |
 |---|---|---|
@@ -17,63 +110,6 @@
 | Open work | `OPEN` / `OWNER DECISION` | The live queues are in `AURA-TODO.md`, `ROSTER_TODO.md` and `COMMUNITY_TODO.md`. README summaries never close those rows. |
 
 The deployed application therefore reports **v2.12.3**, while current `main` also contains the Unreleased AU18 parser fix and documentation corrections. See [`CHANGELOG.md`](CHANGELOG.md) for the authoritative release record.
-
-## Product boundaries
-
-NEXUS contains several connected surfaces with different users, data and assurance needs. They must be reviewed separately.
-
-| Surface | Access | AI involvement | What current code does |
-|---|---|---|---|
-| **Roster Engine V2** | Signed-in team members; lead-only generation and configuration writes | **None** | A deterministic constraint solver uses team rules, staff attributes and availability. The same inputs produce the same result. Coverage belongs to the roster surface. |
-| **Staff AURA Assistant** | Signed-in staff | **Google Gemini** via `chatWithAura` | Supports wellbeing conversation, document drafting and proposed workload entries. A proposed write is validated by application code and requires human confirmation. AURA does not generate or alter rosters. |
-| **NEXUS Feeds** | Signed-in members of the selected team | **Google Gemini** screens and categorises posts | Posts are written through `processFeedPost` after server-side membership checks. Comments use a separate direct-write path with client and Firestore-rule checks for NRIC/FIN-shaped tokens. |
-| **Smart Workload / Intelligence** | Team data; Smart Analysis generation is lead-only | **Google Gemini** for generated analysis | Sends seniority bands rather than exact grades. Current payloads can still contain identifiable staff names, titles and workload information. |
-| **Public `/individuals` screening** | Public; no staff account required | **Google Gemini** only for optional acknowledgement wording through `communityAck` | Screening questions, parsing, risk scoring and routing are separate from staff AURA. The Gemini acknowledgement does not calculate or control the result. |
-
-A prompt instruction to Gemini is a request to a non-deterministic model. It becomes a technical guarantee only when current application code validates, constrains or rejects the relevant behaviour.
-
-## Implemented capabilities
-
-### Roster Engine V2
-
-- Configurable duties, grade bands and floors, skills, FTE, unavailability, hours ceilings, consecutive-day limits, quotas, forbidden pairs, weekly rotation and named standby assignments.
-- Department and personal-week views.
-- PDF, Excel, CSV and ICS exports.
-- Person-to-person coverage requests and acceptance on the roster surface.
-
-### Staff AURA Assistant
-
-- Wellbeing conversations and check-in proposals.
-- Operational document drafting with `.docx` export.
-- Natural-language workload proposals that are checked against application allowlists and types before a person confirms the write.
-- Shared Gemini JSON parsing on the client and server (`AU18`).
-
-### NEXUS Feeds
-
-- Team-scoped posts, comments, filters, deep links and lightbox reading.
-- Server-side membership verification for post creation.
-- Gemini-assisted post screening and categorisation, plus a deterministic NRIC/FIN-shaped-token check.
-
-### Smart Workload / Intelligence
-
-- Workload dashboards and historical reports.
-- Lead-only generated analysis and archived reports.
-- Seniority-band transformation before Gemini; exact grades are excluded by tests, while names, titles and workload values may still be sent.
-
-### Public health screening
-
-- Separate conversational and conventional-form pathways under `/individuals`.
-- Deterministic parsing, scoring, result routing and printable handover slip.
-- Four interface languages: English, Malay, Chinese and Tamil. Native-speaker review remains an owner-governance task where recorded in `COMMUNITY_TODO.md`.
-- A separate, constrained `communityAck` endpoint for brief acknowledgement wording.
-
-## Claims this repository does not establish
-
-- It does not establish that NEXUS is anonymous, de-identified or PDPA-compliant.
-- It does not establish that Gemini receives no personal information. Smart Analysis can send names, titles and workload information; each AI endpoint has its own payload.
-- It does not establish that a model follows a prompt on every run. Read code controls and verification evidence separately from prompt wording.
-- It does not establish clinical validation of the public scoring model. The public pathway is a routing aid and is not a diagnosis.
-- It does not establish that Demo Mode is a separate Firebase environment. Most demo data is local, but the application is configured to the production Firebase project and some signed-in actions can call production services.
 
 ## Quick start
 
@@ -312,6 +348,7 @@ The current application version is **2.12.3**. [`SECURITY.md`](SECURITY.md) is t
 - **Roles:** lead authority is stored on the team membership document and checked again inside privileged Cloud Functions that use the Admin SDK. Client-side role checks are presentation controls only.
 - **Registration domain:** the institution-domain check is an onboarding aid. It can be bypassed through the Firebase Auth SDK and is not the authorization boundary.
 - **Feeds:** post creation runs through `processFeedPost`, which re-checks authentication and membership before writing. Gemini screens the post, while a deterministic check separately rejects NRIC/FIN-shaped tokens. Comments bypass Gemini and have narrower client and Firestore-rule checks. These controls do not establish general privacy screening or PDPA compliance.
+- **Privacy assurance:** the controls described here have specific scopes; they do not establish anonymity, de-identification or PDPA compliance. Assessment of an intended deployment must consider its actual data, access, use and governance arrangements.
 - **Attachments:** the staff callable limits count, declared MIME type and encoded size and records pass-through metadata. The client does not currently send attachments, and the server does not inspect file content. The policy decision remains `AU17`.
 - **Public screening:** `/individuals` is intentionally unauthenticated. Assessment records are not readable by clients. The separate `communityAck` endpoint is rate-limited; App Check code is present but enforcement remains pending the ordered `CP7` console rollout.
 - **Demo Mode:** mock data and write guards reduce demo-side effects, but Demo Mode is not a separate Firebase project or database boundary.
@@ -325,6 +362,8 @@ NEXUS has no EMR integration. Do not enter or upload patient-identifiable inform
 The roster engine is outside the card because it contains no model. NEXUS Feeds uses Gemini for post screening and categorisation and is described separately in this README and the governance ledgers. A dedicated public support mailbox remains an `OWNER DECISION` follow-up in `AURA-TODO.md`.
 
 ### Known limitations
+
+- **Public scoring validation:** the current scoring model has not been clinically validated against outcomes. Its results support navigation rather than clinical decisions.
 
 - **AURA writes require confirmation.** Staff AURA can propose a workload entry; application code validates the proposal and a person must confirm it before the client writes. Model wording alone does not execute a write.
 - **Coverage acceptance does not re-run every roster constraint.** Replacing the requester can create a consecutive-working-day issue for the accepting colleague. The requester is also not notified of the result (`Q3`).

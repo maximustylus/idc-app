@@ -56,6 +56,7 @@ not changed by this release.
 
 ### Documentation
 
+- Expanded the README around user workflows and implemented capabilities. Replaced the negative claims list with practical responsible-use guidance, moved identifier-check details into security guidance, and retained explicit Gemini data disclosures, screening limitations and governance links. No runtime behaviour or remediation status changed.
 - Reworked `README.md` as a current project entry point: separated the deterministic roster, staff AURA, Feeds, Smart Intelligence and public screening pathways; added a release-status snapshot, honest AI/data boundaries, local setup and verification commands; removed the duplicate release-history and supported-version tables; and linked current work back to the authoritative ledgers.
 - Rebased the Community functional-measures proposal onto current `main` and registered
   its nine owner decisions as `CD17`–`CD25` in `COMMUNITY_TODO.md`. The plan is explicitly
