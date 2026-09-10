@@ -14,6 +14,7 @@ import { readLanguage, applyDocumentLanguage } from '../utils/language';
 import { getSessionId, saveProgress, loadProgress, clearProgress } from '../utils/assessmentSession';
 // `AC5` — the parser lives in its own tested module now; see its header.
 import { parseClinicalData } from '../utils/clinicalParse';
+import { selectCTA } from '../utils/ctaRouting';
 import { FALLS_CHIPS, HSG_CHIPS } from '../data/screeningChips';
 
 // ── Cloud Function — same pattern as AuraPulseBot.jsx ────────────────────────
@@ -119,7 +120,6 @@ const GROUP_COLOURS = {
 // Source: Northern Singapore Health Ecosystem Report, Section 5.7
 const CTA = {
   symptoms_present: {
-    tier: 'URGENT',
     emoji: '⚠️',
     primaryStep:
       'Please see your GP or visit a polyclinic before starting any new exercise. Chest pain or dizziness during activity requires medical clearance first.',
@@ -131,7 +131,6 @@ const CTA = {
     ],
   },
   chronic_metabolic: {
-    tier: 'CLINICAL',
     emoji: '🩺',
     primaryStep:
       'Enrol in the "Manage Metabolic Health" programme at Woodlands Active Health Lab — 7 structured sessions, from SGD 48, with healthcare professional supervision.',
@@ -144,7 +143,6 @@ const CTA = {
     ],
   },
   senior_low_activity: {
-    tier: 'COMMUNITY',
     emoji: '🏠',
     primaryStep:
       'Visit your nearest Active Ageing Centre (AAC) — walk in, no appointment needed. Activities are largely free for residents aged 60 and above.',
@@ -157,7 +155,6 @@ const CTA = {
     ],
   },
   mental_health_first: {
-    tier: 'WELLBEING',
     emoji: '🌿',
     primaryStep:
       'Your wellbeing matters most. Connect with your polyclinic\'s counselling or mental health support service — this is your most important first step before any exercise programme.',
@@ -170,7 +167,6 @@ const CTA = {
     ],
   },
   financial_low_activity: {
-    tier: 'FREE_FIRST',
     emoji: '🆓',
     primaryStep:
       'Register for "Start2Move" — a completely FREE 6-session beginner exercise programme. Download the Healthy 365 app and search "Start2Move" under Explore → Events.',
@@ -183,7 +179,6 @@ const CTA = {
     ],
   },
   social_low_activity: {
-    tier: 'COMMUNITY',
     emoji: '👥',
     primaryStep:
       'Join Start2Move in a cohort group format — you will exercise alongside the same group of peers across 6 sessions, building both fitness and new friendships.',
@@ -196,7 +191,6 @@ const CTA = {
     ],
   },
   start2move: {
-    tier: 'START',
     emoji: '🚀',
     primaryStep:
       'Download the Healthy 365 app and search "Start2Move" under Explore → Events. Register for the free 6-session beginner programme — the most appropriate first step for your current activity level.',
@@ -209,7 +203,6 @@ const CTA = {
     ],
   },
   active_health_lab: {
-    tier: 'LEVEL_UP',
     emoji: '💪',
     primaryStep:
       'You meet Singapore\'s minimum activity guidelines — now build on this. Book a "Strength 2.0 Foundation" or "Balance & Muscular Fitness" session at Woodlands Active Health Lab, from SGD 6.',
@@ -222,7 +215,6 @@ const CTA = {
     ],
   },
   perform: {
-    tier: 'ADVANCED',
     emoji: '⚡',
     primaryStep:
       'You are well above minimum guidelines — outstanding. Try the "Perform 2.0 AMRAP" or "ENGINE Workout" at Woodlands Active Health Lab, from SGD 6, for structured high-intensity programming.',
@@ -235,7 +227,6 @@ const CTA = {
     ],
   },
   senior_isolated: {
-    tier: 'SOCIAL_CARE',
     emoji: '📞',
     primaryStep:
       'We strongly recommend connecting with SingHealth CareLine, a 24/7 tele-befriending and social support service. It is completely free for eligible seniors and ensures you always have someone to talk to or call for health advice.',
@@ -247,24 +238,6 @@ const CTA = {
       '💬 Silver Generation Office: Request a home care visit'
     ],
   },
-};
-
-const selectCTA = (parsed) => {
-  const {
-    pavsScore, symptomFlag, medFlag, age,
-    sdohPsychological, sdohFinancial, sdohSocial,
-  } = parsed;
-
-  if (symptomFlag)                              return CTA.symptoms_present;
-  if (age === '60+' && sdohSocial)              return CTA.senior_isolated;
-  if (medFlag)                                  return CTA.chronic_metabolic;
-  if (age === '60+' && pavsScore < 150)         return CTA.senior_low_activity;
-  if (sdohPsychological)                        return CTA.mental_health_first;
-  if (sdohFinancial && pavsScore < 150)         return CTA.financial_low_activity;
-  if (sdohSocial && pavsScore < 150)            return CTA.social_low_activity;
-  if (pavsScore < 150)                          return CTA.start2move;
-  if (pavsScore <= 300)                         return CTA.active_health_lab;
-  return CTA.perform;
 };
 
 // ─── DICTIONARY ───────────────────────────────────────────────────────────────
@@ -979,7 +952,8 @@ const AuraChatbot = () => {
     try {
       const parsed    = parseClinicalData(finalData);
       const riskScore = calculateRiskScore(parsed);
-      const ctaData   = selectCTA(parsed);
+      const ctaSelection = selectCTA(parsed);
+      const ctaData = CTA[ctaSelection.route];
 
       await recordTelemetry(parsed.postalSector, {
         event: 'aura_triage_complete_v2',
@@ -987,7 +961,7 @@ const AuraChatbot = () => {
         previousSessionId: parsed.previousId,
         payload: parsed,
         computedRisk: riskScore,
-        ctaTier: ctaData.tier,
+        ctaTier: ctaSelection.tier,
       });
 
       // The conversation has become a result; the in-progress copy is no longer
@@ -1019,7 +993,7 @@ const AuraChatbot = () => {
               postalSector: parsed.postalSector,
               sessionId,
               previousSessionId: parsed.previousId,
-              ctaTier: ctaData.tier,
+              ctaTier: ctaSelection.tier,
             },
           });
         }, 5000);
