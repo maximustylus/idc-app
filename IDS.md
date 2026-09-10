@@ -51,7 +51,7 @@ on it.**
 | File | Range | `P7` there means |
 |---|---|---|
 | [`ROSTER_TODO.md`](ROSTER_TODO.md) | `P0`–`P9` | *Persistence, config source, security rules* — Block C |
-| [`COMMUNITY_TODO.md`](COMMUNITY_TODO.md) | `P0`–`P7` | *Found by the pre-merge stress test* — `CP22`–`CP26` |
+| [`COMMUNITY_TODO.md`](COMMUNITY_TODO.md) | `P0`–`P9` | *Found by the pre-merge stress test* — `CP22`–`CP26`; `P8` records RHS decisions and `P9` records the proposed functional-measures decisions |
 | [`AURA-TODO.md`](AURA-TODO.md) | `P0`–`P8` | *The prompts themselves* — `AU7` `AU19` `AU20` `AU28` `AN5` `AN7` `AN12` `AU8`. **`P8` added 2026-08-24: the owner's sixteen guardrails** — `AU16`, and [`AURA-GUARDRAILS.md`](AURA-GUARDRAILS.md) |
 
 ⚠️ **The `AURA-TODO.md` series was opened without a row here, which rule 2 below requires in

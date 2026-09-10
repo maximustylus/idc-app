@@ -1,27 +1,34 @@
 # Functional measures in NEXUS Community: ADDIE ideation
 
-**Status:** ideation complete, nothing built. **Phase:** hand-off to build.
-**Written:** 2026-09-08 · **Ledger ids opened:** `CD17`–`CD24` (owner's).
+**Status:** `PROPOSED` — ideation revised, nothing built. **Phase:** `OWNER DECISION`
+before any build hand-off.
+**Written:** 2026-09-08 · **Ledger ids opened:** `CD17`–`CD25` (owner's).
 **Scope:** the `/individuals/*` surface. Roster side untouched.
+**Source verification:** `UNKNOWN` — the three citations were supplied by the owner, but
+their tables, protocols and licence implications have not been independently verified in
+this repository. That review is part of `CD21` and precedes implementation.
 
-> **This document does not authorise a build.** Eight decisions in §6 belong to the
-> owner, and three of them (`CD17`, `CD18`, `CD19`) change what a member of the public
-> is told about their own body. `COMMUNITY_TODO.md` already treats that class of change
+> **This document does not authorise a build.** Nine decisions in §6 belong to the
+> owner, and four of them (`CD17`, `CD18`, `CD19`, `CD25`) determine what is built
+> and what a member of the public is told about their own body. `COMMUNITY_TODO.md`
+> already treats that class of change
 > as the owner's, not engineering's (`CD4`, `CD10`, `CD11`). This one is larger than any
 > of those, because it is the first time the portal would return a physiological
 > measurement to a resident.
 
 ---
 
-## 0. The one-paragraph answer
+## 0. `HISTORICAL` — original proposal, `SUPERSEDED` by Revision 1
+
+This section records the first assessment. Revision 1 below is the current proposal.
 
 The feature is worth building and the version proposed cannot ship. Three things block
 it, each independently fatal: the app would be asking people it has just flagged with
 chest pain on exertion to perform a maximal exertion test alone at home; the South East
 Asian norms it would compute a percentile against do not exist for the 30-second chair
 stand and are publicly disputed for grip; and a percentile cannot be computed at all
-from four age bands when norms are stratified in fives. Change three things and the
-feature becomes strong: **NEXUS never administers a test, it accepts a value measured
+from three adult comparison bands when norms are stratified in fives. Change three things
+and the feature becomes strong: **NEXUS never administers a test, it accepts a value measured
 elsewhere and points people to where it is measured**; **the sit-to-stand instrument
 becomes the five-times version, which has an Asian consensus threshold**; and **the
 output is a band against a named threshold, not a percentile**. That version is safer,
@@ -31,7 +38,7 @@ connect them to.
 
 ---
 
-## 0.1 Revision 1 (2026-09-08): three sources supplied by the owner
+## 0.1 `PROPOSED` Revision 1 (2026-09-08): three sources supplied by the owner
 
 The owner supplied three primary sources after the first pass. They **materially improve
 the feature's feasibility** and correct one of my findings, which was stated too strongly.
@@ -236,10 +243,11 @@ one repetition is worth ten percentile points. A percentile implies a precision 
 measurement does not have. A band does not.
 
 **A percentile is also arithmetically impossible here.** Norms are stratified in
-five-year age bands. The portal collects four bands (21–40, 41–60, an unbounded 60+),
-and `parseAgeBand` actively discards a typed exact age. Sex is not collected; gender is,
-with two options. Collecting exact age to fix this is the single change that most
-degrades the record's de-identification, and it ripples through `isSixtyPlus`,
+five-year age bands. The portal collects three adult comparison bands (21–40, 41–60,
+and an unbounded 60+); Under 21 is a separate option outside the cited adult tables.
+`parseAgeBand` actively discards a typed exact age. Sex is not collected; gender is,
+with two options. Collecting a narrower age band would reduce data minimisation and
+ripple through `isSixtyPlus`,
 `selectCTA`'s `age === '60+'` comparison, the falls gate and the insights rollup.
 
 ### 2.5 The system
@@ -336,10 +344,10 @@ non-English-speaking older adults, which is precisely the population the gate ex
 Wearable ingestion is **not an increment on this portal, it is a different product.**
 Apple Health, Oura and Garmin all require an authenticated, persistent account and an
 OAuth grant. NEXUS Community is `sessionStorage` only, deliberately, on the stated
-grounds that the device may be a community centre terminal or a borrowed phone. An
-anonymous session cannot hold an OAuth token. There is also no server-side Apple Health
-API at all: HealthKit requires a native iOS app, which the no-install web portal is
-specifically designed to avoid.
+grounds that the device may be a community centre terminal or a borrowed phone. The
+current unauthenticated flow has no consented account to bind an OAuth grant to. There is
+also no server-side Apple Health API: HealthKit requires a native iOS app, which the
+no-install web portal is specifically designed to avoid.
 
 On **MedGemma**: its licence and model card bar use in diagnosis or treatment and state
 the outputs are not intended to directly inform decisions about care. Separately, it is
@@ -356,8 +364,8 @@ residents this portal was built for.
 **The architectural instruction for today** is therefore to design the boundary rather
 than the bridge. Record provenance on every measurement from the first version (who
 measured it, with what, when, under what protocol), version the threshold table, and keep
-NEXUS Community anonymous. Anything requiring an account becomes a separate, consented,
-authenticated surface, and that decision is `CD24`.
+the current portal free of resident accounts and contact details. Anything requiring an
+account becomes a separate, consented, authenticated surface, and that decision is `CD24`.
 
 ---
 
@@ -521,9 +529,9 @@ of all new strings in all four languages (this feature must not inherit the open
 debt); usability testing with residents over 60 on a low-end phone; an explicit safety
 walkthrough attempting to reach Door A while flagged.
 
-**Summative, structured on RE-AIM**, because the portal is anonymous and Reach and
-Adoption are measurable from aggregates while Effectiveness at the individual level is
-not:
+**Summative, structured on RE-AIM**, because the portal currently collects no resident
+account or contact details. Reach and Adoption are measurable from aggregates while
+Effectiveness at the individual level is not:
 - *Reach*: proportion offered Door A versus Door B; uptake of each.
 - *Effectiveness*: distribution of entered values as a data-quality signal; proportion
   below threshold; re-test rate via `previous_id`.
@@ -552,26 +560,26 @@ answerable later.
 
 ## 6. Owner decisions
 
-| Id | Decision | Recommendation |
-|---|---|---|
-| `CD17` | Does the portal ever ask a resident to perform a physical test? | **No.** Accept measured values and route to measurement. Encode as a build-failing test. |
-| `CD18` | Percentile or band? | **Band.** Revised: percentiles are now available (Tomkinson 2025). Use that source's own quintile framework, with the 20th percentile as the actionable threshold. |
-| `CD19` | Which sit-to-stand instrument, and is the feature gated to 60+? | Revised: **your 30-second chair stand is fine for 60+**, cited to CDC STEADI. Under-60 sit-to-stand has only a Swiss reference. Gating to 60+ is the cleaner call. |
-| `CD20` | Do these values enter `calculateRiskScore` or move the traffic light? | **No.** Follow the `falls` precedent. Display-only. |
-| `CD21` | Which threshold sources, and who signs them off? | Largely resolved by the three supplied sources. Remaining: confirm the reference population is described honestly as international and US, never as South East Asian. |
-| `CD22` | If a standalone report block is required, what is cut from page 1 to pay for it? | Prefer tiles in the existing strip at zero cost. |
-| `CD23` | Is re-measurement made real, or is "starting point" only wording? | Make it real, or the learning case weakens substantially. |
-| `CD24` | Wearables and AI: separate authenticated product, or extend this one? | **Separate.** Extending it ends the anonymity the portal is built on. |
-| `CD25` | Collect age in 5-year bands, or drop age-specific comparison? | **The remaining blocker.** Every reference is stratified in fives; the portal collects three bands. No 5-year band, no age-specific comparison. |
+| Id | Decision | Status | Proposed direction |
+|---|---|---|---|
+| `CD17` | Does the portal ever ask a resident to perform a physical test? | `OWNER DECISION` | **No.** Accept measured values and route to measurement. Encode as a build-failing test. |
+| `CD18` | Percentile or band? | `OWNER DECISION` | **Band.** Revised: percentiles are now available (Tomkinson 2025). Use that source's own quintile framework, with the 20th percentile as the actionable threshold. |
+| `CD19` | Which sit-to-stand instrument, and is the feature gated to 60+? | `OWNER DECISION` | Revised: **your 30-second chair stand is fine for 60+**, cited to CDC STEADI. Under-60 sit-to-stand has only a Swiss reference. Gating to 60+ is the cleaner call. |
+| `CD20` | Do these values enter `calculateRiskScore` or move the traffic light? | `OWNER DECISION` | **No.** Follow the `falls` precedent. Display-only. |
+| `CD21` | Which threshold sources, and who signs them off? | `OWNER DECISION` | The supplied sources narrow the options. Verify their tables, protocols, permitted use and population labels before approval; never describe them as South East Asian norms. |
+| `CD22` | If a standalone report block is required, what is cut from page 1 to pay for it? | `OWNER DECISION` | Prefer tiles in the existing strip at zero cost. |
+| `CD23` | Is re-measurement made real, or is "starting point" only wording? | `OWNER DECISION` | Make it real, or the learning case weakens substantially. |
+| `CD24` | Wearables and AI: separate authenticated product, or extend this one? | `OWNER DECISION` | **Separate.** Extending it requires account and consent architecture the portal does not have. |
+| `CD25` | Collect age in 5-year bands, or drop age-specific comparison? | `OWNER DECISION` | **The remaining blocker.** Every reference is stratified in fives; the portal collects three bands. No 5-year band, no age-specific comparison. |
 
 ---
 
-## 7. Hand-off
+## 7. `PROPOSED` build hand-off
 
 **Definition of done for the build phase:** every item in §4 v1, with the four release
 gates held: four-language copy reviewed by native speakers; the safety guard test in CI;
 the PDF height regression test passing at maximum content in all four languages; and no
 occurrence of the word percentile, or any ranking language, on a public surface.
 
-**Nothing in §4 should start before `CD17`, `CD18` and `CD19` are answered**, because each
-of them changes what is built rather than how.
+**Nothing in §4 should start before `CD17`, `CD18`, `CD19` and `CD25` are answered**,
+because each changes what is built rather than how.
