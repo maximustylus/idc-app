@@ -56,6 +56,11 @@ not changed by this release.
 
 ### Documentation
 
+- Rebased the Community functional-measures proposal onto current `main` and registered
+  its nine owner decisions as `CD17`–`CD25` in `COMMUNITY_TODO.md`. The plan is explicitly
+  `PROPOSED`; `CD17`, `CD18`, `CD19` and `CD25` block a build. Corrected its stale decision
+  count, age-band count and unsupported anonymity/de-identification wording, and reconciled
+  Community's status table with its open and completed body rows.
 - Reconciled `README.md` with current architecture and controls: CI builds before its
   bundle-level tests; coverage and roster mutation are outside AURA; attachment bounds
   and metadata logging from `AU15` are present but content classification remains open

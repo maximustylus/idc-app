@@ -58,13 +58,13 @@ sentence told a reader for nine days that a broken clinical score was live to th
 
 ## Status
 
-| | Count | Ids |
+| | Count | Ids / rows |
 |---|---|---|
 | `DONE`, evidenced | 14 | `CP1` `CP2` `CP3` `CP5` `CP6` `CP7` `CP9` `CP12` `CP13` `CP14` `CP15` `CP17` `CP18` `CP19` |
-| `OPEN`, mine | 2 | `CP8` `CP16` |
-| **`OWNER`, console only** | 1 | `CP7`'s last two steps — see *Turning App Check on*, below. The code is shipped and inert. |
+| `OPEN`, mine | 4 | `CP8` `CP16` · `P4.2` `P4.3` (open engineering rows that were missing from this count) |
+| `OWNER DECISION`, console only | 1 | `CP7`'s last two steps — see *Turning App Check on*, below. The code is shipped and inert. |
 | `OPEN`, translation | 1 | `CP10`/`CD10` groups 2, 3 and the rest of 4 — group 1 and the slip's flag lines are shipped, see `7.7` |
-| `OPEN`, **owner's decision** | 8 | `CD4` `CD10` `CD11` `CD12` (design) `CD13` (translation review) · `CD14` `CD15` `CD16` (consent, referral partner, retention — promoted from the RHS review, P8) |
+| `OWNER DECISION` | 17 | `CD4` `CD10` `CD11` `CD12` (design) `CD13` (translation review) · `CD14`–`CD16` (consent, referral partner, retention) · `CD17`–`CD25` (proposed functional measures; P9) |
 
 **`CD13` opened 2026-08-23** — a native-speaker review of the 19 strings already
 shipped in ms/zh/ta. Everything translated so far is machine output (group 1 by
@@ -209,7 +209,7 @@ Decisions taken by the owner, recorded so the reasoning survives:
 
 | | Decision |
 |---|---|
-| **Consent model** | **Anonymous only.** NEXUS recommends; it does not refer. No consent-to-refer, no partner queue, no closed-loop tracking, no re-contact. What that buys is that every privacy claim the portal makes can be *true* — and `CD5` is settled with it. |
+| **Consent model** | **No contact pathway.** NEXUS recommends; it does not refer. No consent-to-refer, partner queue, closed-loop tracking or re-contact exists. The screening flow collects no resident account or contact details; this does not establish a legal de-identification status. `CD5` is settled on that narrower basis. |
 | **Retention** | **24 months**, stated in both public notices and enforced nightly by `expireCommunityAssessments`. |
 
 | # | Item | Status | Evidence |
@@ -283,7 +283,8 @@ caregiver strain is merged into one wellbeing chip with financial pressure (the 
 value entry point in social prescribing, currently invisible); the 60+ cohort is screened
 on PAVS with no falls or frailty question; and the URGENT tier hands off to nobody. The
 review's central argument — that social prescribing needs a consent-to-refer path and a
-human on the other end, which de-identification forecloses — belongs with `CD5` in `P5`.
+human on the other end, which the absence of contact details forecloses — belongs with
+`CD5` in `P5`.
 
 ---
 
@@ -366,8 +367,8 @@ public, with none of the benefit.
 
 | # | Item | Detail | Tier | Status |
 |---|---|---|---|---|
-| 5.1 | Use it, or stop collecting it | **Settled: use it, anonymously.** `community_insights/latest` is a nightly Admin-SDK rollup of counts — region, sector and month — with small-cell suppression. ⚠️ `community_assessments` stays `read: if false` for every client: reopening it "just for the dashboard" is the `CP5` defect returning with a chart attached. | Opus-alone | `DONE` |
-| 5.2 | Move the notice to the front | **`DONE`** — `PathwaySelection` carries it before either pathway starts (`CP13`). | Whichever of the above: a short screen *before* the first question, with a way to decline and still get the result. Today the claim appears on the result page, after the data is written. | Fable-supervised | `OPEN` |
+| 5.1 | Use it, or stop collecting it | **Settled: use only the aggregate output.** `community_insights/latest` is a nightly Admin-SDK rollup of counts — region, sector and month — with small-cell suppression. The screening flow collects no resident account or contact details, but no claim of anonymity or legal de-identification is made. ⚠️ `community_assessments` stays `read: if false` for every client: reopening it "just for the dashboard" is the `CP5` defect returning with a chart attached. | Opus-alone | `DONE` |
+| 5.2 | Move the notice to the front | **`DONE`** — `PathwaySelection` carries it before either pathway starts (`CP13`). | Whichever of the above: a short screen *before* the first question, with a way to decline and still get the result. Today the claim appears on the result page, after the data is written. | Fable-supervised | `DONE` — stale `OPEN` cell corrected 2026-09-10; `CP13` was already closed with evidence. |
 
 ---
 
@@ -486,18 +487,21 @@ larger than one respondent.
 
 ```
 P0.3  App Check + rate limit                 ─ needs the Firebase console
-P7.7  translate falls + Healthier SG         ─ DONE · needs a native-speaker review
 CD13  native-speaker review of 19 strings    ─ owner's; the only thing left on group 1 + 4
 CD10  groups 2, 3, rest of 4                 ─ owner's call; group 2 is the URGENT tier
 CD4 / CD11                                   ─ owner's, in parallel, not blocked on me
-P0.5  abort the discarded request            ─ closed as AC8: not possible as stated
-P3.4  resource freshness
+P3.4  CP8 + CP16: one live resource registry and freshness contract
 P4.2  share selectCTA                        ─ retires ctaTierParity.test.js
 P4.3  tests for deriveFlags                  ─ parseClinicalData done under AC5
-P4.4  P4.5  P4.6                             ─ cheap, do together
-P5    the data question                      ─ owner's
+P6.2  P6.3                                    ─ CD12 owner design: PDF and share output
 CD14  CD15  CD16                             ─ owner's, from the RHS review (P8 below)
+CD17  through CD25                           ─ OWNER DECISION; proposed measures, no build authorised
 ```
+
+`P0.5`, `P4.4`–`P4.6`, `P5` and the completed translation work in `P7.7` were removed
+from the active queue on 2026-09-10: their own rows already record them as closed,
+`DONE`, or settled and shipped. `CD13` retains the native-speaker review that remains.
+This is a queue correction, not a new closure.
 
 ---
 
@@ -511,9 +515,34 @@ let the review be archived without losing them.
 
 | # | Id | Decision | Owner | Status |
 |---|---|---|---|---|
-| 8.1 | `CD14` | **A consent model** that lets a respondent opt into being contacted. Today the record is de-identified by construction (`CP3`) and nobody can be contacted, which is the right default — but a referral pathway needs the opposite, on the person's say-so. | **OWNER** | `OPEN` |
+| 8.1 | `CD14` | **A consent model** that lets a respondent opt into being contacted. Today the screening flow collects no resident account or contact details, so nobody can be contacted; whether the remaining fields and session identifiers meet any legal de-identification standard is not established. A referral pathway needs contact data only on the person's say-so. | **OWNER** | `OPEN` |
 | 8.2 | `CD15` | **A named partner willing to receive referrals**, and the channel they receive them through. The printable slip (3e.6) is the current answer; it assumes the person carries it. | **OWNER** | `OPEN` |
 | 8.3 | `CD16` | **The data-retention position in writing** — how long `community_assessments` are kept and who may read them. `functions/retention.cjs` implements *a* window; the policy it implements has not been stated anywhere a member of the public could read. Overlaps `P5` and the info card's §4. | **OWNER** | `OPEN` |
+
+---
+
+## P9 — `PROPOSED` functional measures · `CD17`–`CD25` · owner's
+
+[`docs/FUNCTIONAL-MEASURES-ADDIE.md`](docs/FUNCTIONAL-MEASURES-ADDIE.md) explores adding
+grip-strength and sit-to-stand values to the public pathway. Nothing is implemented or
+authorised for build. Revision 1 replaces the original recommendation where they differ.
+
+| # | Id | Decision | Status | Proposed direction |
+|---|---|---|---|---|
+| 9.1 | `CD17` | May the portal ask a resident to perform a physical test? | `OWNER DECISION` | No; accept a value measured elsewhere and route to supervised measurement. |
+| 9.2 | `CD18` | Show a percentile or a band? | `OWNER DECISION` | Use the source's quintile band and keep ranking language off public surfaces. |
+| 9.3 | `CD19` | Which sit-to-stand instrument and age range? | `OWNER DECISION` | Use the 30-second chair stand only for 60+, cited to CDC STEADI. |
+| 9.4 | `CD20` | May these values change `calculateRiskScore` or the traffic light? | `OWNER DECISION` | No; display and route without changing the existing risk score. |
+| 9.5 | `CD21` | Which threshold sources are approved, and how are their populations described? | `OWNER DECISION` | Independently verify the supplied tables, protocols, permitted use and population labels before approval. |
+| 9.6 | `CD22` | Where does the result fit in the report? | `OWNER DECISION` | Prefer tiles in the existing strip instead of displacing page-one safety content. |
+| 9.7 | `CD23` | Is re-measurement implemented or is “starting point” removed? | `OWNER DECISION` | Implement linkage only if it can be made real and explained accurately. |
+| 9.8 | `CD24` | Do wearables and AI extend this portal? | `OWNER DECISION` | Keep them in a separate authenticated, consented product. |
+| 9.9 | `CD25` | Collect five-year age bands or drop age-specific comparison? | `OWNER DECISION` | No age-specific result until the input can select a supported source band. |
+
+`CD17`, `CD18`, `CD19` and `CD25` block every build item because they determine the
+instrument, input shape and public output. The other five decisions remain open and must
+be settled before their affected build steps. Recommendations above are `PROPOSED`, not
+accepted policy.
 
 ---
 
