@@ -65,6 +65,14 @@ not changed by this release.
 - Corrected the stale `AU17` evidence text in `AURA-TODO.md` without changing the
   finding's `OPEN` owner-decision status.
 
+### Fixed
+
+- **`AU18` — the backend and staff chat now read Gemini JSON through one parser.**
+  `functions/responseParser.cjs` owns fence stripping, object extraction, JSON parsing
+  and required-field checks. Cloud Functions translate its typed failures to their
+  existing `HttpsError` messages; `AuraPulseBot.jsx` translates the same failures to
+  its existing unreadable-response message.
+
 ---
 
 ## [2.12.3] - 2026-09-06

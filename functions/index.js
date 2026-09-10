@@ -32,6 +32,7 @@ const { personaPrompt, LIVE_PERSONA_IDS } = require('./personas.cjs');
  */
 const guardrails = require('./guardrails.cjs');
 const attachmentRules = require('./attachmentRules.cjs');
+const responseParser = require('./responseParser.cjs');
 const GUARDRAIL_PREAMBLE = guardrails.GUARDRAIL_PREAMBLE;
 const GUARDRAIL_BRIEF = guardrails.GUARDRAIL_BRIEF;
 
@@ -373,44 +374,22 @@ function extractText(data) {
 }
 
 function parseJsonResponse(rawText, requiredFields) {
-    if (!requiredFields) requiredFields = [];
-    const stripped   = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const jsonStart  = stripped.indexOf('{');
-    const jsonEnd    = stripped.lastIndexOf('}') + 1;
-
-    if (jsonStart === -1 || jsonEnd === 0) {
-        throw new HttpsError('internal', 'AI returned a non-JSON response. Please retry.');
-    }
-
-    const jsonStr = stripped.substring(jsonStart, jsonEnd);
-
-    var parsed;
     try {
-        parsed = JSON.parse(jsonStr);
-    } catch (e) {
+        return responseParser.parseJsonResponse(rawText, requiredFields);
+    } catch (error) {
+        if (!(error instanceof responseParser.ResponseParseError)) throw error;
+        if (error.code === 'missing-fields') {
+            logger.warn('[NEXUS] Response missing required fields: ' + error.missing.join(', '));
+            throw new HttpsError(
+                'internal',
+                'The AI response was missing ' + error.missing.join(', ') + '. Please retry.',
+            );
+        }
+        if (error.code === 'non-json') {
+            throw new HttpsError('internal', 'AI returned a non-JSON response. Please retry.');
+        }
         throw new HttpsError('internal', 'AI returned malformed JSON. Please retry.');
     }
-
-    /**
-     * ⚠️ `AU19` — THIS ONLY WARNED, SO "REQUIRED" MEANT NOTHING. A response missing
-     *    a field was logged and returned anyway, and the list `chatWithAura` passed
-     *    did not even include `db_workload` — the one field that leads to a database
-     *    write was not among the fields the non-enforcing check did not enforce.
-     *
-     *    It throws now. The caller decides what is required; if it says a field is
-     *    required and the model omitted it, that is a malformed response and the
-     *    honest answer is a retry, not a half-parsed object flowing downstream.
-     */
-    const missing = requiredFields.filter((field) => !(field in parsed));
-    if (missing.length > 0) {
-        logger.warn('[NEXUS] Response missing required fields: ' + missing.join(', '));
-        throw new HttpsError(
-            'internal',
-            'The AI response was missing ' + missing.join(', ') + '. Please retry.',
-        );
-    }
-
-    return { text: jsonStr, parsed: parsed };
 }
 
 var AURA_SYSTEM_PROMPT = [

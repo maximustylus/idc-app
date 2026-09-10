@@ -145,6 +145,7 @@ describe('AU1 — the prompt does not claim to execute writes', () => {
 describe('AU19 — the required-field list matches the output format the prompt declares', () => {
     const declared = [...AURA_PROMPT.matchAll(/^\s*'\s*"([a-z_]+)":/gm)].map((m) => m[1]);
     const required = (src.match(/'reply', 'mode', 'diagnosis_ready', 'phase', 'energy', 'action'[^\]]*/) || [''])[0];
+    const parserSrc = readFileSync(resolve(process.cwd(), 'functions/responseParser.cjs'), 'utf8');
 
     it('the prompt declares the seven fields it always has', () => {
         ['reply', 'mode', 'diagnosis_ready', 'phase', 'energy', 'action', 'db_workload']
@@ -161,7 +162,8 @@ describe('AU19 — the required-field list matches the output format the prompt 
     });
 
     it('parseJsonResponse throws on a missing required field rather than warning', () => {
-        expect(src).toMatch(/const missing = requiredFields\.filter/);
+        expect(parserSrc).toMatch(/const missing = requiredFields\.filter/);
+        expect(parserSrc).toMatch(/throw new ResponseParseError\('missing-fields'/);
         expect(src).toMatch(/throw new HttpsError\(\s*'internal',\s*'The AI response was missing/);
     });
 });
